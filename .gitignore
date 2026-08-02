@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Build and test output
+dist/
+build/
+out/
+release/
+coverage/
+.next/
+.turbo/
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+!.env.template
+*.local
+
+# Logs and diagnostics
+*.log
+logs/
+crash-reports/
+diagnostics/
+
+# Secrets, keys, and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local databases and user data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+user-data/
+local-data/
+private/
+
+# Backups and archives
+repository-backups/
+backups/
+*.bak
+*.backup
+*.bundle
+*.bundle.metadata.json
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+*.tmp
