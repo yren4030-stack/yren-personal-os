@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 import {
+  makePublicGitHttpsEnvironment,
   rehearseCandidateStoreIsolation,
   rehearseLauncherPolicy,
 } from './windows-build-tools.launcher.mjs';
@@ -147,7 +148,7 @@ function probeTemporaryStorage() {
 
 
 const NODE_GYP_REPOSITORY =
-  'https://github.com/electron/node-gyp.git';
+  'git+ssh://git@github.com/electron/node-gyp.git';
 
 const NODE_GYP_COMMIT =
   '06b29aafb7708acef8b3669835c8a7857ebc92d2';
@@ -343,10 +344,8 @@ function probePinnedGitDependency({
   let commitVerified = false;
   let cleaned = false;
 
-  const gitEnv = {
-    ...env,
-    GIT_TERMINAL_PROMPT: '0',
-  };
+  const gitEnv =
+    makePublicGitHttpsEnvironment(env);
 
   try {
     const init = spawnSync(
