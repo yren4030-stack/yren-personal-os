@@ -1,6 +1,6 @@
 # Windows Shared Build Tools Preflight 2.0 Evidence
 
-> Status: Pre-merge technical verification
+> Status: Final technical verification
 > Captured: 2026-08-09T23:45:17+08:00
 > Scope: Shared Windows desktop build-chain qualification only
 
@@ -68,7 +68,7 @@ Direct non-interactive HTTPS fetch verification succeeded and the fetched commit
 
 Intermittent external network failures were observed during the automated network-effects probe. Because the same pinned HTTPS fetch succeeded in direct diagnostic runs, no build-tool configuration or acceptance criterion was changed solely to mask external network instability.
 
-The automated network-effects check therefore requires a later successful network window before the final shared qualification result is declared.
+A subsequent automated network-effects run completed successfully during a stable external network window. The remaining network gate therefore passed.
 
 ## Candidate fairness verification
 
@@ -127,10 +127,10 @@ The staged shared-preflight change set was verified for:
 Shared deterministic preflight: PASS
 Deterministic regression: 61/61 PASS
 Pinned HTTPS dependency fetch: VERIFIED
-Automated network-effects check: PENDING STABLE NETWORK WINDOW
+Automated network-effects check: PASS
 Candidate fairness BT-33 through BT-37: PASS
 Candidate fairness BT-38: PASS
-Final shared qualification: NOT YET DECLARED
+Final shared technical qualification: PASS
 ```
 
-Post-merge synchronization and BT-38 verification are complete. The remaining technical gate is a successful automated network-effects verification during a stable external network window.
+Post-merge BT-38 verification and automated network-effects verification are complete. All shared technical qualification gates have passed. Repository closure still requires this evidence update to be merged and both candidate worktrees to be resynchronized to the resulting canonical main commit.
