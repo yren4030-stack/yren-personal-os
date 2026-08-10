@@ -23,6 +23,78 @@ function withoutEnvKey(env, key) {
   );
 }
 
+const PUBLIC_GITHUB_HTTPS_INSTEAD_OF = [
+  'git+ssh://git@github.com/',
+  'ssh://git@github.com/',
+  'git@github.com:',
+  'git+ssh://git@ssh.github.com/',
+  'git+ssh://git@ssh.github.com:443/',
+  'ssh://git@ssh.github.com/',
+  'ssh://git@ssh.github.com:443/',
+  'git@ssh.github.com:',
+];
+
+export function makePublicGitHttpsEnvironment(
+  env = process.env,
+) {
+  let childEnv = withoutEnvKey(
+    env,
+    'GIT_TERMINAL_PROMPT',
+  );
+
+  childEnv.GIT_TERMINAL_PROMPT = '0';
+
+  const inheritedCountValue =
+    readEnvInsensitive(
+      childEnv,
+      'GIT_CONFIG_COUNT',
+    );
+
+  const inheritedCount =
+    inheritedCountValue === undefined
+      ? 0
+      : Number.parseInt(
+          inheritedCountValue,
+          10,
+        );
+
+  if (
+    !Number.isInteger(inheritedCount) ||
+    inheritedCount < 0
+  ) {
+    throw new Error(
+      'Invalid inherited GIT_CONFIG_COUNT',
+    );
+  }
+
+  childEnv = withoutEnvKey(
+    childEnv,
+    'GIT_CONFIG_COUNT',
+  );
+
+  let nextIndex = inheritedCount;
+
+  for (
+    const sourcePrefix
+    of PUBLIC_GITHUB_HTTPS_INSTEAD_OF
+  ) {
+    childEnv[
+      `GIT_CONFIG_KEY_${nextIndex}`
+    ] =
+      'url.https://github.com/.insteadOf';
+
+    childEnv[
+      `GIT_CONFIG_VALUE_${nextIndex}`
+    ] = sourcePrefix;
+
+    nextIndex += 1;
+  }
+
+  childEnv.GIT_CONFIG_COUNT =
+    String(nextIndex);
+
+  return childEnv;
+}
 function makeChildEnvironment({
   env,
   shimDirectory,
@@ -62,7 +134,9 @@ function makeChildEnvironment({
       'false';
   }
 
-  return childEnv;
+  return makePublicGitHttpsEnvironment(
+    childEnv,
+  );
 }
 
 function runThroughCmd(
@@ -113,6 +187,137 @@ function runThroughCmd(
 
     stderr:
       String(result.stderr || '').trim(),
+  };
+}
+
+
+function quoteCmdArgument(value) {
+  const text = String(value);
+
+  if (text.includes('"')) {
+    throw new Error(
+      'Shared launcher arguments must not contain double quotes',
+    );
+  }
+
+  return text;
+}
+
+export function runPnpmThroughSharedLauncher({
+  env = process.env,
+  cwd = process.cwd(),
+  forgeBootstrap = false,
+  storeDirectory = null,
+  pnpmArguments = [],
+  timeout = 300000,
+} = {}) {
+  let shimDirectory = null;
+  let commandResult = {
+    ok: false,
+    status: null,
+    errorCode: null,
+    stdout: '',
+    stderr: '',
+  };
+  let tempShimCleanup = false;
+
+  try {
+    shimDirectory = fs.mkdtempSync(
+      path.join(
+        os.tmpdir(),
+        'yren-corepack-shims-',
+      ),
+    );
+
+    const enable = runThroughCmd(
+      'corepack enable pnpm --install-directory .',
+      {
+        env,
+        cwd: shimDirectory,
+        timeout: 30000,
+      },
+    );
+
+    if (!enable.ok) {
+      return {
+        ...enable,
+        tempShimCleanup: false,
+      };
+    }
+
+    const pnpmCmd = path.join(
+      shimDirectory,
+      'pnpm.cmd',
+    );
+
+    if (!fs.existsSync(pnpmCmd)) {
+      return {
+        ok: false,
+        status: null,
+        errorCode: 'PNPM_SHIM_MISSING',
+        stdout: '',
+        stderr: '',
+        tempShimCleanup: false,
+      };
+    }
+
+    const childEnv =
+      makeChildEnvironment({
+        env,
+        shimDirectory,
+        forgeBootstrap,
+        storeDirectory,
+      });
+
+    const command = [
+      'pnpm',
+      ...pnpmArguments.map(
+        quoteCmdArgument,
+      ),
+    ].join(' ');
+
+    commandResult = runThroughCmd(
+      command,
+      {
+        env: childEnv,
+        cwd,
+        timeout,
+      },
+    );
+  } catch (error) {
+    commandResult = {
+      ok: false,
+      status: null,
+      errorCode:
+        error?.code ?? 'SHARED_LAUNCHER_ERROR',
+      stdout: '',
+      stderr:
+        error instanceof Error
+          ? error.message
+          : String(error),
+    };
+  } finally {
+    if (shimDirectory) {
+      try {
+        fs.rmSync(
+          shimDirectory,
+          {
+            recursive: true,
+            force: true,
+          },
+        );
+
+        tempShimCleanup =
+          !fs.existsSync(shimDirectory);
+      } catch {
+        tempShimCleanup = false;
+      }
+    }
+  }
+
+  return {
+    ...commandResult,
+    tempShimCleanup,
   };
 }
 
