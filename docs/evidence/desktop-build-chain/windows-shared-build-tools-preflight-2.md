@@ -80,9 +80,9 @@ Before candidate implementation begins, automated and direct verification confir
 - BT-36: Candidate A and Candidate B use separate cold pnpm qualification stores.
 - BT-37: Neither candidate consumes the other candidate's qualification store.
 
-BT-38 is intentionally not declared passed in this pre-merge evidence.
+BT-38 was intentionally not declared passed in the original pre-merge state. Post-merge verification has now confirmed BT-38.
 
-BT-38 requires the shared remediation to be merged into the canonical branch and both candidate worktrees to be synchronized to that resulting commit. The same automated fairness probe must then confirm that both candidates use the same shared launcher and preflight implementation.
+After the shared remediation was merged, both candidate worktrees were synchronized to canonical main commit `80ccd62d6e79de407387b365c1ae84ca3724c3c4`. The automated fairness probe then confirmed matching candidate HEADs, clean worktrees, placeholder-only candidate directories, and the same shared launcher and preflight implementation. BT-38 therefore passed.
 
 ## Regression verification
 
@@ -129,8 +129,8 @@ Deterministic regression: 61/61 PASS
 Pinned HTTPS dependency fetch: VERIFIED
 Automated network-effects check: PENDING STABLE NETWORK WINDOW
 Candidate fairness BT-33 through BT-37: PASS
-Candidate fairness BT-38: POST-MERGE VERIFICATION REQUIRED
+Candidate fairness BT-38: PASS
 Final shared qualification: NOT YET DECLARED
 ```
 
-The next technical gate is post-merge synchronization followed by the final network-effects and BT-38 verification.
+Post-merge synchronization and BT-38 verification are complete. The remaining technical gate is a successful automated network-effects verification during a stable external network window.

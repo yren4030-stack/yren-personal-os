@@ -7,7 +7,7 @@ import {
 } from './windows-build-tools.mjs';
 
 test(
-  'pre-merge Candidate fairness snapshot proves BT-33 through BT-35 and leaves BT-38 pending',
+  'post-merge Candidate fairness snapshot proves BT-33 through BT-38',
   () => {
     const snapshot =
       collectBuildToolsSnapshot({
@@ -57,8 +57,8 @@ test(
 
     assert.equal(
       snapshot.sameSharedLauncher,
-      false,
-      'Before remediation merge and A/B resync, BT-38 must remain pending',
+      true,
+      'After remediation merge and A/B resync, both candidates must use the same shared launcher and preflight',
     );
 
     const evaluation =
@@ -83,8 +83,8 @@ test(
 
     assert.equal(
       evaluation.failures.includes('BT-38'),
-      true,
-      'BT-38 must remain blocked until remediation is merged and both candidates are resynced',
+      false,
+      'BT-38 must pass after remediation merge and A/B resync',
     );
   },
 );
