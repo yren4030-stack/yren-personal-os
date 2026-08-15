@@ -73,7 +73,7 @@ async function createRuntime() {
     appearanceStorage: jsonFileStorage(join(app.getPath('userData'), 'appearance.json')),
     dshRoot,
     hostChildEntry,
-    startMockServer: () => startDshMockServer({ dshRoot, successText: MOCK_SUCCESS_JSON }),
+    startMockServer: () => startDshMockServer({ dshRoot, successText: MOCK_SUCCESS_JSON, repeatLast: true }),
   })
 }
 

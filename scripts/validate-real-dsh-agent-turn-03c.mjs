@@ -58,8 +58,11 @@ function runOne(args, opts) {
 }
 
 let failed = 0
-const plainTests = [
+const tsxTests = [
   'test/real-dsh-agent-turn.integration.test.mjs', // run first, under tsx
+  'test/desktop-repeated-turn.integration.test.mjs', // repeated Desktop validation turns, under tsx
+]
+const plainTests = [
   'test/real-dsh-host.integration.test.mjs',
   'test/runtime-dsh-launch-config.test.mjs',
   'test/proposal-protocol.test.mjs',
@@ -71,9 +74,9 @@ const plainTests = [
   'test/composition.integration.test.mjs',
 ]
 
-for (const file of plainTests) {
+for (const file of [...tsxTests, ...plainTests]) {
   process.stdout.write(`\n===== ${file} =====\n`)
-  const isTsx = file === 'test/real-dsh-agent-turn.integration.test.mjs'
+  const isTsx = tsxTests.includes(file)
   const args = isTsx
     ? ['--import', 'tsx/esm', join(repoRoot, file)]
     : [join(repoRoot, file)]
@@ -88,7 +91,7 @@ for (const file of plainTests) {
 }
 
 if (failed > 0) {
-  console.error(`\n${failed} of ${plainTests.length} test files failed.`)
+  console.error(`\n${failed} of ${tsxTests.length + plainTests.length} test files failed.`)
   process.exit(1)
 }
-console.log(`\nAll ${plainTests.length} test files passed (03C agent turn + 03B/03A + regression).`)
+console.log(`\nAll ${tsxTests.length + plainTests.length} test files passed (03C agent turn + 04A repeated turns + 03B/03A + regression).`)

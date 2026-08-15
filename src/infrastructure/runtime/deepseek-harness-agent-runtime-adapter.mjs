@@ -20,7 +20,17 @@ export class DeepSeekHarnessAgentRuntimeAdapter {
 
   async proposeNextProjectStep({ context }) {
     const instruction = buildProposalInstruction(context)
-    const result = await this.bridge.request('agent-turn', { context, instruction })
+    let result
+    try {
+      result = await this.bridge.request('agent-turn', { context, instruction })
+    } catch (error) {
+      // Bounded Main-side diagnostic for validation/development only; the
+      // Renderer keeps the stable AGENT_TURN_FAILED contract untouched.
+      const code = error && error.code ? error.code : 'AGENT_TURN_ERROR'
+      const message = error && error.message ? String(error.message).slice(0, 500) : 'unknown'
+      console.error(`[desktop-runtime] agent turn failed: code=${code} message=${message}`)
+      throw error
+    }
     const text = result && typeof result.text === 'string' ? result.text : ''
     return parseProposalText(text)
   }
