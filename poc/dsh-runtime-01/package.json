@@ -12,6 +12,7 @@
     "smoke:fake": "node scripts/smoke-fake.mjs",
     "smoke:dsh:boot": "node scripts/smoke-dsh-boot.mjs",
     "smoke:dsh:lifecycle": "node scripts/smoke-dsh-lifecycle.mjs",
+    "smoke:dsh:crash": "node scripts/smoke-dsh-crash-isolation.mjs",
     "smoke:dsh": "node scripts/smoke-dsh.mjs"
   }
 }
