@@ -1,0 +1,11 @@
+{
+  "name": "@yren/poc-dsh-runtime-01",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.14.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
