@@ -109,6 +109,30 @@ test('unit-test-fake runtime is ready and drives the real Proposal First flow th
   assert.equal((await runtime.facade.getWorkspace('p1')).data.summary.taskCount, 2)
 })
 
+test('startup failure marks runtime unavailable, propose stays RUNTIME_UNAVAILABLE, stop() cleans up', async (t) => {
+  // The binding spawns the DSH host child; a non-existent cwd makes the spawn
+  // fail deterministically, exercising the startup-failure path end to end.
+  const runtime = await makeRuntime(t, {
+    mode: DESKTOP_RUNTIME_MODES.VALIDATION_LOCAL_MOCK,
+    dshRoot: 'C:/nonexistent-dsh-root',
+    startMockServer: fakeMock,
+  })
+
+  await assert.rejects(runtime.start(), /ENOENT|spawn|error/i)
+
+  const status = runtime.facade.getRuntimeStatus()
+  assert.equal(status.ok, true)
+  assert.equal(status.data.state, 'unavailable')
+
+  const propose = await runtime.facade.proposeNextStep('p1')
+  assert.equal(propose.ok, false)
+  assert.equal(propose.error.code, ERROR_CODES.RUNTIME_UNAVAILABLE)
+
+  // Partial-startup cleanup must not throw (mock close + binding stop + DB close).
+  await assert.doesNotReject(runtime.stop())
+  assert.equal(runtime.facade.getRuntimeStatus().data.state, 'unavailable')
+})
+
 test('runtime.stop() disposes the SQLite composition and the facade rejects afterwards', async (t) => {
   const runtime = await makeRuntime(t, {
     mode: DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE,

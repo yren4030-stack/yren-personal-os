@@ -98,6 +98,7 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  console.log('[desktop-runtime] validation bootstrap: start')
   await createRuntime()
   try {
     await runtime.start()

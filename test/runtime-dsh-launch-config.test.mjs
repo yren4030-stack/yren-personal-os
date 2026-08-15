@@ -48,3 +48,35 @@ test('launch config does not hardcode the DSH root path', () => {
   assert.equal(entry.includes('real-dsh-host-child.mjs'), true)
   assert.equal(entry.includes('deepseek-harness-47f9438-source'), false)
 })
+
+test('inside Electron the child runs as plain Node (ELECTRON_RUN_AS_NODE=1)', () => {
+  // In Electron main, process.execPath is electron.exe, not node.exe. Without
+  // ELECTRON_RUN_AS_NODE the bridge would spawn a second Electron app that
+  // never emits the ready handshake (the 04A startup-timeout root cause).
+  const config = createDeepSeekHarnessLaunchConfig({
+    dshRoot: 'C:\\example\\deepseek-harness',
+    executable: 'C:\\electron.exe',
+    isElectron: true,
+  })
+
+  assert.equal(config.env.ELECTRON_RUN_AS_NODE, '1')
+  assert.equal(config.env.DSH_ROOT, 'C:\\example\\deepseek-harness')
+  assert.deepEqual(config.args, ['--import', 'tsx/esm', resolveRealDshHostChildEntry()])
+  assert.equal(config.cwd, 'C:\\example\\deepseek-harness')
+})
+
+test('outside Electron no ELECTRON_RUN_AS_NODE is injected', () => {
+  // Plain Node (Harness tests, 03C validator) spawns node.exe directly.
+  const config = createDeepSeekHarnessLaunchConfig({
+    dshRoot: 'C:\\example\\deepseek-harness',
+    executable: 'C:\\node.exe',
+    isElectron: false,
+  })
+  assert.equal('ELECTRON_RUN_AS_NODE' in config.env, false)
+})
+
+test('Electron detection is automatic from process.versions (no injection needed)', () => {
+  const detected = Boolean(process.versions && process.versions.electron)
+  const config = createDeepSeekHarnessLaunchConfig({ dshRoot: 'C:\\example\\deepseek-harness' })
+  assert.equal('ELECTRON_RUN_AS_NODE' in config.env, detected)
+})

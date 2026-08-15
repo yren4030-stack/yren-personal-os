@@ -51,6 +51,10 @@ export async function createDesktopProductRuntime({
   const disposers = []
   let state = mode === DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE ? 'ready' : 'starting'
 
+  // Bounded main-process startup diagnostics (dev/validation only; never
+  // forwarded to the Renderer). No credentials, env, or payload data.
+  const diag = (...parts) => console.log('[desktop-runtime]', ...parts)
+
   if (mode === DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE) {
     if (!fakeAgentRuntime || typeof fakeAgentRuntime.proposeNextProjectStep !== 'function') {
       throw new Error('unit-test-fake mode requires an explicit fakeAgentRuntime implementing AgentRuntimePort')
@@ -65,12 +69,26 @@ export async function createDesktopProductRuntime({
       if (typeof startMockServer !== 'function') {
         throw new Error('validation-local-mock mode requires startMockServer')
       }
-      const mock = await startMockServer()
+      let mock
+      try {
+        diag('mock server: starting')
+        mock = await startMockServer()
+      } catch (error) {
+        console.error(`[desktop-runtime] failed at stage=mock-server code=${error && error.code ? error.code : 'MOCK_SERVER_FAILED'}`)
+        throw error
+      }
+      diag('mock server: ready')
       extraEnv.POS_DSH_MOCK_BASE_URL = mock.baseURL
       extraEnv.POS_DSH_TEST_API_KEY = 'mock-key'
       disposers.push(() => mock.close())
     }
     binding = new DeepSeekHarnessHostBinding({ dshRoot, extraEnv })
+    diag('dsh binding: created')
+    binding.bridge.on('state', (bridgeState) => {
+      if (bridgeState === 'starting') diag('bridge: waiting-ready')
+      if (bridgeState === 'ready') diag('bridge: ready')
+      if (bridgeState === 'crashed') diag('bridge: crashed')
+    })
     disposers.push(() => binding.stop())
     agentRuntime = new DeepSeekHarnessAgentRuntimeAdapter(binding.bridge)
   }
@@ -95,10 +113,16 @@ export async function createDesktopProductRuntime({
     async start() {
       if (state === 'ready') return
       try {
-        if (binding) await binding.start()
+        if (binding) {
+          diag('dsh binding: starting')
+          await binding.start()
+          diag('agent runtime: ready')
+        }
         state = 'ready'
+        diag('startup complete')
       } catch (error) {
         state = 'unavailable'
+        console.error(`[desktop-runtime] failed at stage=binding-start code=${error && error.code ? error.code : 'START_FAILED'}`)
         throw error
       }
     },
