@@ -35,6 +35,7 @@ jobs:
         run: |
           node --version
           corepack --version
+          corepack enable
           corepack prepare pnpm@11.7.0 --activate
           pnpm --version
 
