@@ -5,7 +5,7 @@ export class FakeAgentRuntime {
   #sessions = new Map()
   #listeners = new Map()
   #nextSession = 1
-  #nextMessage = 1
+  #nextRun = 1
 
   async getRuntimeStatus() {
     return { state: this.#state, adapter: 'fake' }
@@ -23,20 +23,26 @@ export class FakeAgentRuntime {
     const session = this.#sessions.get(sessionId)
     if (!session) throw new RuntimeError('session-not-found', `Unknown session: ${sessionId}`)
 
-    const messageId = `fake-message-${this.#nextMessage++}`
+    const runId = `fake-run-${this.#nextRun++}`
     const text = typeof input === 'string' ? input : input?.text
     const response = `fake:${text ?? ''}`
 
     this.#state = RuntimeState.RUNNING
-    this.#emit(sessionId, { type: 'runtime-status', state: RuntimeState.RUNNING })
-    session.messages.push({ role: 'user', text: text ?? '', messageId })
-    this.#emit(sessionId, { type: 'user-message', messageId, text: text ?? '' })
-    session.messages.push({ role: 'assistant', text: response })
-    this.#emit(sessionId, { type: 'assistant-message', text: response })
+    this.#emit(sessionId, { type: 'runtime-status', runId, state: RuntimeState.RUNNING })
+    session.messages.push({ role: 'user', text: text ?? '', runId })
+    this.#emit(sessionId, { type: 'user-message', runId, text: text ?? '' })
+    session.messages.push({ role: 'assistant', text: response, runId })
+    this.#emit(sessionId, { type: 'assistant-message', runId, text: response })
     this.#state = RuntimeState.IDLE
-    this.#emit(sessionId, { type: 'runtime-status', state: RuntimeState.IDLE })
+    this.#emit(sessionId, { type: 'runtime-status', runId, state: RuntimeState.IDLE })
 
-    return { messageId, accepted: true }
+    return {
+      runId,
+      sessionId,
+      accepted: true,
+      completed: true,
+      finalResponse: response,
+    }
   }
 
   subscribe(sessionId, listener) {
