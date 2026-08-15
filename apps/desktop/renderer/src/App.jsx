@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { t } from './i18n/index.mjs'
 import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
+import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 
 const api = () => window.personalOS?.v1
 
@@ -123,9 +124,10 @@ const ROUTE_IDS = ['home', 'projects', 'project', 'settings']
 /* Appearance -> glass tokens                                          */
 /* ------------------------------------------------------------------ */
 
-function applyAppearance(appearance) {
-  applyGlassTokens(computeGlassTokens(appearance))
-  glassDebugLog(appearance)
+function applyAppearance(appearance, theme) {
+  applyTheme(theme)
+  applyGlassTokens(computeGlassTokens({ ...appearance, theme }))
+  glassDebugLog(appearance, theme)
 }
 
 /**
@@ -134,12 +136,13 @@ function applyAppearance(appearance) {
  * CSS variables and the real surface computed styles follow the slider.
  * Never shown in the UI; no personal data.
  */
-function glassDebugLog(appearance) {
+function glassDebugLog(appearance, theme) {
   if (typeof window === 'undefined' || !window.__GLASS_DEBUG__) return
   const rootStyle = getComputedStyle(document.documentElement)
   const surface = document.querySelector('.sidebar') || document.querySelector('.card')
   const surfaceStyle = surface ? getComputedStyle(surface) : null
   console.debug('[glass-debug]', {
+    theme,
     frost: appearance.frostIntensity,
     transparency: appearance.transparencyLevel,
     rootBlur: rootStyle.getPropertyValue('--glass-blur').trim(),
@@ -297,6 +300,9 @@ export default function App() {
   const [route, setRoute] = useState('home')
   const [selectedProject, setSelectedProject] = useState(null)
   const [appearance, setAppearance] = useState(null)
+  const [systemDark, setSystemDark] = useState(() => prefersDark())
+
+  const effectiveTheme = appearance ? resolveTheme(appearance.theme, systemDark) : 'light'
 
   useEffect(() => {
     let alive = true
@@ -309,8 +315,16 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (appearance) applyAppearance(appearance)
-  }, [appearance])
+    if (appearance) applyAppearance(appearance, effectiveTheme)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appearance, effectiveTheme])
+
+  // SYSTEM theme: react to OS theme changes while the app is running.
+  const followsSystem = Boolean(appearance && appearance.theme === 'system')
+  useEffect(() => {
+    if (!followsSystem) return undefined
+    return watchSystemTheme(setSystemDark)
+  }, [followsSystem])
 
   const navigate = (id) => {
     setRoute(id)
@@ -349,9 +363,9 @@ export default function App() {
           <div key={group.group}>
             <div className="nav-group-label">{group.group}</div>
             {group.items.map((item) => (
-              <button key={item.id} type="button" className={`nav-item${route === item.id ? ' active' : ''}`} onClick={() => navigate(item.id)}>
+              <button key={item.id} type="button" title={item.label} className={`nav-item${route === item.id ? ' active' : ''}`} onClick={() => navigate(item.id)}>
                 <Icon name={item.icon} size={17} />
-                <span>{item.label}</span>
+                <span className="nav-label">{item.label}</span>
                 {item.soon && <span className="soon-chip">{t('nav.comingSoon')}</span>}
               </button>
             ))}

@@ -1,11 +1,16 @@
 /* ==========================================================================
- * Personal OS — Liquid Glass Material System (baseline, light theme)
+ * Personal OS — Adaptive Liquid Glass Material System
  *
- * ONE global material engine. All surfaces read the --glass-* tokens below;
- * components never hand-write blur / opacity / border / shadow values. The
- * Renderer maps the persisted appearance state (frostIntensity /
- * transparencyLevel / theme) onto the tokens via applyAppearance().
+ * ONE global material engine (Liquid Glass) + two themes (light/dark, via
+ * document.documentElement.dataset.theme) + desktop-window adaptation.
+ *
+ * All surfaces read the centralized --glass-* and semantic tokens below;
+ * components never hand-write blur / opacity / border / shadow material
+ * values. The Renderer maps (frostIntensity / transparencyLevel / theme)
+ * onto the tokens via applyAppearance().
  * ========================================================================== */
+
+/* --- Light theme (default) ---------------------------------------------- */
 
 :root {
   /* Brand */
@@ -16,17 +21,42 @@
   --accent-focus: rgba(120, 73, 209, 0.32);
 
   /* Surfaces & text (light, cool neutral) */
-  --surface-bg: #f3f2f7;
+  --bg-base: #f1eff6;
+  --bg-depth-1: #f9f8fb;
+  --bg-depth-2: #e9e7f0;
   --text-primary: #1b1b1f;
   --text-secondary: #6b6b72;
   --text-tertiary: #9b9ba2;
+
+  /* Controls & structure */
+  --control-bg: rgba(0, 0, 0, 0.06);
+  --control-bg-active: #fff;
+  --control-solid: #fff;
+  --control-border: 1px solid rgba(0, 0, 0, 0.08);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.7);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.95);
+  --hover-bg: rgba(0, 0, 0, 0.045);
+  --chip-bg: rgba(0, 0, 0, 0.05);
+  --track-bg: rgba(0, 0, 0, 0.08);
+  --empty-bg: rgba(255, 255, 255, 0.35);
+  --divider: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.14);
+  --glass-edge-top: rgba(255, 255, 255, 0.55);
+
+  /* Status */
+  --status-success: #34c759;
+  --status-warning: #ff9f0a;
+  --status-danger: #ff453a;
+  --error-bg: rgba(255, 69, 58, 0.07);
+  --error-border: rgba(255, 69, 58, 0.18);
+  --error-text: #b3261e;
 
   /* Radii */
   --radius-card: 18px;
   --radius-control: 12px;
   --radius-nav: 10px;
 
-  /* Liquid Glass tokens — defaults matching computeGlassTokens (60/40).
+  /* Liquid Glass tokens — defaults matching computeGlassTokens (light, 60/40).
      The Renderer overrides these live per appearance. */
   --glass-bg: rgba(255, 255, 255, 0.583);
   --glass-blur: 19.2px;
@@ -34,6 +64,50 @@
   --glass-shadow: rgba(255, 255, 255, 0.352) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.032), 0 6px 24px rgba(0, 0, 0, 0.061);
   --glass-saturation: 1.26;
   --glass-highlight: rgba(255, 255, 255, 0.352);
+}
+
+/* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
+
+:root[data-theme='dark'] {
+  --accent-soft: rgba(120, 73, 209, 0.26);
+  --accent-tint: rgba(120, 73, 209, 0.18);
+  --accent-focus: rgba(120, 73, 209, 0.5);
+
+  --bg-base: #15161a;
+  --bg-depth-1: #1b1d23;
+  --bg-depth-2: #101116;
+  --text-primary: #f2f2f6;
+  --text-secondary: #b9bbc3;
+  --text-tertiary: #7e808a;
+
+  --control-bg: rgba(255, 255, 255, 0.08);
+  --control-bg-active: rgba(255, 255, 255, 0.16);
+  --control-solid: #26282f;
+  --control-border: 1px solid rgba(255, 255, 255, 0.12);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.16);
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --chip-bg: rgba(255, 255, 255, 0.08);
+  --track-bg: rgba(255, 255, 255, 0.14);
+  --empty-bg: rgba(255, 255, 255, 0.05);
+  --divider: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --glass-edge-top: rgba(255, 255, 255, 0.1);
+
+  --status-success: #32d74b;
+  --status-warning: #ffd60a;
+  --status-danger: #ff453a;
+  --error-bg: rgba(255, 69, 58, 0.14);
+  --error-border: rgba(255, 69, 58, 0.32);
+  --error-text: #ff8a80;
+
+  /* Pre-JS dark glass defaults (graphite smoked glass). */
+  --glass-bg: rgba(34, 36, 42, 0.55);
+  --glass-blur: 19.2px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(255, 255, 255, 0.1) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 24px rgba(0, 0, 0, 0.35);
+  --glass-saturation: 1.1;
+  --glass-highlight: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -61,21 +135,47 @@ body {
     radial-gradient(900px 540px at 88% 2%, rgba(178, 158, 126, 0.13), transparent 58%),
     radial-gradient(1200px 700px at 50% 112%, rgba(96, 110, 148, 0.14), transparent 65%),
     radial-gradient(700px 420px at 30% 80%, rgba(142, 152, 180, 0.09), transparent 60%),
-    linear-gradient(165deg, #f9f8fb 0%, #f1eff6 55%, #e9e7f0 100%);
+    linear-gradient(165deg, var(--bg-depth-1) 0%, var(--bg-base) 55%, var(--bg-depth-2) 100%);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+:root[data-theme='dark'] body {
+  /* Graphite depth: restrained cool undertones, not pure black. */
+  background:
+    radial-gradient(1100px 620px at 12% 6%, rgba(110, 122, 160, 0.11), transparent 62%),
+    radial-gradient(900px 540px at 88% 2%, rgba(152, 134, 106, 0.07), transparent 58%),
+    radial-gradient(1200px 700px at 50% 112%, rgba(88, 102, 140, 0.1), transparent 65%),
+    radial-gradient(700px 420px at 30% 80%, rgba(120, 130, 160, 0.06), transparent 60%),
+    linear-gradient(165deg, var(--bg-depth-1) 0%, var(--bg-base) 55%, var(--bg-depth-2) 100%);
 }
 
 /* --- Glass surfaces ------------------------------------------------------ */
 
 .card,
 .glass {
+  position: relative;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   border: var(--glass-border);
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-card);
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+/* Soft inner top light — the "edge refraction impression" of Liquid Glass.
+   A static gradient overlay, no extra blur, no repaint cost. */
+.card::before,
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--glass-edge-top), transparent 38%);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .card-hover {
@@ -84,7 +184,7 @@ body {
 .card-hover:hover {
   transform: translateY(-2px);
   border-color: rgba(120, 73, 209, 0.25);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 14px 34px rgba(0, 0, 0, 0.09);
+  box-shadow: var(--glass-shadow), 0 14px 34px rgba(0, 0, 0, 0.1);
 }
 
 /* --- App shell ----------------------------------------------------------- */
@@ -94,6 +194,7 @@ body {
   height: 100%;
   padding: 12px;
   gap: 12px;
+  min-width: 0;
 }
 
 .sidebar {
@@ -104,16 +205,20 @@ body {
   padding: 14px 10px 10px;
   border-radius: 20px;
   overflow-y: auto;
+  min-width: 0;
 }
 
 .main {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 20px 28px;
 }
 
 .page {
   max-width: 1240px;
+  min-width: 0;
 }
 
 /* --- Brand --------------------------------------------------------------- */
@@ -123,12 +228,14 @@ body {
   align-items: center;
   gap: 10px;
   padding: 6px 8px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--divider);
   margin-bottom: 10px;
+  min-width: 0;
 }
 .brand-mark {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   border-radius: 10px;
   background: var(--accent);
   color: #fff;
@@ -142,17 +249,24 @@ body {
   font-weight: 700;
   letter-spacing: -0.2px;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .brand-sub {
   font-size: 11px;
   color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sidebar-foot {
   margin-top: auto;
   padding: 12px 8px 4px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--divider);
   font-size: 11px;
   color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 /* --- Navigation ---------------------------------------------------------- */
@@ -163,6 +277,7 @@ body {
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
   padding: 12px 10px 6px;
+  white-space: nowrap;
 }
 
 .nav-item {
@@ -181,7 +296,7 @@ body {
   transition: background-color 0.14s ease, color 0.14s ease;
 }
 .nav-item:hover {
-  background: rgba(0, 0, 0, 0.045);
+  background: var(--hover-bg);
   color: var(--text-primary);
 }
 .nav-item.active {
@@ -203,7 +318,7 @@ body {
   line-height: 1;
   padding: 3px 6px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--chip-bg);
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -212,6 +327,7 @@ body {
 
 .page-header {
   margin: 4px 0 20px;
+  min-width: 0;
 }
 .page-title {
   font-size: 28px;
@@ -226,6 +342,7 @@ body {
 }
 .section {
   margin-bottom: 24px;
+  min-width: 0;
 }
 .section-title {
   font-size: 16px;
@@ -247,6 +364,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  flex-shrink: 0;
   transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, transform 0.12s ease, opacity 0.14s ease;
 }
 .btn:active:not(:disabled) {
@@ -268,13 +386,13 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--btn-secondary-bg);
   color: var(--text-primary);
-  border: var(--glass-border);
+  border: var(--control-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--btn-secondary-bg-hover);
 }
 
 .btn-ghost {
@@ -282,7 +400,7 @@ body {
   color: var(--text-secondary);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-bg);
   color: var(--text-primary);
 }
 
@@ -296,15 +414,17 @@ select:focus-visible {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+  min-width: 0;
 }
 .stat-card {
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .stat-label {
   font-size: 13px;
@@ -338,16 +458,16 @@ select:focus-visible {
   flex-shrink: 0;
 }
 .status-dot.ready {
-  background: #34c759;
-  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.15);
+  background: var(--status-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 15%, transparent);
 }
 .status-dot.starting {
-  background: #ff9f0a;
-  box-shadow: 0 0 0 3px rgba(255, 159, 10, 0.15);
+  background: var(--status-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-warning) 15%, transparent);
 }
 .status-dot.unavailable {
-  background: #ff453a;
-  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.15);
+  background: var(--status-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-danger) 15%, transparent);
 }
 
 /* --- Project cards ------------------------------------------------------- */
@@ -356,6 +476,7 @@ select:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
+  min-width: 0;
 }
 
 .project-card {
@@ -369,11 +490,16 @@ select:focus-visible {
   font: inherit;
   color: inherit;
   cursor: pointer;
+  min-width: 0;
 }
 .project-title {
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.1px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .project-meta {
   font-size: 13px;
@@ -389,14 +515,16 @@ select:focus-visible {
 
 .list-card {
   padding: 6px 18px;
+  min-width: 0;
 }
 .list-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 11px 2px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--divider);
   font-size: 14px;
+  min-width: 0;
 }
 .list-row:last-child {
   border-bottom: none;
@@ -425,13 +553,14 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .chip-accent {
   background: var(--accent-tint);
   color: var(--accent);
 }
 .chip-neutral {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--chip-bg);
   color: var(--text-secondary);
 }
 
@@ -441,8 +570,10 @@ select:focus-visible {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
   margin: 12px 0 20px;
+  min-width: 0;
 }
 .detail-grid {
   display: grid;
@@ -450,11 +581,10 @@ select:focus-visible {
   gap: 16px;
   align-items: start;
   margin-bottom: 24px;
+  min-width: 0;
 }
-@media (max-width: 1080px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
+.detail-grid > * {
+  min-width: 0;
 }
 
 .proposal-card {
@@ -463,6 +593,9 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  /* Level 3: floating proposal surface keeps a slightly deeper lift. */
+  box-shadow: var(--glass-shadow), 0 14px 34px -12px rgba(0, 0, 0, 0.14);
 }
 .proposal-title {
   font-size: 15px;
@@ -482,14 +615,15 @@ select:focus-visible {
   display: flex;
   gap: 10px;
   margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .error-banner {
   padding: 12px 16px;
   border-radius: var(--radius-control);
-  background: rgba(255, 69, 58, 0.07);
-  border: 1px solid rgba(255, 69, 58, 0.18);
-  color: #b3261e;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--error-text);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -501,9 +635,9 @@ select:focus-visible {
   text-align: center;
   color: var(--text-secondary);
   font-size: 13px;
-  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border: 1px dashed var(--control-border);
   border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--empty-bg);
 }
 .boot {
   height: 100%;
@@ -517,7 +651,7 @@ select:focus-visible {
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--control-border);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -536,11 +670,13 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 .field-label {
   font-size: 13px;
@@ -550,6 +686,7 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
   font-weight: 600;
 }
@@ -560,48 +697,18 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.segmented {
-  display: inline-flex;
-  padding: 4px;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  align-self: flex-start;
-}
-.segmented button {
-  height: 32px;
-  padding: 0 20px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
-}
-.segmented button.active {
-  background: #fff;
-  color: var(--text-primary);
-  font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-.segmented button:focus-visible {
-  outline: 2px solid var(--accent-focus);
-  outline-offset: 1px;
-}
-
 select {
   height: 40px;
   padding: 0 12px;
   border-radius: var(--radius-control);
-  border: var(--glass-border);
-  background: #fff;
+  border: var(--control-border);
+  background: var(--control-solid);
   font: inherit;
   font-size: 14px;
   color: var(--text-primary);
   align-self: flex-start;
   min-width: 200px;
+  max-width: 100%;
 }
 
 input[type='range'] {
@@ -615,7 +722,7 @@ input[type='range'] {
 input[type='range']::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--track-bg);
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -623,7 +730,7 @@ input[type='range']::-webkit-slider-thumb {
   height: 16px;
   margin-top: -5px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--control-bg-active);
   border: 2px solid var(--accent);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   transition: transform 0.14s ease;
@@ -661,14 +768,68 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--scrollbar-thumb);
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.22);
+  background-color: color-mix(in srgb, var(--scrollbar-thumb) 150%, transparent);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ==========================================================================
+ * Desktop-window adaptation
+ * ========================================================================== */
+
+/* Compact sidebar (icons only, tooltips via title attr) + 2-col stats. */
+@media (max-width: 1179px) {
+  .sidebar {
+    width: 76px;
+    padding: 14px 8px 10px;
+  }
+  .sidebar .brand {
+    justify-content: center;
+    padding: 6px 0 14px;
+  }
+  .sidebar .brand-name,
+  .sidebar .brand-sub,
+  .sidebar .nav-group-label,
+  .sidebar .nav-label,
+  .sidebar .soon-chip,
+  .sidebar .sidebar-foot {
+    display: none;
+  }
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Project Detail: stack tasks + pending proposals vertically. */
+@media (max-width: 1080px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Narrow desktop: tighter padding, wider settings, smaller project cards. */
+@media (max-width: 900px) {
+  .main {
+    padding: 8px 14px 20px;
+  }
+  .page-title {
+    font-size: 26px;
+  }
+  .project-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .settings-card {
+    max-width: none;
+  }
 }

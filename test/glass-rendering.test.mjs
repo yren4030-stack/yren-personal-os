@@ -51,8 +51,10 @@ test('no later CSS rule overrides background/backdrop-filter/opacity on glass su
     assert.equal(rule.body.includes('opacity'), false, `${selector} must not set opacity`)
   }
   // No rule AFTER the shared rule may set a background on any *-card surface.
+  // Pseudo-element edge-highlight layers (::before) are excluded: they are
+  // the intended inner-light overlay, not a glass-background override.
   for (const rule of rules.slice(sharedIndex + 1)) {
-    if (/card|sidebar/.test(rule.selector)) {
+    if (/card|sidebar/.test(rule.selector) && !rule.selector.includes('::before')) {
       assert.equal(rule.body.includes('background'), false, `later rule ${rule.selector} must not override glass background`)
       assert.equal(rule.body.includes('backdrop-filter'), false, `later rule ${rule.selector} must not override backdrop-filter`)
     }
@@ -88,13 +90,21 @@ test('glass tokens are defined only in :root and consumed by the shared surface 
     assert.ok(rootRule.body.includes(token), `${token} must be defined in :root`)
     assert.ok(shared.body.includes(token), `${token} must be consumed by the shared surface rule`)
   }
-  // No rule other than :root and the shared surface rule may reference the
-  // material-core tokens. (--glass-border is intentionally also consumed by
-  // controls such as .btn-secondary and select.)
+  // No rule other than the :root scopes and the shared surface rule may
+  // reference the material-core tokens. (--glass-border is intentionally also
+  // consumed by controls such as .btn-secondary and select; --glass-shadow may
+  // be LAYERED on depth-hierarchy surfaces such as .card-hover:hover and
+  // .proposal-card, but never replaced by a fixed shadow.)
   for (const rule of rules) {
-    if (rule.selector === ':root' || rule.selector === '.card, .glass') continue
-    for (const token of ['--glass-bg', '--glass-blur', '--glass-saturation', '--glass-shadow']) {
+    if (rule.selector === ':root' || rule.selector.startsWith(':root[') || rule.selector === '.card, .glass') continue
+    for (const token of ['--glass-bg', '--glass-blur', '--glass-saturation']) {
       assert.equal(rule.body.includes(token), false, `${rule.selector} must not reference ${token}`)
+    }
+    if (rule.body.includes('--glass-shadow')) {
+      assert.ok(
+        rule.body.includes('box-shadow: var(--glass-shadow),'),
+        `${rule.selector} must layer --glass-shadow, not replace it`,
+      )
     }
   }
   assert.ok(css.split('--glass-highlight').length - 1 >= 1, '--glass-highlight token must exist')
