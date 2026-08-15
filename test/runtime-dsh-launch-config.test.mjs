@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 import {
   createDeepSeekHarnessLaunchConfig,
@@ -79,4 +80,26 @@ test('Electron detection is automatic from process.versions (no injection needed
   const detected = Boolean(process.versions && process.versions.electron)
   const config = createDeepSeekHarnessLaunchConfig({ dshRoot: 'C:\\example\\deepseek-harness' })
   assert.equal('ELECTRON_RUN_AS_NODE' in config.env, detected)
+})
+
+test('explicit hostChildEntry overrides the source-sibling default and is preserved exactly in bridge args', () => {
+  // An existing file different from the default child entry proves the
+  // explicit value wins and is forwarded verbatim.
+  const explicit = fileURLToPath(new URL('../src/infrastructure/runtime/dsh-launch-config.mjs', import.meta.url))
+  assert.ok(existsSync(explicit))
+  assert.notEqual(explicit, resolveRealDshHostChildEntry())
+
+  const config = createDeepSeekHarnessLaunchConfig({
+    dshRoot: 'C:\\example\\deepseek-harness',
+    executable: 'C:\\node.exe',
+    hostChildEntry: explicit,
+  })
+  assert.equal(config.args[2], explicit)
+})
+
+test('missing explicit hostChildEntry fails closed before spawn (CHILD_ENTRY_MISSING)', () => {
+  assert.throws(
+    () => createDeepSeekHarnessLaunchConfig({ dshRoot: 'C:\\example\\deepseek-harness', hostChildEntry: 'C:\\missing\\real-dsh-host-child.mjs' }),
+    (error) => error && error.code === 'CHILD_ENTRY_MISSING',
+  )
 })

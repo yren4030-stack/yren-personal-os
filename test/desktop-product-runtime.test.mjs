@@ -133,6 +133,36 @@ test('startup failure marks runtime unavailable, propose stays RUNTIME_UNAVAILAB
   assert.equal(runtime.facade.getRuntimeStatus().data.state, 'unavailable')
 })
 
+test('missing explicit hostChildEntry fails closed: no mock, no spawn, RUNTIME_UNAVAILABLE, clean stop', async (t) => {
+  let mockCalls = 0
+  const trackingMock = async () => {
+    mockCalls += 1
+    return { baseURL: 'http://127.0.0.1:59999', close: async () => {} }
+  }
+
+  const runtime = await makeRuntime(t, {
+    mode: DESKTOP_RUNTIME_MODES.VALIDATION_LOCAL_MOCK,
+    dshRoot: 'C:/dsh',
+    startMockServer: trackingMock,
+    hostChildEntry: 'C:/missing/real-dsh-host-child.mjs',
+  })
+
+  // Fail closed BEFORE any side effects: the mock must not even start.
+  assert.equal(mockCalls, 0)
+  assert.equal(runtime.facade.getRuntimeStatus().data.state, 'unavailable')
+
+  // start() is a no-op: no spawn is attempted, state stays unavailable.
+  await assert.doesNotReject(runtime.start())
+  assert.equal(runtime.facade.getRuntimeStatus().data.state, 'unavailable')
+
+  const propose = await runtime.facade.proposeNextStep('p1')
+  assert.equal(propose.ok, false)
+  assert.equal(propose.error.code, ERROR_CODES.RUNTIME_UNAVAILABLE)
+
+  await assert.doesNotReject(runtime.stop())
+  assert.equal(runtime.facade.getRuntimeStatus().data.state, 'unavailable')
+})
+
 test('runtime.stop() disposes the SQLite composition and the facade rejects afterwards', async (t) => {
   const runtime = await makeRuntime(t, {
     mode: DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE,

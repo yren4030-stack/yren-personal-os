@@ -8,6 +8,7 @@
  *   - validation-local-mock: real DSH Host child + official local mock LLM
  *   - unit-test-fake       : an EXPLICITLY supplied fake (tests only)
  */
+import { existsSync } from 'node:fs'
 import { createProjectReadProposeComposition } from './project-read-propose-composition.mjs'
 import { DesktopProductFacade } from '../application/desktop-product-facade.mjs'
 import { AppearanceService } from '../application/appearance-service.mjs'
@@ -21,11 +22,28 @@ export const DESKTOP_RUNTIME_MODES = Object.freeze({
 })
 
 /**
+ * Fail-closed agent runtime for the missing-child-entry path. The facade gates
+ * every call on runtime state (RUNTIME_UNAVAILABLE), so this is never invoked
+ * while the runtime is unavailable — it is NOT a fake fallback and never
+ * produces a proposal.
+ */
+const UNAVAILABLE_AGENT_RUNTIME = Object.freeze({
+  async proposeNextProjectStep() {
+    throw new Error('agent runtime unavailable (DSH host child entry missing)')
+  },
+})
+
+/**
  * @param {object} options
  * @param {string} options.mode
  * @param {string} options.databasePath
  * @param {{ load: () => object, save: (object) => void }} options.appearanceStorage
  * @param {string} [options.dshRoot]  required for real-dsh / validation-local-mock
+ * @param {string} [options.hostChildEntry]  explicit DSH host child entry for the
+ *   bridge; Desktop Main supplies it (resolved outside the Vite bundle). When
+ *   supplied and missing, the runtime FAILS CLOSED (no spawn, state
+ *   unavailable). When omitted, the launch-config source-sibling default
+ *   applies (03C / tests running from source).
  * @param {() => Date} [options.clock]
  * @param {object} [options.fakeAgentRuntime]  required for unit-test-fake
  * @param {() => Promise<{ baseURL: string, close: () => Promise<void> }>} [options.startMockServer]
@@ -36,6 +54,7 @@ export async function createDesktopProductRuntime({
   databasePath,
   appearanceStorage,
   dshRoot,
+  hostChildEntry,
   clock,
   fakeAgentRuntime,
   startMockServer,
@@ -64,33 +83,43 @@ export async function createDesktopProductRuntime({
     if (!dshRoot) {
       throw new Error(`desktop runtime mode "${mode}" requires dshRoot`)
     }
-    const extraEnv = {}
-    if (mode === DESKTOP_RUNTIME_MODES.VALIDATION_LOCAL_MOCK) {
-      if (typeof startMockServer !== 'function') {
-        throw new Error('validation-local-mock mode requires startMockServer')
+    // Fail closed BEFORE starting the mock or spawning: an explicit child entry
+    // that cannot be resolved means the DSH child must never launch.
+    const entryMissing = hostChildEntry !== undefined && (hostChildEntry === null || !existsSync(hostChildEntry))
+    if (entryMissing) {
+      console.error(`[desktop-runtime] failed at stage=child-entry-resolve code=CHILD_ENTRY_MISSING${hostChildEntry ? ` path=${hostChildEntry}` : ''}`)
+      console.error('[desktop-runtime] fail closed: no DSH child spawn; runtime reports RUNTIME_UNAVAILABLE')
+      state = 'unavailable'
+      agentRuntime = UNAVAILABLE_AGENT_RUNTIME
+    } else {
+      const extraEnv = {}
+      if (mode === DESKTOP_RUNTIME_MODES.VALIDATION_LOCAL_MOCK) {
+        if (typeof startMockServer !== 'function') {
+          throw new Error('validation-local-mock mode requires startMockServer')
+        }
+        let mock
+        try {
+          diag('mock server: starting')
+          mock = await startMockServer()
+        } catch (error) {
+          console.error(`[desktop-runtime] failed at stage=mock-server code=${error && error.code ? error.code : 'MOCK_SERVER_FAILED'}`)
+          throw error
+        }
+        diag('mock server: ready')
+        extraEnv.POS_DSH_MOCK_BASE_URL = mock.baseURL
+        extraEnv.POS_DSH_TEST_API_KEY = 'mock-key'
+        disposers.push(() => mock.close())
       }
-      let mock
-      try {
-        diag('mock server: starting')
-        mock = await startMockServer()
-      } catch (error) {
-        console.error(`[desktop-runtime] failed at stage=mock-server code=${error && error.code ? error.code : 'MOCK_SERVER_FAILED'}`)
-        throw error
-      }
-      diag('mock server: ready')
-      extraEnv.POS_DSH_MOCK_BASE_URL = mock.baseURL
-      extraEnv.POS_DSH_TEST_API_KEY = 'mock-key'
-      disposers.push(() => mock.close())
+      binding = new DeepSeekHarnessHostBinding({ dshRoot, extraEnv, ...(hostChildEntry !== undefined ? { hostChildEntry } : {}) })
+      diag('dsh binding: created')
+      binding.bridge.on('state', (bridgeState) => {
+        if (bridgeState === 'starting') diag('bridge: waiting-ready')
+        if (bridgeState === 'ready') diag('bridge: ready')
+        if (bridgeState === 'crashed') diag('bridge: crashed')
+      })
+      disposers.push(() => binding.stop())
+      agentRuntime = new DeepSeekHarnessAgentRuntimeAdapter(binding.bridge)
     }
-    binding = new DeepSeekHarnessHostBinding({ dshRoot, extraEnv })
-    diag('dsh binding: created')
-    binding.bridge.on('state', (bridgeState) => {
-      if (bridgeState === 'starting') diag('bridge: waiting-ready')
-      if (bridgeState === 'ready') diag('bridge: ready')
-      if (bridgeState === 'crashed') diag('bridge: crashed')
-    })
-    disposers.push(() => binding.stop())
-    agentRuntime = new DeepSeekHarnessAgentRuntimeAdapter(binding.bridge)
   }
 
   const composition = createProjectReadProposeComposition({ databasePath, agentRuntime, clock })
@@ -111,7 +140,9 @@ export async function createDesktopProductRuntime({
     agentRuntime,
     composition,
     async start() {
-      if (state === 'ready') return
+      // Only 'starting' may transition to ready; fail-closed (unavailable) and
+      // stopped runtimes never spawn or flip state.
+      if (state !== 'starting') return
       try {
         if (binding) {
           diag('dsh binding: starting')

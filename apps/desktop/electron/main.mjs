@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 
 import { createDesktopProductRuntime, DESKTOP_RUNTIME_MODES } from '../../../src/composition/desktop-product-runtime.mjs'
+import { resolveDesktopHostChildEntry } from '../../../src/infrastructure/runtime/desktop-child-entry.mjs'
 import { seedValidationProjectIfEmpty } from '../../../src/application/desktop-validation-seed.mjs'
 import { startDshMockServer } from '../../../test/support/dsh-mock-server.mjs'
 
@@ -52,11 +53,26 @@ async function createRuntime() {
     throw new Error('unit-test-fake is not a valid Desktop Main runtime mode')
   }
 
+  // Explicit DSH host child entry, resolved from stable dev contexts — NEVER
+  // from a bundled module location (Vite would point at .vite/build/...).
+  // Null means unresolved: the composition fails closed (no spawn).
+  const hostChildEntry = resolveDesktopHostChildEntry({
+    appPath: app.getAppPath(),
+    bundleDir: __dirname,
+    cwd: process.cwd(),
+  })
+  if (!hostChildEntry) {
+    console.error('[desktop-runtime] failed at stage=child-entry-resolve code=CHILD_ENTRY_MISSING')
+  } else {
+    console.log(`[desktop-runtime] dsh child entry: ${hostChildEntry}`)
+  }
+
   runtime = await createDesktopProductRuntime({
     mode,
     databasePath: join(app.getPath('userData'), 'personal-os.db'),
     appearanceStorage: jsonFileStorage(join(app.getPath('userData'), 'appearance.json')),
     dshRoot,
+    hostChildEntry,
     startMockServer: () => startDshMockServer({ dshRoot, successText: MOCK_SUCCESS_JSON }),
   })
 }
