@@ -11,6 +11,7 @@
     "test": "node --test",
     "smoke:fake": "node scripts/smoke-fake.mjs",
     "smoke:dsh:boot": "node scripts/smoke-dsh-boot.mjs",
+    "smoke:dsh:lifecycle": "node scripts/smoke-dsh-lifecycle.mjs",
     "smoke:dsh": "node scripts/smoke-dsh.mjs"
   }
 }
