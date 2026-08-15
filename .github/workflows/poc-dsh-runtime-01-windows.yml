@@ -1,0 +1,51 @@
+name: POC DSH Runtime 01 Windows
+
+on:
+  push:
+    branches:
+      - poc/dsh-runtime-01
+    paths:
+      - 'poc/dsh-runtime-01/**'
+      - '.github/workflows/poc-dsh-runtime-01-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-runtime-boundary:
+    runs-on: windows-2025
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: poc/dsh-runtime-01
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+
+      - name: Activate pnpm 11.7.0
+        run: |
+          node --version
+          corepack --version
+          corepack prepare pnpm@11.7.0 --activate
+          pnpm --version
+
+      - name: Install isolated POC dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Runtime-neutral tests
+        run: pnpm test
+
+      - name: Fake runtime smoke
+        run: pnpm smoke:fake
+
+      - name: DSH credential-free boot smoke
+        run: pnpm smoke:dsh:boot
