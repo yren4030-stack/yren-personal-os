@@ -75,3 +75,10 @@ jobs:
         env:
           DSH_SOURCE_ROOT: ${{ github.workspace }}\deepseek-harness
         run: node scripts/smoke-dsh-lifecycle.mjs
+
+      - name: DSH forced-crash isolation smoke
+        shell: pwsh
+        working-directory: personal-os/poc/dsh-runtime-01
+        env:
+          DSH_SOURCE_ROOT: ${{ github.workspace }}\deepseek-harness
+        run: node scripts/smoke-dsh-crash-isolation.mjs
