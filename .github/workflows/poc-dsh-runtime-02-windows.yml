@@ -1,0 +1,75 @@
+name: POC DSH Runtime 02 Host ApiProxy Windows
+
+on:
+  push:
+    branches:
+      - poc/dsh-runtime-02
+    paths:
+      - 'poc/dsh-runtime-02/**'
+      - '.github/workflows/poc-dsh-runtime-02-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-host-apiproxy-bridge:
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Personal OS POC
+        uses: actions/checkout@v4
+        with:
+          path: personal-os
+
+      - name: Checkout DeepSeek Harness frozen source
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 47f943859bef60e4160492346772ded9b24f765a
+          path: deepseek-harness
+
+      - name: Setup Node 24.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+
+      - name: Activate pnpm 11.7.0
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+          node --version
+          pnpm --version
+
+      - name: Install and build frozen DSH source
+        shell: pwsh
+        working-directory: deepseek-harness
+        run: |
+          git rev-parse HEAD
+          pnpm install --frozen-lockfile
+          pnpm run build:lib
+
+      - name: Stage Personal OS bridge spec inside DSH test environment
+        shell: pwsh
+        run: |
+          Copy-Item `
+            personal-os\poc\dsh-runtime-02\test\pos-apiproxy-bridge.spec.ts `
+            deepseek-harness\packages\host\apiproxy\tests\pos-apiproxy-bridge.spec.ts
+
+      - name: DSH official approval and question contract tests
+        shell: pwsh
+        working-directory: deepseek-harness
+        run: |
+          pnpm exec vitest run `
+            packages/host/apiproxy/tests/api-proxy-approval.spec.ts `
+            packages/host/apiproxy/tests/api-proxy-question.spec.ts
+
+      - name: Personal OS local Host ApiProxy bridge smoke
+        shell: pwsh
+        working-directory: deepseek-harness
+        env:
+          POS_POC_ROOT: ${{ github.workspace }}\personal-os\poc\dsh-runtime-02
+        run: |
+          pnpm exec vitest run packages/host/apiproxy/tests/pos-apiproxy-bridge.spec.ts
