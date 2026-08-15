@@ -123,6 +123,11 @@ export async function createDesktopProductRuntime({
       } catch (error) {
         state = 'unavailable'
         console.error(`[desktop-runtime] failed at stage=binding-start code=${error && error.code ? error.code : 'START_FAILED'}`)
+        if (error && typeof error.stderr === 'string' && error.stderr.trim().length > 0) {
+          // Already bounded (<= stderrMaxChars) and redacted at capture.
+          console.error('[desktop-runtime] child stderr:')
+          console.error(error.stderr)
+        }
         throw error
       }
     },
