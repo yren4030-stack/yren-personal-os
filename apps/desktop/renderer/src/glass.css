@@ -51,14 +51,17 @@ body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   color: var(--text-primary);
-  /* Subtle neutral depth layer: very restrained cool/warm tonal fields so the
-     glass surfaces have real background content to diffuse (blur) and reveal
-     (transparency). No purple, no bright blobs. */
+  /* Neutral depth layer BEHIND the glass: cool/warm tonal fields with enough
+     luminance contrast to make backdrop blur visibly diffuse and surface
+     transparency visibly reveal. Layer order is proven: html/#root/.app-shell/
+     .main/.page are all transparent, so this body layer is the direct backdrop
+     of every glass surface. No purple, no bright blobs. */
   background:
-    radial-gradient(900px 540px at 12% 8%, rgba(122, 132, 165, 0.08), transparent 60%),
-    radial-gradient(760px 460px at 88% 4%, rgba(168, 150, 122, 0.06), transparent 55%),
-    radial-gradient(1080px 640px at 50% 108%, rgba(104, 116, 148, 0.06), transparent 62%),
-    linear-gradient(165deg, #f7f6fa 0%, #f1eff6 55%, #eae8f0 100%);
+    radial-gradient(1100px 620px at 12% 6%, rgba(118, 130, 168, 0.16), transparent 62%),
+    radial-gradient(900px 540px at 88% 2%, rgba(178, 158, 126, 0.13), transparent 58%),
+    radial-gradient(1200px 700px at 50% 112%, rgba(96, 110, 148, 0.14), transparent 65%),
+    radial-gradient(700px 420px at 30% 80%, rgba(142, 152, 180, 0.09), transparent 60%),
+    linear-gradient(165deg, #f9f8fb 0%, #f1eff6 55%, #e9e7f0 100%);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }

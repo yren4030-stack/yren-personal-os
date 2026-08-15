@@ -125,6 +125,31 @@ const ROUTE_IDS = ['home', 'projects', 'project', 'settings']
 
 function applyAppearance(appearance) {
   applyGlassTokens(computeGlassTokens(appearance))
+  glassDebugLog(appearance)
+}
+
+/**
+ * Development-only rendering diagnostic (STEP 8): enable in DevTools with
+ * `window.__GLASS_DEBUG__ = true`, then drag a slider. Proves that the root
+ * CSS variables and the real surface computed styles follow the slider.
+ * Never shown in the UI; no personal data.
+ */
+function glassDebugLog(appearance) {
+  if (typeof window === 'undefined' || !window.__GLASS_DEBUG__) return
+  const rootStyle = getComputedStyle(document.documentElement)
+  const surface = document.querySelector('.sidebar') || document.querySelector('.card')
+  const surfaceStyle = surface ? getComputedStyle(surface) : null
+  console.debug('[glass-debug]', {
+    frost: appearance.frostIntensity,
+    transparency: appearance.transparencyLevel,
+    rootBlur: rootStyle.getPropertyValue('--glass-blur').trim(),
+    rootBg: rootStyle.getPropertyValue('--glass-bg').trim(),
+    rootBorder: rootStyle.getPropertyValue('--glass-border').trim(),
+    rootSaturation: rootStyle.getPropertyValue('--glass-saturation').trim(),
+    surfaceBackdrop: surfaceStyle ? surfaceStyle.backdropFilter : null,
+    surfaceBackground: surfaceStyle ? surfaceStyle.background : null,
+    opaqueParent: 'none (html/#root/.app-shell/.main/.page all transparent; body holds the depth layer)',
+  })
 }
 
 /* ------------------------------------------------------------------ */
