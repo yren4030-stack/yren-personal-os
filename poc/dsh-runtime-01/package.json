@@ -12,13 +12,5 @@
     "smoke:fake": "node scripts/smoke-fake.mjs",
     "smoke:dsh:boot": "node scripts/smoke-dsh-boot.mjs",
     "smoke:dsh": "node scripts/smoke-dsh.mjs"
-  },
-  "dependencies": {
-    "@deepseek-ai/dsh-agent-spine-demo": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-llm-deepseek": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-sdk-client": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-sdk-jsonrpc-demo": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-sdk-jsonrpc-server": "0.1.0-rc.5",
-    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.0-rc.5"
   }
 }

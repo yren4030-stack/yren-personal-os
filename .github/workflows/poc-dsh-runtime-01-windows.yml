@@ -1,5 +1,4 @@
 name: POC DSH Runtime 01 Windows
-# Retrigger after removing unpublished optional rc.5 token-meter package.
 
 on:
   push:
@@ -16,16 +15,20 @@ permissions:
 jobs:
   windows-runtime-boundary:
     runs-on: windows-2025
-    timeout-minutes: 20
-
-    defaults:
-      run:
-        shell: pwsh
-        working-directory: poc/dsh-runtime-01
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout
+      - name: Checkout Personal OS POC
         uses: actions/checkout@v4
+        with:
+          path: personal-os
+
+      - name: Checkout DeepSeek Harness frozen source
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 47f943859bef60e4160492346772ded9b24f765a
+          path: deepseek-harness
 
       - name: Setup Node 24.14.0
         uses: actions/setup-node@v4
@@ -33,6 +36,7 @@ jobs:
           node-version: '24.14.0'
 
       - name: Activate pnpm 11.7.0
+        shell: pwsh
         run: |
           node --version
           corepack --version
@@ -40,14 +44,27 @@ jobs:
           corepack prepare pnpm@11.7.0 --activate
           pnpm --version
 
-      - name: Install isolated POC dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install and build frozen DSH source
+        shell: pwsh
+        working-directory: deepseek-harness
+        run: |
+          git rev-parse HEAD
+          pnpm install --frozen-lockfile
+          pnpm run build:lib
 
       - name: Runtime-neutral tests
-        run: pnpm test
+        shell: pwsh
+        working-directory: personal-os/poc/dsh-runtime-01
+        run: node --test
 
       - name: Fake runtime smoke
-        run: pnpm smoke:fake
+        shell: pwsh
+        working-directory: personal-os/poc/dsh-runtime-01
+        run: node scripts/smoke-fake.mjs
 
-      - name: DSH credential-free boot smoke
-        run: pnpm smoke:dsh:boot
+      - name: DSH credential-free source boot smoke
+        shell: pwsh
+        working-directory: personal-os/poc/dsh-runtime-01
+        env:
+          DSH_SOURCE_ROOT: ${{ github.workspace }}\deepseek-harness
+        run: node scripts/smoke-dsh-boot.mjs
