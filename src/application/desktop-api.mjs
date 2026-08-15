@@ -71,7 +71,7 @@ export function normalizeAppearancePatch(patch) {
   if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
     return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'appearance patch must be an object' } }
   }
-  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme'])
+  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme', 'liquidGlassStyle'])
   for (const key of Object.keys(patch)) {
     if (!allowed.has(key)) {
       return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: `unexpected appearance field: ${key}` } }
@@ -95,6 +95,12 @@ export function normalizeAppearancePatch(patch) {
       return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'theme must be light, dark, or system' } }
     }
     normalized.theme = patch.theme
+  }
+  if ('liquidGlassStyle' in patch) {
+    if (patch.liquidGlassStyle !== 'clear' && patch.liquidGlassStyle !== 'tinted') {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'liquidGlassStyle must be clear or tinted' } }
+    }
+    normalized.liquidGlassStyle = patch.liquidGlassStyle
   }
   return { ok: true, patch: normalized }
 }

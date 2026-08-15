@@ -30,14 +30,26 @@ const rules = ruleChunks()
 const findRule = (selector) => rules.find((r) => r.selector === selector)
 const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-card', '.proposal-card', '.list-card']
 
-test('shared glass surface rule consumes the centralized tokens', () => {
+test('shared glass surface rule consumes the centralized CONTENT tokens (Level 2)', () => {
   const shared = findRule('.card, .glass')
   assert.ok(shared, 'shared .card/.glass rule must exist')
-  assert.ok(shared.body.includes('background: var(--glass-bg)'))
-  assert.ok(shared.body.includes('backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation))'))
-  assert.ok(shared.body.includes('-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation))'))
-  assert.ok(shared.body.includes('border: var(--glass-border)'))
-  assert.ok(shared.body.includes('box-shadow: var(--glass-shadow)'))
+  assert.ok(shared.body.includes('background: var(--glass-bg-content)'))
+  assert.ok(shared.body.includes('backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation))'))
+  assert.ok(shared.body.includes('-webkit-backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation))'))
+  assert.ok(shared.body.includes('border: var(--glass-border-content)'))
+  assert.ok(shared.body.includes('box-shadow: var(--glass-shadow-content)'))
+})
+
+test('Level-1 and floating rules consume their engine token sets', () => {
+  const l1 = findRule('.glass-l1, .sidebar')
+  assert.ok(l1)
+  assert.ok(l1.body.includes('var(--glass-bg)'), 'L1 uses the functional fill')
+  assert.ok(l1.body.includes('var(--glass-lift)'), 'L1 carries the lift layer')
+  assert.ok(l1.body.includes('var(--glass-rim)'), 'L1 carries the refractive rim')
+  const float = findRule('.glass-float')
+  assert.ok(float)
+  assert.ok(float.body.includes('var(--glass-bg-float)'), 'floating uses its own clearer fill')
+  assert.ok(float.body.includes('var(--glass-blur-float)'), 'floating uses its own scattering')
 })
 
 test('no later CSS rule overrides background/backdrop-filter/opacity on glass surfaces', () => {
@@ -82,21 +94,30 @@ test('no opaque parent blocks the body depth layer (GLASS_BACKDROP_SOURCE_LAYER 
   }
 })
 
-test('glass tokens are defined only in :root and consumed by the shared surface rule', () => {
-  const defs = ['--glass-bg', '--glass-blur', '--glass-border', '--glass-saturation', '--glass-shadow']
+test('glass tokens are defined only in :root and consumed by their surface rules', () => {
   const rootRule = findRule(':root')
   assert.ok(rootRule, ':root rule must exist')
+  const l1 = findRule('.glass-l1, .sidebar')
+  assert.ok(l1)
   const shared = findRule('.card, .glass')
   assert.ok(shared)
-  for (const token of defs) {
+  const float = findRule('.glass-float')
+  assert.ok(float)
+
+  const base = ['--glass-bg', '--glass-blur', '--glass-border', '--glass-shadow']
+  for (const token of base) {
     assert.ok(rootRule.body.includes(token), `${token} must be defined in :root`)
-    assert.ok(shared.body.includes(token), `${token} must be consumed by the shared surface rule`)
   }
-  // No rule other than the :root scopes and the shared surface rules may
-  // reference the material-core tokens. (--glass-border is intentionally also
-  // consumed by controls such as .btn-secondary and select; --glass-shadow may
-  // be LAYERED on depth-hierarchy surfaces such as .card-hover:hover,
-  // .proposal-card and .glass-l1, but never replaced by a fixed shadow.)
+  assert.ok(l1.body.includes('var(--glass-bg)'), 'L1 consumes the functional fill')
+  assert.ok(l1.body.includes('var(--glass-blur)'), 'L1 consumes the functional scattering')
+  assert.ok(shared.body.includes('var(--glass-bg-content)'), 'content consumes the content fill')
+  assert.ok(shared.body.includes('var(--glass-blur-content)'), 'content consumes the content scattering')
+  assert.ok(float.body.includes('var(--glass-bg-float)'), 'floating consumes the floating fill')
+
+  // No rule other than the :root scopes and the surface rules may reference
+  // the material-core tokens. (--glass-border is intentionally also consumed
+  // by controls such as .btn-secondary and select; --glass-shadow may be
+  // LAYERED on depth-hierarchy surfaces, never replaced by a fixed shadow.)
   for (const rule of rules) {
     if (
       rule.selector === ':root' ||
@@ -104,12 +125,17 @@ test('glass tokens are defined only in :root and consumed by the shared surface 
       rule.selector === '.card, .glass' ||
       rule.selector === '.glass-l1, .sidebar' ||
       rule.selector === '.glass-l1' ||
+      rule.selector === '.glass-float' ||
+      rule.selector === '.segmented button.active' ||
       rule.selector.startsWith('@media (prefers-reduced-transparency')
     ) continue
     for (const token of ['--glass-bg', '--glass-blur', '--glass-saturation']) {
-      assert.equal(rule.body.includes(token), false, `${rule.selector} must not reference ${token}`)
+      // Boundary match: --glass-bg-content / --glass-blur-content etc. are
+      // distinct tokens owned by the content surface, not violations.
+      const boundary = new RegExp(token + '(?!-)')
+      assert.equal(boundary.test(rule.body), false, `${rule.selector} must not reference ${token}`)
     }
-    if (rule.body.includes('--glass-shadow')) {
+    if (/--glass-shadow(?!-)/.test(rule.body)) {
       assert.ok(
         rule.body.includes('box-shadow: var(--glass-shadow),'),
         `${rule.selector} must layer --glass-shadow, not replace it`,
@@ -145,12 +171,13 @@ test('semantic glass levels exist and Level 1 differs from Level 2 treatment', (
 })
 
 test('edge/specular/reflection construction tokens exist in both theme scopes', () => {
-  for (const token of ['--glass-lift', '--glass-specular', '--glass-reflection', '--glass-edge-dark']) {
+  for (const token of ['--glass-lift', '--glass-specular', '--glass-reflection', '--glass-edge-dark', '--glass-rim']) {
     assert.ok(css.includes(token), `${token} token must exist`)
   }
   const dark = css.match(/:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/)
   assert.ok(dark && dark[1].includes('--glass-specular'), 'dark theme defines its own specular/edge set')
   assert.ok(dark[1].includes('--glass-edge-dark'), 'dark theme keeps a darker lower edge')
+  assert.ok(dark[1].includes('--glass-rim'), 'dark theme keeps a refractive rim')
 })
 
 test('shared content rows do not receive independent backdrop-filter (glass only at surface boundaries)', () => {
@@ -168,20 +195,36 @@ test('reduced-motion and reduced-transparency safety blocks exist', () => {
 
 test('DOM writer targets documentElement (root scope inherited by all surfaces)', () => {
   assert.ok(tokensSrc.includes('document.documentElement'))
-  for (const token of ['--glass-bg', '--glass-blur', '--glass-border', '--glass-shadow', '--glass-saturation', '--glass-highlight']) {
-    assert.ok(tokensSrc.includes(`'${token}'`), `applyGlassTokens must write ${token}`)
+  // The writer iterates a key list and prefixes with '--'; assert the keys.
+  for (const key of [
+    'glassBg', 'glassBlur', 'glassBorder', 'glassShadow', 'glassSaturation', 'glassHighlight',
+    'glassSpecular', 'glassReflection', 'glassEdgeDark', 'glassLift', 'glassRim',
+    'glassBgContent', 'glassBlurContent', 'glassBorderContent', 'glassShadowContent',
+    'glassBgFloat', 'glassBlurFloat', 'glassBorderFloat', 'glassShadowFloat',
+  ]) {
+    assert.ok(tokensSrc.includes(`'${key}'`), `applyGlassTokens must write --${key}`)
   }
 })
 
-test('frost 0/100 and transparency 0/100 produce different computed token values (slider → token link)', () => {
-  const low = computeGlassTokens({ frostIntensity: 0, transparencyLevel: 50 })
-  const high = computeGlassTokens({ frostIntensity: 100, transparencyLevel: 50 })
-  assert.notEqual(low.glassBlur, high.glassBlur)
+test('coherent concentric radius system exists', () => {
+  for (const token of ['--radius-window', '--radius-glass-large', '--radius-glass-medium', '--radius-control', '--radius-capsule']) {
+    assert.ok(css.includes(token), `${token} must exist`)
+  }
+  const card = findRule('.card, .glass')
+  assert.ok(card.body.includes('var(--radius-glass-medium)'), 'cards use the medium glass radius')
+  const sidebar = findRule('.sidebar')
+  assert.ok(sidebar.body.includes('var(--radius-glass-large)'), 'sidebar uses the large glass radius')
+})
 
-  const dense = computeGlassTokens({ frostIntensity: 50, transparencyLevel: 0 })
-  const open = computeGlassTokens({ frostIntensity: 50, transparencyLevel: 100 })
-  assert.notEqual(dense.glassBg, open.glassBg)
+test('clear vs tinted produces different computed token values (selection → token link)', () => {
+  const clear = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
+  const tinted = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'tinted' })
+  assert.notEqual(clear.glassBlur, tinted.glassBlur)
+  assert.notEqual(clear.glassBg, tinted.glassBg)
 
-  // Legacy material field remains irrelevant.
-  assert.deepEqual(computeGlassTokens({ material: 'frosted', frostIntensity: 50, transparencyLevel: 50 }), computeGlassTokens({ frostIntensity: 50, transparencyLevel: 50 }))
+  // Legacy continuous fields remain irrelevant to the engine.
+  assert.deepEqual(
+    computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear', material: 'frosted', frostIntensity: 50, transparencyLevel: 50 }),
+    computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' }),
+  )
 })

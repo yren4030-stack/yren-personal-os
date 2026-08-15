@@ -147,7 +147,7 @@ test('appearance update persists and reapplies across a new facade on the same s
 
   const update = await facade.updateAppearance({ material: 'transparent', frostIntensity: 25, transparencyLevel: 80, theme: 'dark' })
   assert.equal(update.ok, true)
-  assert.deepEqual(update.data, { material: 'transparent', frostIntensity: 25, transparencyLevel: 80, theme: 'dark' })
+  assert.deepEqual(update.data, { material: 'transparent', frostIntensity: 25, transparencyLevel: 80, theme: 'dark', liquidGlassStyle: 'clear' })
 
   const secondFacade = new DesktopProductFacade({
     service: composition.service,
@@ -157,7 +157,7 @@ test('appearance update persists and reapplies across a new facade on the same s
     appearanceService: new AppearanceService(storage),
   })
   const get = secondFacade.getAppearance()
-  assert.deepEqual(get.data, { material: 'transparent', frostIntensity: 25, transparencyLevel: 80, theme: 'dark' })
+  assert.deepEqual(get.data, { material: 'transparent', frostIntensity: 25, transparencyLevel: 80, theme: 'dark', liquidGlassStyle: 'clear' })
 })
 
 test('appearance patch rejects unknown fields and clamps out-of-range values', async (t) => {

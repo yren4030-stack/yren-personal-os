@@ -126,15 +126,15 @@ const ROUTE_IDS = ['home', 'projects', 'project', 'settings']
 
 function applyAppearance(appearance, theme) {
   applyTheme(theme)
-  applyGlassTokens(computeGlassTokens({ ...appearance, theme }))
+  applyGlassTokens(computeGlassTokens({ theme, liquidGlassStyle: appearance.liquidGlassStyle }))
   glassDebugLog(appearance, theme)
 }
 
 /**
- * Development-only rendering diagnostic (STEP 8): enable in DevTools with
- * `window.__GLASS_DEBUG__ = true`, then drag a slider. Proves that the root
- * CSS variables and the real surface computed styles follow the slider.
- * Never shown in the UI; no personal data.
+ * Development-only rendering diagnostic: enable in DevTools with
+ * `window.__GLASS_DEBUG__ = true`, then change appearance settings. Proves
+ * that the root CSS variables and the real surface computed styles follow
+ * the selection. Never shown in the UI; no personal data.
  */
 function glassDebugLog(appearance, theme) {
   if (typeof window === 'undefined' || !window.__GLASS_DEBUG__) return
@@ -143,8 +143,7 @@ function glassDebugLog(appearance, theme) {
   const surfaceStyle = surface ? getComputedStyle(surface) : null
   console.debug('[glass-debug]', {
     theme,
-    frost: appearance.frostIntensity,
-    transparency: appearance.transparencyLevel,
+    liquidGlass: appearance.liquidGlassStyle,
     rootBlur: rootStyle.getPropertyValue('--glass-blur').trim(),
     rootBg: rootStyle.getPropertyValue('--glass-bg').trim(),
     rootBorder: rootStyle.getPropertyValue('--glass-border').trim(),
@@ -625,7 +624,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <div className="card glass-l1 proposal-card">
+    <div className="glass-float proposal-card">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -672,32 +671,30 @@ function SettingsPage({ appearance, setAppearance }) {
       <div className="card glass-l1 settings-card">
         <Section title={t('settings.appearance')}>
           <div className="field">
-            <span className="field-label">{t('settings.glassEffect')}</span>
-          </div>
-
-          <div className="field">
-            <div className="field-label-row">
-              <span>{t('settings.frostIntensity')}</span>
-              <span className="field-value">{appearance.frostIntensity}</span>
+            <span className="field-label">{t('settings.appearanceMode')}</span>
+            <div className="segmented">
+              <button type="button" className={appearance.theme === 'light' ? 'active' : ''} onClick={() => update({ theme: 'light' })}>
+                {t('settings.themeLight')}
+              </button>
+              <button type="button" className={appearance.theme === 'dark' ? 'active' : ''} onClick={() => update({ theme: 'dark' })}>
+                {t('settings.themeDark')}
+              </button>
+              <button type="button" className={appearance.theme === 'system' ? 'active' : ''} onClick={() => update({ theme: 'system' })}>
+                {t('settings.themeSystem')}
+              </button>
             </div>
-            <input type="range" min="0" max="100" value={appearance.frostIntensity} onChange={(e) => update({ frostIntensity: Number(e.target.value) })} />
           </div>
 
           <div className="field">
-            <div className="field-label-row">
-              <span>{t('settings.transparencyLevel')}</span>
-              <span className="field-value">{appearance.transparencyLevel}</span>
+            <span className="field-label">{t('settings.glassStyle')}</span>
+            <div className="segmented">
+              <button type="button" className={(appearance.liquidGlassStyle || 'clear') === 'clear' ? 'active' : ''} onClick={() => update({ liquidGlassStyle: 'clear' })}>
+                {t('settings.clearOption')}
+              </button>
+              <button type="button" className={(appearance.liquidGlassStyle || 'clear') === 'tinted' ? 'active' : ''} onClick={() => update({ liquidGlassStyle: 'tinted' })}>
+                {t('settings.tintedOption')}
+              </button>
             </div>
-            <input type="range" min="0" max="100" value={appearance.transparencyLevel} onChange={(e) => update({ transparencyLevel: Number(e.target.value) })} />
-          </div>
-
-          <div className="field">
-            <span className="field-label">{t('settings.theme')}</span>
-            <select value={appearance.theme} onChange={(e) => update({ theme: e.target.value })}>
-              <option value="light">{t('settings.themeLight')}</option>
-              <option value="dark">{t('settings.themeDark')}</option>
-              <option value="system">{t('settings.themeSystem')}</option>
-            </select>
           </div>
         </Section>
       </div>

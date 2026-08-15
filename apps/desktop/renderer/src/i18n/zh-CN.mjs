@@ -93,13 +93,13 @@ export const zhCN = Object.freeze({
     title: '设置',
     subtitle: '调整 Personal OS 的外观与偏好',
     appearance: '外观',
-    glassEffect: '玻璃效果',
-    frostIntensity: '磨砂强度',
-    transparencyLevel: '通透程度',
-    theme: '主题',
+    appearanceMode: '外观模式',
     themeLight: '浅色',
     themeDark: '深色',
-    themeSystem: '跟随系统',
+    themeSystem: '自动',
+    glassStyle: 'Liquid Glass',
+    clearOption: '透明',
+    tintedOption: '色调',
   },
 
   comingSoon: {

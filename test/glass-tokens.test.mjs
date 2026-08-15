@@ -1,148 +1,107 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 
-import { computeGlassTokens } from '../apps/desktop/renderer/src/glass-tokens.mjs'
+import { computeGlassTokens, resolveLiquidGlass, LIQUID_GLASS_STYLES } from '../apps/desktop/renderer/src/glass-tokens.mjs'
 
-function tokens(frostIntensity, transparencyLevel) {
-  return computeGlassTokens({ frostIntensity, transparencyLevel })
+function tokens(theme, liquidGlass) {
+  return computeGlassTokens({ theme, liquidGlassStyle: liquidGlass })
 }
 
-test('no material-mode selection is required to compute glass tokens', () => {
-  const t = tokens(60, 40)
-  assert.equal(typeof t.glassBg, 'string')
-  assert.equal(typeof t.glassBlur, 'string')
-  assert.equal(typeof t.glassBorder, 'string')
-  assert.equal(typeof t.glassSaturation, 'string')
-  assert.equal(typeof t.glassShadow, 'string')
-  assert.equal(typeof t.glassHighlight, 'string')
-  assert.ok(Number.isFinite(t.blurPx) && Number.isFinite(t.alpha))
+test('clear profile exists (coordinated optical stack, light)', () => {
+  const t = tokens('light', 'clear')
+  assert.equal(t.glassBg, 'rgba(255, 255, 255, 0.192)')
+  assert.equal(t.blurPx, 14.7)
+  assert.ok(t.glassBlur.endsWith('px'))
+  assert.match(t.glassBorder, /^1px solid rgba\(0, 0, 0, 0\.120\)$/)
+  assert.ok(t.glassSpecular.startsWith('linear-gradient(135deg,'), 'clear profile carries a specular layer')
+  assert.ok(t.glassReflection.startsWith('linear-gradient(180deg,'), 'clear profile carries an internal reflection')
+  assert.ok(t.glassRim.startsWith('rgba('), 'clear profile carries a refractive rim')
 })
 
-test('frostIntensity 0 vs 100 changes global blur significantly', () => {
-  assert.equal(tokens(0, 40).blurPx, 0)
-  assert.equal(tokens(100, 40).blurPx, 32)
-  assert.notEqual(tokens(0, 40).glassBlur, tokens(100, 40).glassBlur)
+test('tinted profile exists (coordinated optical stack, light)', () => {
+  const t = tokens('light', 'tinted')
+  assert.equal(t.glassBg, 'rgba(255, 255, 255, 0.480)')
+  assert.equal(t.blurPx, 27.3)
+  assert.match(t.glassBorder, /^1px solid rgba\(0, 0, 0, 0\.160\)$/)
 })
 
-test('transparencyLevel 0 vs 100 changes global alpha significantly', () => {
-  assert.equal(tokens(60, 0).alpha, 0.78)
-  assert.equal(tokens(60, 100).alpha, 0.07)
-  assert.notEqual(tokens(60, 0).glassBg, tokens(60, 100).glassBg)
+test('clear and tinted are coordinated profiles, not alpha-only differences', () => {
+  const clear = tokens('light', 'clear')
+  const tinted = tokens('light', 'tinted')
+  // Several optical axes move together: transmission, scattering, edge,
+  // specular, shadow — never alpha alone.
+  assert.notEqual(clear.glassBg, tinted.glassBg)
+  assert.notEqual(clear.glassBlur, tinted.glassBlur)
+  assert.notEqual(clear.glassBorder, tinted.glassBorder)
+  assert.notEqual(clear.glassShadow, tinted.glassShadow)
+  assert.notEqual(clear.glassSpecular, tinted.glassSpecular)
+  assert.ok(clear.alpha < tinted.alpha, 'clear transmits more than tinted')
+  assert.ok(clear.blurPx < tinted.blurPx, 'tinted scatters more than clear')
+  assert.ok(clear.glassShadow.length > 0 && tinted.glassShadow.length > 0)
 })
 
-test('transparency range targets: 0 dense, 100 almost clear but never zero', () => {
-  assert.ok(tokens(60, 0).alpha >= 0.75, 'transparency 0 must stay dense (alpha >= ~0.75)')
-  const open = tokens(60, 100).alpha
-  assert.ok(open <= 0.08, `transparency 100 must be almost clear (alpha <= ~0.08), got ${open}`)
-  assert.ok(open > 0, 'alpha must never reach exactly 0')
-})
-
-test('transparency 90 is substantially clearer than transparency 70', () => {
-  const at70 = tokens(60, 70).alpha
-  const at90 = tokens(60, 90).alpha
-  assert.ok(at70 - at90 >= 0.1, `alpha(70)=${at70} must be >= 0.1 above alpha(90)=${at90}`)
-  assert.equal(at70, 0.349)
-  assert.equal(at90, 0.167)
-})
-
-test('transparency response is monotonic across the whole range', () => {
-  let previous = Infinity
-  for (let v = 0; v <= 100; v += 5) {
-    const alpha = tokens(60, v).alpha
-    assert.ok(alpha < previous, `alpha must strictly decrease as transparency rises (v=${v})`)
-    previous = alpha
-  }
-})
-
-test('both parameters change simultaneously (combined Liquid Glass states)', () => {
-  // frost 10 / transparency 90 → clear, transparent glass
-  const clear = tokens(10, 90)
-  assert.equal(clear.blurPx, 3.2)
-  assert.equal(clear.alpha, 0.167)
-
-  // frost 85 / transparency 25 → dense, heavily diffused glass
-  const dense = tokens(85, 25)
-  assert.equal(dense.blurPx, 27.2)
-  assert.equal(dense.alpha, 0.678)
-
-  // frost 55 / transparency 65 → balanced Liquid Glass
-  const balanced = tokens(55, 65)
-  assert.equal(balanced.blurPx, 17.6)
-  assert.equal(balanced.alpha, 0.392)
-
-  // All three states are visually distinct from each other.
-  assert.notEqual(clear.glassBlur, dense.glassBlur)
-  assert.notEqual(clear.glassBg, dense.glassBg)
-})
-
-test('high transparency never dims content: no element-opacity token is produced', () => {
-  const t = tokens(60, 100)
-  assert.equal('opacity' in t, false)
-  assert.equal('glassOpacity' in t, false)
-  assert.ok(t.alpha > 0, 'the fill stays materially present (border/highlight/shadow carry the edge)')
-  // Shadow lightens at high transparency but never disappears.
-  assert.ok(tokens(60, 0).glassShadow !== tokens(60, 100).glassShadow)
-  assert.ok(tokens(60, 100).glassShadow.includes('rgba(0, 0, 0, 0.02'))
-})
-
-test('changing frost does not overwrite transparency', () => {
-  const a = tokens(0, 55)
-  const b = tokens(100, 55)
-  assert.equal(a.alpha, b.alpha)
-  assert.equal(a.glassBg, b.glassBg)
-})
-
-test('changing transparency does not overwrite frost', () => {
-  const a = tokens(42, 0)
-  const b = tokens(42, 100)
-  assert.equal(a.blurPx, b.blurPx)
-  assert.equal(a.glassBlur, b.glassBlur)
-})
-
-test('restored persisted settings recreate identical global tokens', () => {
-  const persisted = { frostIntensity: 42, transparencyLevel: 77, theme: 'light' }
-  const first = computeGlassTokens(persisted)
-  const second = computeGlassTokens({ ...persisted })
-  assert.deepEqual(first, second)
-})
-
-test('obsolete material field (frosted/transparent) has zero effect on tokens', () => {
-  const plain = tokens(60, 40)
-  assert.deepEqual(computeGlassTokens({ material: 'frosted', frostIntensity: 60, transparencyLevel: 40 }), plain)
-  assert.deepEqual(computeGlassTokens({ material: 'transparent', frostIntensity: 60, transparencyLevel: 40 }), plain)
-})
-
-test('Settings UI no longer exposes the 磨砂/通透 material selector', () => {
-  const src = readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8')
-  assert.equal(src.includes('settings.glassMaterial'), false)
-  assert.equal(src.includes('settings.frosted'), false)
-  assert.equal(src.includes('settings.transparent'), false)
-  assert.equal(src.includes('className="segmented"'), false)
-  assert.equal(src.includes("material: 'frosted'"), false)
-  assert.equal(src.includes("material: 'transparent'"), false)
-})
-
-test('token values stay within safe clamped ranges for all slider positions', () => {
-  for (const value of [0, 1, 25, 50, 99, 100]) {
-    const t = tokens(value, value)
-    assert.ok(t.blurPx >= 0 && t.blurPx <= 32, `blur ${t.blurPx}`)
-    assert.ok(t.alpha >= 0.07 && t.alpha <= 0.78, `alpha ${t.alpha}`)
-    assert.ok(t.alpha > 0, 'alpha must never reach zero')
+test('light + clear and light + tinted produce valid tokens', () => {
+  for (const style of [LIQUID_GLASS_STYLES.CLEAR, LIQUID_GLASS_STYLES.TINTED]) {
+    const t = tokens('light', style)
+    assert.match(t.glassBg, /^rgba\(255, 255, 255, 0\.\d{3}\)$/)
     assert.ok(Number.isFinite(t.alpha) && Number.isFinite(t.blurPx))
+    assert.ok(t.alpha > 0 && t.alpha < 1)
   }
-  const clamped = tokens(-5, 150)
-  assert.equal(clamped.blurPx, 0)
-  assert.equal(clamped.alpha, 0.07)
-  assert.ok(Number.isFinite(clamped.blurPx) && Number.isFinite(clamped.alpha))
 })
 
-test('token output is CSS-ready and the mapping is renderer-only (no backend contract)', () => {
-  const t = tokens(60, 40)
-  assert.match(t.glassBg, /^rgba\(255, 255, 255, 0\.\d{3}\)$/)
-  assert.match(t.glassBlur, /^\d+(\.\d+)?px$/)
-  assert.match(t.glassBorder, /^1px solid rgba\(0, 0, 0, 0\.\d{3}\)$/)
-  assert.match(t.glassSaturation, /^\d\.\d{2}$/)
-  assert.match(t.glassHighlight, /^rgba\(255, 255, 255, 0\.\d{3}\)$/)
-  assert.ok(t.glassShadow.includes('inset 0 1px 0'), 'glass has a subtle inner edge highlight')
+test('dark + clear and dark + tinted use smoked graphite glass', () => {
+  const clear = tokens('dark', 'clear')
+  const tinted = tokens('dark', 'tinted')
+  assert.match(clear.glassBg, /^rgba\(34, 36, 42, /, 'dark clear uses graphite fill')
+  assert.match(tinted.glassBg, /^rgba\(34, 36, 42, /, 'dark tinted uses graphite fill')
+  assert.match(clear.glassBorder, /^1px solid rgba\(255, 255, 255, /, 'dark glass keeps a brighter perimeter border')
+  assert.ok(tinted.alpha > clear.alpha, 'dark tinted is more substantial than dark clear')
+  assert.notEqual(clear.glassBg, tinted.glassBg)
+})
+
+test('content surfaces use a quieter material than functional glass (no full Liquid Glass on cards)', () => {
+  const t = tokens('light', 'clear')
+  assert.ok(t.contentFillAlpha < t.functionalFillAlpha, 'content fill is quieter')
+  assert.ok(t.glassBgContent !== t.glassBg, 'content and functional fills differ')
+  assert.ok(t.glassBlurContent !== t.glassBlur, 'content scattering is lower')
+})
+
+test('floating surfaces are clearer/thinner than functional glass (size-adaptive)', () => {
+  const t = tokens('light', 'clear')
+  assert.ok(t.floatingFillAlpha < t.functionalFillAlpha, 'floating fill is thinner')
+  assert.ok(t.glassBgFloat !== t.glassBg)
+  assert.ok(t.glassBlurFloat !== t.glassBlur)
+})
+
+test('legacy material/frost/transparency fields no longer drive the UI', () => {
+  const base = tokens('light', 'clear')
+  const legacy = computeGlassTokens({
+    theme: 'light',
+    liquidGlassStyle: 'clear',
+    material: 'transparent',
+    frostIntensity: 100,
+    transparencyLevel: 0,
+  })
+  assert.deepEqual(legacy, base, 'legacy continuous fields must be ignored')
+})
+
+test('resolveLiquidGlass applies semantic role multipliers', () => {
+  const panel = resolveLiquidGlass({ appearance: 'light', liquidGlass: 'clear', surfaceRole: 'panel' })
+  const content = resolveLiquidGlass({ appearance: 'light', liquidGlass: 'clear', surfaceRole: 'content' })
+  const floating = resolveLiquidGlass({ appearance: 'light', liquidGlass: 'clear', surfaceRole: 'floating' })
+  assert.equal(panel.fillAlpha, 0.2)
+  assert.equal(content.fillAlpha, 0.184)
+  assert.equal(floating.fillAlpha, 0.16)
+  assert.ok(floating.borderAlpha > panel.borderAlpha, 'floating edges are sharper')
+  assert.ok(content.blurPx < panel.blurPx, 'content scatters less')
+})
+
+test('values stay finite and clamped for invalid inputs', () => {
+  const badStyle = computeGlassTokens({ theme: 'neon', liquidGlassStyle: 'holographic' })
+  const clear = tokens('light', 'clear')
+  assert.deepEqual(badStyle, clear, 'unknown style/theme falls back to clear + light')
+  const t = tokens('dark', 'tinted')
+  assert.ok(Number.isFinite(t.alpha) && Number.isFinite(t.blurPx))
+  assert.ok(t.alpha > 0 && t.alpha < 1)
+  assert.ok(t.blurPx > 0 && t.blurPx <= 40)
 })

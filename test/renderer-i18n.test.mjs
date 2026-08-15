@@ -36,17 +36,20 @@ test('page dictionaries cover the keys the UI renders', () => {
     assert.equal(typeof detail[key], 'string', `projectDetail.${key}`)
   }
   const settings = messages.settings
-  for (const key of ['title', 'subtitle', 'appearance', 'glassEffect', 'frostIntensity', 'transparencyLevel', 'theme']) {
+  for (const key of ['title', 'subtitle', 'appearance', 'appearanceMode', 'themeLight', 'themeDark', 'themeSystem', 'glassStyle', 'clearOption', 'tintedOption']) {
     assert.equal(typeof settings[key], 'string', `settings.${key}`)
   }
-  // Liquid Glass: the two independent sliders have their own labels; the
-  // obsolete material-mode selector keys are gone.
-  assert.equal(settings.glassEffect, '玻璃效果')
-  assert.equal(settings.frostIntensity, '磨砂强度')
-  assert.equal(settings.transparencyLevel, '通透程度')
-  assert.equal('glassMaterial' in settings, false)
-  assert.equal('frosted' in settings, false)
-  assert.equal('transparent' in settings, false)
+  // macOS 26 appearance model: two user-facing axes, no technical controls.
+  assert.equal(settings.appearanceMode, '外观模式')
+  assert.equal(settings.themeLight, '浅色')
+  assert.equal(settings.themeDark, '深色')
+  assert.equal(settings.themeSystem, '自动')
+  assert.equal(settings.glassStyle, 'Liquid Glass')
+  assert.equal(settings.clearOption, '透明')
+  assert.equal(settings.tintedOption, '色调')
+  assert.equal('frostIntensity' in settings, false)
+  assert.equal('transparencyLevel' in settings, false)
+  assert.equal('glassEffect' in settings, false)
 })
 
 test('t() interpolates placeholders', () => {

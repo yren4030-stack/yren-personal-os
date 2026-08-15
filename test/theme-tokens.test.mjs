@@ -11,11 +11,11 @@ import { resolveTheme, prefersDark } from '../apps/desktop/renderer/src/theme.mj
 const css = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
 const mainSrc = readFileSync(new URL('../apps/desktop/electron/main.mjs', import.meta.url), 'utf8')
 
-const LIGHT = { theme: 'light', frostIntensity: 60, transparencyLevel: 40 }
-const DARK = { theme: 'dark', frostIntensity: 60, transparencyLevel: 40 }
+const LIGHT = { theme: 'light', liquidGlassStyle: 'clear' }
+const DARK = { theme: 'dark', liquidGlassStyle: 'clear' }
 
 test('light theme tokens exist', () => {
-  const light = computeGlassTokens({ frostIntensity: 60, transparencyLevel: 40 })
+  const light = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
   const explicit = computeGlassTokens(LIGHT)
   assert.deepEqual(explicit, light)
   assert.match(explicit.glassBg, /^rgba\(255, 255, 255, /)
@@ -33,15 +33,13 @@ test('dark theme tokens exist and use graphite smoked glass', () => {
   assert.ok(css.includes('--text-primary: #f2f2f6'), 'dark text tokens exist')
 })
 
-test('light and dark tokens differ at identical slider values', () => {
+test('light and dark tokens differ at identical appearance settings', () => {
   const light = computeGlassTokens(LIGHT)
   const dark = computeGlassTokens(DARK)
   assert.notEqual(light.glassBg, dark.glassBg)
   assert.notEqual(light.glassBorder, dark.glassBorder)
   assert.notEqual(light.glassHighlight, dark.glassHighlight)
   assert.notEqual(light.glassShadow, dark.glassShadow)
-  // The transparency curve itself is theme-independent.
-  assert.equal(light.alpha, dark.alpha)
 })
 
 test('theme preference resolution: light/dark force, system follows abstraction', () => {
@@ -55,49 +53,78 @@ test('theme preference resolution: light/dark force, system follows abstraction'
   assert.ok(['light', 'dark'].includes(resolveTheme('system')), 'system always resolves to a concrete theme')
 })
 
-test('frost slider affects global blur in BOTH themes', () => {
+test('clear vs tinted changes global blur AND fill in BOTH themes', () => {
   for (const theme of ['light', 'dark']) {
-    const low = computeGlassTokens({ theme, frostIntensity: 0, transparencyLevel: 50 })
-    const high = computeGlassTokens({ theme, frostIntensity: 100, transparencyLevel: 50 })
-    assert.equal(low.blurPx, 0, `${theme} blur at frost 0`)
-    assert.equal(high.blurPx, 32, `${theme} blur at frost 100`)
-    assert.notEqual(low.glassBlur, high.glassBlur, `${theme} blur must differ`)
+    const clear = computeGlassTokens({ theme, liquidGlassStyle: 'clear' })
+    const tinted = computeGlassTokens({ theme, liquidGlassStyle: 'tinted' })
+    assert.notEqual(clear.glassBlur, tinted.glassBlur, `${theme}: blur differs between profiles`)
+    assert.notEqual(clear.glassBg, tinted.glassBg, `${theme}: fill differs between profiles`)
+    assert.ok(clear.alpha < tinted.alpha, `${theme}: clear transmits more than tinted`)
   }
 })
 
-test('transparency slider affects global glass fill in BOTH themes', () => {
-  for (const theme of ['light', 'dark']) {
-    const dense = computeGlassTokens({ theme, frostIntensity: 60, transparencyLevel: 0 })
-    const open = computeGlassTokens({ theme, frostIntensity: 60, transparencyLevel: 100 })
-    assert.equal(dense.alpha, 0.78, `${theme} alpha at transparency 0`)
-    assert.equal(open.alpha, 0.07, `${theme} alpha at transparency 100`)
-    assert.notEqual(dense.glassBg, open.glassBg, `${theme} fill must differ`)
-  }
-})
-
-test('no material selector returned (Liquid Glass model preserved)', () => {
+test('no technical sliders and no material selector are exposed (macOS 26 appearance model)', () => {
   const src = readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8')
   assert.equal(src.includes('settings.glassMaterial'), false)
   assert.equal(src.includes('settings.frosted'), false)
-  assert.equal(src.includes('settings.transparent'), false)
-  assert.equal(src.includes('className="segmented"'), false)
+  assert.equal(src.includes('settings.glassEffect'), false)
+  assert.equal(src.includes('settings.frostIntensity'), false)
+  assert.equal(src.includes('settings.transparencyLevel'), false)
+  assert.equal(src.includes('type="range"'), false, 'no technical sliders in the Appearance UI')
+  // The segmented control is now the glass-capsule selector for the two
+  // user-facing axes.
+  assert.ok(src.includes('settings.appearanceMode'), 'appearance mode control exists')
+  assert.ok(src.includes('settings.clearOption'), 'Liquid Glass clear option exists')
+  assert.ok(src.includes('settings.tintedOption'), 'Liquid Glass tinted option exists')
+})
+
+test('Appearance UI labels: 浅色 / 深色 / 自动 and 透明 / 色调', () => {
+  const i18n = readFileSync(new URL('../apps/desktop/renderer/src/i18n/zh-CN.mjs', import.meta.url), 'utf8')
+  assert.ok(i18n.includes("themeLight: '浅色'"))
+  assert.ok(i18n.includes("themeDark: '深色'"))
+  assert.ok(i18n.includes("themeSystem: '自动'"))
+  assert.ok(i18n.includes("clearOption: '透明'"))
+  assert.ok(i18n.includes("tintedOption: '色调'"))
+  assert.ok(i18n.includes("appearanceMode: '外观模式'"))
+})
+
+test('no CSS zoom / transform-scale responsiveness hack', () => {
+  assert.equal(/zoom\s*:/.test(css), false, 'no CSS zoom')
+  // transform: scale() is allowed only as a tiny control interaction (the
+  // range-thumb hover), never on layout containers.
+  for (const selector of ['.app-shell', '.main', '.page', '.sidebar', '.card', '.glass', '.stat-grid', '.project-grid', '.detail-grid', '.settings-card']) {
+    const rule = css.match(new RegExp(escapeRegExp(selector) + '\\s*\\{([\\s\\S]*?)\\n\\}'))
+    if (rule) {
+      assert.equal(/transform:\s*scale\(/.test(rule[1]), false, `${selector} must not use transform scale`)
+    }
+  }
+  assert.equal(mainSrc.includes('setZoomFactor'), false, 'no webFrame zoom')
+})
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+test('component responsiveness uses container queries on the main content', () => {
+  const mainRule = css.match(/\.main\s*\{([\s\S]*?)\n\}/)
+  assert.ok(mainRule && mainRule[1].includes('container-type: inline-size'), '.main establishes a query container')
+  assert.ok(css.includes('@container (max-width: 900px)'), 'container query exists for the detail stack')
 })
 
 test('responsive CSS: sidebar has full (232px) and compact (76px) states with a breakpoint', () => {
-  const full = /\.sidebar\s*\{\s*width:\s*232px/.test(css)
-  assert.ok(full, 'full sidebar width 232px must exist')
+  assert.ok(css.includes('--sidebar-width: 232px'), 'full sidebar width token 232px must exist')
   const media = css.match(/@media \(max-width: 1179px\) \{([\s\S]*?)\n\}/)
   assert.ok(media, 'compact sidebar media query must exist')
   assert.ok(media[1].includes('width: 76px'), 'compact sidebar width 76px')
   assert.ok(media[1].includes('.nav-label'), 'labels collapse in compact mode')
 })
 
-test('responsive CSS: project detail rail is fluid before stacking at narrow width', () => {
+test('responsive CSS: project detail rail is fluid before stacking when the CONTENT column narrows', () => {
   assert.ok(css.includes('minmax(300px, 34%)'), 'detail rail shrinks fluidly (300px floor, 34% share)')
-  const media = css.match(/@media \(max-width: 1080px\) \{([\s\S]*?)\n\}/)
-  assert.ok(media, 'detail stack breakpoint media query must exist')
-  assert.ok(media[1].includes('.detail-grid'), 'detail media block targets .detail-grid')
-  assert.ok(media[1].includes('grid-template-columns: 1fr'), 'detail columns stack to one')
+  const container = css.match(/@container \(max-width: 900px\) \{([\s\S]*?)\n\}/)
+  assert.ok(container, 'detail stack container query must exist')
+  assert.ok(container[1].includes('.detail-grid'), 'container block targets .detail-grid')
+  assert.ok(container[1].includes('grid-template-columns: 1fr'), 'detail columns stack to one')
 })
 
 test('responsive CSS: Home stat grid is fluid across 4/3/2 column configurations', () => {
@@ -130,7 +157,7 @@ test('760px layout contains no deliberate fixed horizontal overflow', () => {
   for (const match of css.matchAll(/(?:^|[^-])(?:width|min-width|max-width):\s*(\d+)px/g)) {
     const value = Number(match[1])
     const context = css.slice(Math.max(0, match.index - 30), match.index)
-    if (value >= 400 && !context.includes('@media')) {
+    if (value >= 400 && !context.includes('@media') && !context.includes('@container')) {
       assert.ok(allowed.has(value), `unexpected fixed width ${value}px would risk overflow at 760px`)
     }
   }

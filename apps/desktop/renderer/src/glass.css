@@ -1,13 +1,13 @@
 /* ==========================================================================
- * Personal OS — Adaptive Liquid Glass Material System
+ * Personal OS — Liquid Glass Material System (macOS 26 visual language)
  *
- * ONE global material engine (Liquid Glass) + two themes (light/dark, via
- * document.documentElement.dataset.theme) + desktop-window adaptation.
+ * ONE optical engine: appearance (light/dark) × Liquid Glass profile
+ * (clear/tinted) × surface role (functional / content / floating). The
+ * Renderer writes the resolved semantic tokens via applyGlassTokens();
+ * components never hand-write material values.
  *
- * All surfaces read the centralized --glass-* and semantic tokens below;
- * components never hand-write blur / opacity / border / shadow material
- * values. The Renderer maps (frostIntensity / transparencyLevel / theme)
- * onto the tokens via applyAppearance().
+ * Shell-level adaptation (sidebar, display geometry) is viewport/display
+ * aware; page-level adaptation uses CONTAINER queries on .main.
  * ========================================================================== */
 
 /* --- Light theme (default) ---------------------------------------------- */
@@ -36,6 +36,8 @@
   --btn-secondary-bg: rgba(255, 255, 255, 0.7);
   --btn-secondary-bg-hover: rgba(255, 255, 255, 0.95);
   --hover-bg: rgba(0, 0, 0, 0.045);
+  --interact-hover: color-mix(in srgb, var(--glass-highlight) 35%, transparent);
+  --interact-active: color-mix(in srgb, var(--glass-highlight) 55%, transparent);
   --chip-bg: rgba(0, 0, 0, 0.05);
   --track-bg: rgba(0, 0, 0, 0.08);
   --empty-bg: rgba(255, 255, 255, 0.35);
@@ -51,28 +53,49 @@
   --error-border: rgba(255, 69, 58, 0.18);
   --error-text: #b3261e;
 
-  /* Radii */
-  --radius-card: 18px;
-  --radius-control: 12px;
-  --radius-nav: 10px;
+  /* Coherent concentric radius system */
+  --radius-window: 24px;
+  --radius-glass-large: 20px;
+  --radius-glass-medium: 16px;
+  --radius-control: 10px;
+  --radius-capsule: 999px;
 
-  /* Liquid Glass tokens — defaults matching computeGlassTokens (light, 60/40).
-     The Renderer overrides these live per appearance. */
-  --glass-bg: rgba(255, 255, 255, 0.583);
-  --glass-blur: 19.2px;
-  --glass-border: 1px solid rgba(0, 0, 0, 0.07);
-  --glass-shadow: rgba(255, 255, 255, 0.352) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.032), 0 6px 24px rgba(0, 0, 0, 0.061);
-  --glass-saturation: 1.26;
-  --glass-highlight: rgba(255, 255, 255, 0.352);
+  /* Adaptive density tokens (fluid, clamp-based) */
+  --shell-padding: clamp(8px, 1vw, 12px);
+  --shell-gap: clamp(10px, 1vw, 12px);
+  --page-padding-x: clamp(14px, 2.2vw, 24px);
+  --page-padding-bottom: clamp(16px, 2vw, 28px);
+  --section-gap: clamp(16px, 1.5vw, 24px);
+  --grid-gap: clamp(12px, 1.4vw, 16px);
+  --sidebar-width: 232px;
+  --control-height: 40px;
+  --page-title-size: clamp(24px, 2.6vw, 28px);
 
-  /* Glass hierarchy + true-edge construction, derived from the SAME engine.
-     L1 (functional/floating) multiplies the global material with a specular
-     top-left wash, faint internal reflection, darker lower edge and a deeper
-     external lift; L2 (content) keeps the quiet base treatment. */
-  --glass-lift: 0 18px 40px -20px rgba(0, 0, 0, 0.22);
-  --glass-specular: linear-gradient(135deg, color-mix(in srgb, var(--glass-highlight) 70%, transparent), transparent 46%);
-  --glass-reflection: linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--glass-highlight) 45%, transparent) 100%);
+  /* Liquid Glass engine defaults (clear · light · navigation). The Renderer
+     overrides these live via applyGlassTokens(). */
+  --glass-bg: rgba(255, 255, 255, 0.192);
+  --glass-blur: 14.7px;
+  --glass-border: 1px solid rgba(0, 0, 0, 0.12);
+  --glass-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.06);
+  --glass-saturation: 1.3;
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 40%, rgba(255, 255, 255, 0.6) 100%);
   --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.24);
+  --glass-rim: rgba(255, 255, 255, 0.1);
+
+  /* Content (Level 2) — quieter standard translucent material. */
+  --glass-bg-content: rgba(255, 255, 255, 0.184);
+  --glass-blur-content: 11.2px;
+  --glass-border-content: 1px solid rgba(0, 0, 0, 0.108);
+  --glass-shadow-content: rgba(255, 255, 255, 0.45) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.021), 0 6px 24px rgba(0, 0, 0, 0.042);
+
+  /* Floating (small functional surfaces) — clearer, thinner, sharper edge. */
+  --glass-bg-float: rgba(255, 255, 255, 0.16);
+  --glass-blur-float: 9.8px;
+  --glass-border-float: 1px solid rgba(0, 0, 0, 0.138);
+  --glass-shadow-float: rgba(255, 255, 255, 0.5) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.018), 0 6px 24px rgba(0, 0, 0, 0.036);
 }
 
 /* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
@@ -110,18 +133,28 @@
   --error-border: rgba(255, 69, 58, 0.32);
   --error-text: #ff8a80;
 
-  /* Pre-JS dark glass defaults (graphite smoked glass). */
-  --glass-bg: rgba(34, 36, 42, 0.55);
-  --glass-blur: 19.2px;
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-  --glass-shadow: rgba(255, 255, 255, 0.1) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 24px rgba(0, 0, 0, 0.35);
-  --glass-saturation: 1.1;
-  --glass-highlight: rgba(255, 255, 255, 0.1);
-
-  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.55);
-  --glass-specular: linear-gradient(135deg, color-mix(in srgb, var(--glass-highlight) 80%, transparent), transparent 48%);
-  --glass-reflection: linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--glass-highlight) 50%, transparent) 100%);
+  /* Pre-JS dark defaults (clear · dark · navigation). */
+  --glass-bg: rgba(34, 36, 42, 0.23);
+  --glass-blur: 15.4px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.16);
+  --glass-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.06);
+  --glass-saturation: 1.2;
+  --glass-highlight: rgba(255, 255, 255, 0.4);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 40%, rgba(255, 255, 255, 0.4) 100%);
   --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.54);
+  --glass-rim: rgba(255, 255, 255, 0.14);
+
+  --glass-bg-content: rgba(34, 36, 42, 0.22);
+  --glass-blur-content: 12.3px;
+  --glass-border-content: 1px solid rgba(255, 255, 255, 0.144);
+  --glass-shadow-content: rgba(255, 255, 255, 0.3) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.021), 0 6px 24px rgba(0, 0, 0, 0.042);
+
+  --glass-bg-float: rgba(34, 36, 42, 0.19);
+  --glass-blur-float: 10.8px;
+  --glass-border-float: 1px solid rgba(255, 255, 255, 0.184);
+  --glass-shadow-float: rgba(255, 255, 255, 0.34) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.018), 0 6px 24px rgba(0, 0, 0, 0.036);
 }
 
 * {
@@ -139,11 +172,9 @@ body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   color: var(--text-primary);
-  /* Neutral depth layer BEHIND the glass: cool/warm tonal fields with enough
-     luminance contrast to make backdrop blur visibly diffuse and surface
-     transparency visibly reveal. Layer order is proven: html/#root/.app-shell/
-     .main/.page are all transparent, so this body layer is the direct backdrop
-     of every glass surface. No purple, no bright blobs. */
+  /* Neutral spatial depth layer BEHIND the glass: low-frequency luminance
+     variation with gentle warm/cool regions — enough non-uniform information
+     for lensing/refraction to be visible, still clean and light. */
   background:
     radial-gradient(1100px 620px at 12% 6%, rgba(118, 130, 168, 0.16), transparent 62%),
     radial-gradient(900px 540px at 88% 2%, rgba(178, 158, 126, 0.13), transparent 58%),
@@ -167,20 +198,21 @@ body {
 
 /* --- Glass surfaces ------------------------------------------------------ */
 
+/* LEVEL 2 — content material: quieter standard translucent surfaces
+   (project cards, task groups, activity panels, dashboard stats). */
 .card,
 .glass {
   position: relative;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  border: var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: var(--radius-card);
+  background: var(--glass-bg-content);
+  backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation));
+  border: var(--glass-border-content);
+  box-shadow: var(--glass-shadow-content);
+  border-radius: var(--radius-glass-medium);
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
-/* Soft inner top light — the "edge refraction impression" of Liquid Glass.
-   A static gradient overlay, no extra blur, no repaint cost. */
+/* Soft inner top light on content surfaces (static, no blur cost). */
 .card::before,
 .glass::before {
   content: '';
@@ -188,21 +220,21 @@ body {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(180deg, var(--glass-edge-top), transparent 38%);
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-/* LEVEL 1 — functional / floating glass (sidebar, action surfaces, settings
-   controls). The same global engine, explicitly referenced, multiplied with a
-   specular top-left wash, faint internal reflection, darker lower edge and a
-   deeper external lift. L1 visibly floats above L2 content. */
+/* LEVEL 1 — functional / floating glass (sidebar, settings controls,
+   action surfaces). Full Liquid Glass fidelity: asymmetric specular,
+   internal reflection, darker lower edge, refractive rim, deeper lift.
+   The same engine, explicitly referenced. */
 .glass-l1,
 .sidebar {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   border: var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-lift);
+  box-shadow: var(--glass-shadow), var(--glass-lift), inset 0 0 0 1px var(--glass-rim);
 }
 .glass-l1::before,
 .sidebar::before {
@@ -211,7 +243,7 @@ body {
   inset: 0;
   border-radius: inherit;
   background: var(--glass-specular);
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 .glass-l1::after,
@@ -221,8 +253,29 @@ body {
   inset: 0;
   border-radius: inherit;
   background: var(--glass-reflection);
-  opacity: 0.6;
+  opacity: 0.55;
   box-shadow: var(--glass-edge-dark);
+  pointer-events: none;
+}
+
+/* LEVEL 1 float — small floating action surfaces: clearer, thinner,
+   sharper refractive edge, lighter shadow (size-adaptive material). */
+.glass-float {
+  position: relative;
+  background: var(--glass-bg-float);
+  backdrop-filter: blur(var(--glass-blur-float)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur-float)) saturate(var(--glass-saturation));
+  border: var(--glass-border-float);
+  box-shadow: var(--glass-shadow-float), inset 0 0 0 1px var(--glass-rim);
+  border-radius: var(--radius-glass-medium);
+}
+.glass-float::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-specular);
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -232,7 +285,7 @@ body {
 .card-hover:hover {
   transform: translateY(-2px);
   border-color: rgba(120, 73, 209, 0.25);
-  box-shadow: var(--glass-shadow), 0 14px 34px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--glass-shadow-content), 0 14px 34px rgba(0, 0, 0, 0.1);
 }
 
 /* --- App shell ----------------------------------------------------------- */
@@ -240,18 +293,18 @@ body {
 .app-shell {
   display: flex;
   height: 100%;
-  padding: clamp(8px, 1vw, 12px);
-  gap: clamp(10px, 1vw, 12px);
+  padding: var(--shell-padding);
+  gap: var(--shell-gap);
   min-width: 0;
 }
 
 .sidebar {
-  width: 232px;
+  width: var(--sidebar-width);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   padding: 14px 10px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-glass-large);
   overflow-y: auto;
   min-width: 0;
 }
@@ -261,7 +314,10 @@ body {
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px clamp(14px, 2.2vw, 24px) clamp(16px, 2vw, 28px);
+  padding: 8px var(--page-padding-x) var(--page-padding-bottom);
+  /* Component responsiveness belongs to the container: pages adapt to the
+     main content width (sidebar state changes available width). */
+  container-type: inline-size;
 }
 
 .page {
@@ -284,7 +340,7 @@ body {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--accent);
   color: #fff;
   display: flex;
@@ -336,7 +392,7 @@ body {
   height: 36px;
   padding: 0 10px;
   border: none;
-  border-radius: var(--radius-nav);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-secondary);
   font-size: 14px;
@@ -344,8 +400,11 @@ body {
   transition: background-color 0.14s ease, color 0.14s ease;
 }
 .nav-item:hover {
-  background: var(--hover-bg);
+  background: var(--interact-hover);
   color: var(--text-primary);
+}
+.nav-item:active {
+  background: var(--interact-active);
 }
 .nav-item.active {
   background: var(--accent-tint);
@@ -378,7 +437,7 @@ body {
   min-width: 0;
 }
 .page-title {
-  font-size: clamp(24px, 2.6vw, 28px);
+  font-size: var(--page-title-size);
   font-weight: 700;
   letter-spacing: -0.3px;
   margin: 0 0 4px;
@@ -389,7 +448,7 @@ body {
   margin: 0;
 }
 .section {
-  margin-bottom: clamp(16px, 1.5vw, 24px);
+  margin-bottom: var(--section-gap);
   min-width: 0;
 }
 .section-title {
@@ -405,7 +464,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 40px;
+  height: var(--control-height);
   padding: 0 18px;
   border: none;
   border-radius: var(--radius-control);
@@ -463,8 +522,8 @@ select:focus-visible {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: clamp(12px, 1.4vw, 16px);
-  margin-bottom: clamp(16px, 1.5vw, 24px);
+  gap: var(--grid-gap);
+  margin-bottom: var(--section-gap);
   min-width: 0;
 }
 .stat-card {
@@ -523,7 +582,7 @@ select:focus-visible {
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: clamp(12px, 1.4vw, 16px);
+  gap: var(--grid-gap);
   min-width: 0;
 }
 
@@ -603,7 +662,7 @@ select:focus-visible {
   align-items: center;
   height: 22px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
@@ -632,9 +691,9 @@ select:focus-visible {
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 34%);
-  gap: clamp(12px, 1.4vw, 16px);
+  gap: var(--grid-gap);
   align-items: start;
-  margin-bottom: clamp(16px, 1.5vw, 24px);
+  margin-bottom: var(--section-gap);
   min-width: 0;
 }
 .detail-grid > * {
@@ -648,8 +707,6 @@ select:focus-visible {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  /* Level 3: floating proposal surface keeps a slightly deeper lift. */
-  box-shadow: var(--glass-shadow), 0 14px 34px -12px rgba(0, 0, 0, 0.14);
 }
 .proposal-title {
   font-size: 15px;
@@ -690,7 +747,7 @@ select:focus-visible {
   color: var(--text-secondary);
   font-size: 13px;
   border: 1px dashed var(--control-border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-glass-medium);
   background: var(--empty-bg);
 }
 .boot {
@@ -752,8 +809,53 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* macOS-style Liquid Glass segmented control: the selected segment is a
+   small glass capsule with internal highlight, not a flat filled rectangle. */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--glass-bg-content);
+  border: var(--glass-border-content);
+  border-radius: var(--radius-capsule);
+  align-self: flex-start;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.segmented button {
+  height: 30px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-capsule);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+}
+.segmented button:hover {
+  background: var(--interact-hover);
+}
+.segmented button:active {
+  background: var(--interact-active);
+}
+.segmented button.active {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--glass-highlight) 40%, transparent), transparent 60%),
+    var(--glass-bg);
+  border-color: var(--glass-border-content);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--glass-shadow-content), inset 0 1px 0 var(--glass-highlight);
+}
+.segmented button:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 1px;
+}
+
 select {
-  height: 40px;
+  height: var(--control-height);
   padding: 0 12px;
   border-radius: var(--radius-control);
   border: var(--control-border);
@@ -836,10 +938,10 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 }
 
 /* ==========================================================================
- * Desktop-window adaptation
+ * Adaptation
  * ========================================================================== */
 
-/* Compact sidebar (icons only, tooltips via title attr) + 2-col stats. */
+/* Shell-level: ONE structural sidebar transition (usable app width). */
 @media (max-width: 1179px) {
   .sidebar {
     width: 76px;
@@ -863,16 +965,18 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   }
 }
 
-/* Project Detail: stack tasks + pending proposals vertically. */
-@media (max-width: 1080px) {
+/* Component-level: content-container queries (main content width decides). */
+
+/* Project Detail: stack tasks + pending proposals when the CONTENT column
+   (not the window) becomes too narrow for a useful rail. */
+@container (max-width: 900px) {
   .detail-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* Narrow desktop: activity rows reflow instead of truncating useful info —
-   type + status on the first line, title may wrap, timestamp stays right. */
-@media (max-width: 900px) {
+/* Activity rows reflow instead of truncating useful info. */
+@container (max-width: 700px) {
   .list-row {
     flex-wrap: wrap;
     row-gap: 4px;
@@ -901,7 +1005,8 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   .card,
   .glass,
   .glass-l1,
+  .glass-float,
   .sidebar {
-    background: color-mix(in srgb, var(--glass-bg) 45%, var(--bg-base));
+    background: color-mix(in srgb, var(--glass-bg-content) 45%, var(--bg-base));
   }
 }

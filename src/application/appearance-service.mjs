@@ -1,8 +1,14 @@
 /**
  * AppearanceSettingsService — owns the desktop presentation preferences
- * (material mode, frost intensity, transparency level, theme). These are
- * non-sensitive preferences, persisted through an injectable storage adapter
- * owned by the Desktop Main process (never the Renderer).
+ * (theme, Liquid Glass optical profile, plus legacy material fields kept for
+ * backward compatibility). Non-sensitive preferences persisted through an
+ * injectable storage adapter owned by the Desktop Main process (never the
+ * Renderer).
+ *
+ * The legacy fields (material / frostIntensity / transparencyLevel) remain in
+ * the persisted shape for compatibility but no longer drive the user-facing
+ * UI; the final appearance is defined by `theme` + `liquidGlassStyle`
+ * ('clear' | 'tinted').
  */
 
 export const DEFAULT_APPEARANCE = Object.freeze({
@@ -10,6 +16,7 @@ export const DEFAULT_APPEARANCE = Object.freeze({
   frostIntensity: 60,
   transparencyLevel: 40,
   theme: 'light',
+  liquidGlassStyle: 'clear',
 })
 
 export class AppearanceService {
@@ -31,6 +38,17 @@ export class AppearanceService {
           frostIntensity: this._clamp(stored.frostIntensity, 60),
           transparencyLevel: this._clamp(stored.transparencyLevel, 40),
           theme: stored.theme === 'dark' || stored.theme === 'system' ? stored.theme : 'light',
+          // New optical profile; legacy states without it map from their old
+          // opacity preference (low transparencyLevel = previously preferred a
+          // substantially more opaque surface → tinted; otherwise clear).
+          liquidGlassStyle:
+            stored.liquidGlassStyle === 'tinted'
+              ? 'tinted'
+              : stored.liquidGlassStyle === 'clear'
+                ? 'clear'
+                : this._clamp(stored.transparencyLevel, 40) <= 30
+                  ? 'tinted'
+                  : 'clear',
         }
       }
     } catch {
