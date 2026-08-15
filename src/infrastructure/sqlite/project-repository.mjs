@@ -17,6 +17,9 @@ export class SqliteProjectRepository {
     this.getStmt = db.prepare(
       'SELECT id, title, status, created_at FROM projects WHERE id = ?'
     )
+    this.listStmt = db.prepare(
+      'SELECT id, title, status, created_at FROM projects ORDER BY created_at'
+    )
     this.upsertStmt = db.prepare(
       `INSERT INTO projects (id, title, status, created_at)
        VALUES (?, ?, ?, ?)
@@ -30,6 +33,10 @@ export class SqliteProjectRepository {
   async getById(id) {
     const row = this.getStmt.get(id)
     return row === undefined ? null : mapProjectRow(row)
+  }
+
+  async list() {
+    return this.listStmt.all().map(mapProjectRow)
   }
 
   async save(project) {

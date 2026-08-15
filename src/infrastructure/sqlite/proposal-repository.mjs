@@ -24,6 +24,9 @@ export class SqliteProposalRepository {
     this.getStmt = db.prepare(
       'SELECT id, project_id, type, title, rationale, status, created_at FROM proposals WHERE id = ?'
     )
+    this.listByProjectStmt = db.prepare(
+      'SELECT id, project_id, type, title, rationale, status, created_at FROM proposals WHERE project_id = ? ORDER BY created_at'
+    )
     this.upsertStmt = db.prepare(
       `INSERT INTO proposals (id, project_id, type, title, rationale, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -40,6 +43,10 @@ export class SqliteProposalRepository {
   async getById(id) {
     const row = this.getStmt.get(id)
     return row === undefined ? null : mapProposalRow(row)
+  }
+
+  async listByProjectId(projectId) {
+    return this.listByProjectStmt.all(projectId).map(mapProposalRow)
   }
 
   async save(proposal) {
