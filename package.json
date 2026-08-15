@@ -3,5 +3,8 @@
   "engines": {
     "node": "24.14.0",
     "pnpm": "11.4.0"
+  },
+  "scripts": {
+    "test:project-loop": "node --test test/project-read-propose-loop.test.mjs"
   }
 }

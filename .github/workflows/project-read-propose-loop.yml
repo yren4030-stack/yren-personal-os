@@ -1,0 +1,79 @@
+name: Project Read Propose Runtime Loop
+
+on:
+  push:
+    branches:
+      - feat/project-read-propose-loop
+    paths:
+      - '.github/workflows/project-read-propose-loop.yml'
+      - 'package.json'
+      - 'src/domain/project/**'
+      - 'src/application/**'
+      - 'src/composition/**'
+      - 'src/infrastructure/sqlite/**'
+      - 'src/infrastructure/runtime/**'
+      - 'test/**'
+      - 'scripts/validate-runtime-bridge-03a.mjs'
+      - 'scripts/validate-real-dsh-host-03b.mjs'
+      - 'scripts/validate-real-dsh-agent-turn-03c.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  project-read-propose-runtime-loop:
+    runs-on: windows-2025
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Personal OS
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+
+      - name: Checkout frozen DeepSeek Harness
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 47f943859bef60e4160492346772ded9b24f765a
+          path: .external/deepseek-harness
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify frozen DSH identity
+        shell: pwsh
+        working-directory: .external/deepseek-harness
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($head -ne '47f943859bef60e4160492346772ded9b24f765a') { throw "DSH SHA mismatch: $head" }
+          $pkg = Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json
+          if ($pkg.version -ne '0.1.0-rc.5') { throw "DSH version mismatch: $($pkg.version)" }
+          if ($pkg.packageManager -ne 'pnpm@11.7.0') { throw "DSH packageManager mismatch: $($pkg.packageManager)" }
+          Write-Host 'DSH identity verified: SHA 47f9438 version 0.1.0-rc.5 pnpm@11.7.0'
+
+      - name: Materialize DSH dependencies
+        shell: pwsh
+        working-directory: .external/deepseek-harness
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+        run: |
+          corepack pnpm@11.7.0 --version
+          corepack pnpm@11.7.0 install --frozen-lockfile --ignore-scripts
+
+      - name: Verify DSH tracked tree clean
+        shell: pwsh
+        working-directory: .external/deepseek-harness
+        run: |
+          $status = git status --porcelain
+          if ($status) { throw "DSH tracked tree is dirty:$([Environment]::NewLine)$status" }
+          $head = (git rev-parse HEAD).Trim()
+          if ($head -ne '47f943859bef60e4160492346772ded9b24f765a') { throw "DSH SHA moved after install: $head" }
+          Write-Host 'DSH tracked tree clean and frozen SHA intact'
+
+      - name: Run complete 03C real DSH agent turn validation
+        shell: pwsh
+        run: node scripts/validate-real-dsh-agent-turn-03c.mjs --dsh-root "${{ github.workspace }}\.external\deepseek-harness"
