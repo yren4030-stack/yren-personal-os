@@ -1,0 +1,30 @@
+# POC-DSH-RUNTIME-01 constrained runtime profile.
+# stdout is reserved for JSON-RPC by dsh-jsonrpc-agent.
+# This profile deliberately exposes no Bash, filesystem, subagent, job-control,
+# skill, workspace-context, or goal tools. It exists only to prove the runtime boundary.
+
+- id: sdk-jsonrpc-server
+  name: '@deepseek-ai/dsh-sdk-jsonrpc-server'
+  config:
+    maxTokensAsSuccess: true
+
+- id: agent-spine
+  name: '@deepseek-ai/dsh-agent-spine-demo'
+  config:
+    persona: 'You are a bounded Personal OS runtime connectivity test agent. Answer the user request directly. Do not assume access to files, shell commands, projects, private data, or external tools.'
+    includeRuntimeContext: false
+    workspaceContext: false
+    skills:
+      enabled: false
+    toolBash: false
+    toolJobs: false
+    goals: false
+
+- id: sessions
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  config:
+    root: !!js process.env.DSH_SESSION_ROOT ?? './.sessions-poc'
+    compression: none
+
+- id: token-meter
+  name: '@deepseek-ai/dsh-token-meter'
