@@ -2,12 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { createReadonlyProjectContext, createTask } from '../domain/project/project.mjs'
 
 export class ProjectReadProposeService {
-  constructor({ projectRepository, taskRepository, agentRuntime, proposalRepository, clock = () => new Date() }) {
+  constructor({ projectRepository, taskRepository, agentRuntime, proposalRepository, clock = () => new Date(), unitOfWork = null }) {
     this.projects = projectRepository
     this.tasks = taskRepository
     this.agentRuntime = agentRuntime
     this.proposals = proposalRepository
     this.clock = clock
+    this.unitOfWork = unitOfWork
   }
 
   async proposeNextStep(projectId) {
@@ -45,8 +46,18 @@ export class ProjectReadProposeService {
       title: proposal.title,
       createdAt: this.clock().toISOString(),
     })
-    await this.tasks.save(task)
-    await this.proposals.replace(Object.freeze({ ...proposal, status: 'approved' }))
+    const approved = Object.freeze({ ...proposal, status: 'approved' })
+
+    const apply = async () => {
+      await this.tasks.save(task)
+      await this.proposals.replace(approved)
+    }
+
+    if (this.unitOfWork) {
+      await this.unitOfWork.run(apply)
+    } else {
+      await apply()
+    }
 
     return Object.freeze({ proposalId, task })
   }
