@@ -14,9 +14,12 @@ test('fake runtime supports session, prompt, events, and close', async () => {
   const events = []
   const unsubscribe = runtime.subscribe(sessionId, event => events.push(event))
 
-  const receipt = await runtime.prompt(sessionId, { text: 'hello' })
-  assert.equal(receipt.accepted, true)
-  assert.match(receipt.messageId, /^fake-message-/)
+  const result = await runtime.prompt(sessionId, { text: 'hello' })
+  assert.equal(result.accepted, true)
+  assert.equal(result.completed, true)
+  assert.match(result.runId, /^fake-run-/)
+  assert.equal(result.sessionId, sessionId)
+  assert.equal(result.finalResponse, 'fake:hello')
   assert.deepEqual(events.map(event => event.type), [
     'runtime-status',
     'user-message',
