@@ -77,7 +77,7 @@ function createWindow() {
     height: 800,
     backgroundColor: '#f2f1f6',
     webPreferences: {
-      preload: join(__dirname, 'preload.mjs'),
+      preload: join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
