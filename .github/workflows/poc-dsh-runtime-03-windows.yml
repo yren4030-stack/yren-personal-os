@@ -1,0 +1,66 @@
+name: POC DSH Runtime 03 Dedicated Host Process Windows
+
+on:
+  push:
+    branches:
+      - poc/dsh-runtime-03
+    paths:
+      - 'poc/dsh-runtime-03/**'
+      - '.github/workflows/poc-dsh-runtime-03-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-dedicated-host-process:
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Personal OS POC
+        uses: actions/checkout@v4
+        with:
+          path: personal-os
+
+      - name: Checkout DeepSeek Harness frozen source
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 47f943859bef60e4160492346772ded9b24f765a
+          path: deepseek-harness
+
+      - name: Setup Node 24.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+
+      - name: Activate pnpm 11.7.0
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+          node --version
+          pnpm --version
+
+      - name: Install and build frozen DSH source
+        shell: pwsh
+        working-directory: deepseek-harness
+        run: |
+          git rev-parse HEAD
+          pnpm install --frozen-lockfile
+          pnpm run build:lib
+
+      - name: Stage dedicated Host child inside frozen DSH workspace
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force deepseek-harness\poc\pos-dsh-runtime-03 | Out-Null
+          Copy-Item personal-os\poc\dsh-runtime-03\host-child.ts deepseek-harness\poc\pos-dsh-runtime-03\host-child.ts
+
+      - name: Dedicated Host process smoke
+        shell: pwsh
+        working-directory: personal-os
+        env:
+          DSH_ROOT: ${{ github.workspace }}\deepseek-harness
+        run: |
+          node poc/dsh-runtime-03/parent-smoke.mjs
