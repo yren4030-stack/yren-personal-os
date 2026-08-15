@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { t } from './i18n/index.mjs'
+import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
 
 const api = () => window.personalOS?.v1
 
@@ -123,26 +124,7 @@ const ROUTE_IDS = ['home', 'projects', 'project', 'settings']
 /* ------------------------------------------------------------------ */
 
 function applyAppearance(appearance) {
-  const root = document.documentElement
-  const material = appearance.material === 'transparent' ? 'transparent' : 'frosted'
-  const frost = Number(appearance.frostIntensity) || 0
-  const transparency = Number(appearance.transparencyLevel) || 0
-
-  // FROSTED (磨砂): more blur, slightly more opaque surface, diffused depth.
-  // TRANSPARENT (通透): less blur, more background visibility, clearer edge.
-  const blur = material === 'frosted' ? (frost / 100) * 30 : (frost / 100) * 10
-  const alpha = material === 'transparent' ? (1 - transparency / 100) * 0.6 : 0.62
-
-  root.style.setProperty('--glass-blur', `${blur}px`)
-  root.style.setProperty('--glass-bg', `rgba(255, 255, 255, ${alpha.toFixed(3)})`)
-  root.style.setProperty('--glass-border', `1px solid rgba(0, 0, 0, ${material === 'transparent' ? 0.04 : 0.08})`)
-  root.style.setProperty(
-    '--glass-shadow',
-    material === 'transparent'
-      ? '0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.04)'
-      : '0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.07)'
-  )
-  root.style.setProperty('--glass-saturation', material === 'frosted' ? '1.35' : '1.05')
+  applyGlassTokens(computeGlassTokens(appearance))
 }
 
 /* ------------------------------------------------------------------ */
@@ -612,10 +594,21 @@ function ProposalCard({ proposal, busy, onApprove, onReject }) {
 /* ------------------------------------------------------------------ */
 
 function SettingsPage({ appearance, setAppearance }) {
-  const update = async (patch) => {
-    const r = await api().appearance.update(patch)
-    if (r.ok) setAppearance(r.data)
+  const persistTimer = useRef(null)
+
+  const update = (patch) => {
+    // 1) Live: apply the material to the workspace immediately (while dragging).
+    applyGlassTokens(computeGlassTokens({ ...appearance, ...patch }))
+    // 2) Persist through the existing window.personalOS.v1 contract with a
+    //    light trailing debounce, then 3) reconcile with the persisted value.
+    clearTimeout(persistTimer.current)
+    persistTimer.current = setTimeout(async () => {
+      const r = await api().appearance.update(patch)
+      if (r.ok) setAppearance(r.data)
+    }, 120)
   }
+
+  useEffect(() => () => clearTimeout(persistTimer.current), [])
 
   return (
     <div className="page">

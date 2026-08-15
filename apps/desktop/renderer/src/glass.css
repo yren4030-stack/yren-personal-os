@@ -26,11 +26,12 @@
   --radius-control: 12px;
   --radius-nav: 10px;
 
-  /* Glass tokens — defaults (FROSTED, 60/40). App overrides per appearance. */
-  --glass-bg: rgba(255, 255, 255, 0.62);
-  --glass-blur: 22px;
+  /* Glass tokens — defaults matching computeGlassTokens (FROSTED, 60/40).
+     The Renderer overrides these live per appearance. */
+  --glass-bg: rgba(255, 255, 255, 0.588);
+  --glass-blur: 19.2px;
   --glass-border: 1px solid rgba(0, 0, 0, 0.08);
-  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.07);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.08);
   --glass-saturation: 1.35;
 }
 
@@ -49,7 +50,14 @@ body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   color: var(--text-primary);
-  background: linear-gradient(165deg, #f7f6fa 0%, #f1eff6 55%, #eae8f0 100%);
+  /* Subtle neutral depth layer: very restrained cool/warm tonal fields so the
+     glass surfaces have real background content to diffuse (blur) and reveal
+     (transparency). No purple, no bright blobs. */
+  background:
+    radial-gradient(900px 540px at 12% 8%, rgba(122, 132, 165, 0.08), transparent 60%),
+    radial-gradient(760px 460px at 88% 4%, rgba(168, 150, 122, 0.06), transparent 55%),
+    radial-gradient(1080px 640px at 50% 108%, rgba(104, 116, 148, 0.06), transparent 62%),
+    linear-gradient(165deg, #f7f6fa 0%, #f1eff6 55%, #eae8f0 100%);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
