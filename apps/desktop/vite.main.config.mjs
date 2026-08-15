@@ -1,13 +1,7 @@
 import { defineConfig } from 'vite'
 
-// Electron Main process bundle, emitted as ESM (.mjs) to match the package
-// "type": "module". The Forge plugin only applies its CJS default when
-// build.lib is unset, so this config opts into ESM explicitly.
-export default defineConfig({
-  build: {
-    lib: {
-      formats: ['es'],
-      fileName: () => 'main.mjs',
-    },
-  },
-})
+// Electron Main process bundle. `electron` and Node built-ins are externalized
+// by @electron-forge/plugin-vite, so this config stays minimal. With build.lib
+// unset, the plugin applies its standard Forge config: CommonJS output emitted
+// as .vite/build/main.js (package scope is CommonJS, not "type": "module").
+export default defineConfig({})
