@@ -1,0 +1,34 @@
+name: Project Read Propose Loop
+
+on:
+  push:
+    branches:
+      - feat/project-read-propose-loop
+    paths:
+      - 'src/domain/project/**'
+      - 'src/application/project-read-propose-loop.mjs'
+      - 'test/project-read-propose-loop.test.mjs'
+      - 'package.json'
+      - '.github/workflows/project-read-propose-loop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  project-read-propose-loop:
+    runs-on: windows-2025
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+
+      - name: Run application slice tests
+        shell: pwsh
+        run: node --test test/project-read-propose-loop.test.mjs
