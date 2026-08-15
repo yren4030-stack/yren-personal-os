@@ -1,20 +1,20 @@
 /**
- * Desktop Main process — the ONLY privileged owner of the SQLite composition,
- * the AgentRuntimePort implementation, the appearance service, and the facade.
- * The BrowserWindow never owns these; a Renderer reload never re-creates the
- * DB or a duplicate runtime.
+ * Desktop Main process — the ONLY privileged owner of the product runtime
+ * (SQLite composition + real DSH host binding + facade + appearance). It uses
+ * the desktop composition root; it never defaults to a fake runtime and never
+ * silently falls back to one.
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 
-import { createProjectReadProposeComposition } from '../../../src/composition/project-read-propose-composition.mjs'
-import { DesktopProductFacade } from '../../../src/application/desktop-product-facade.mjs'
-import { AppearanceService } from '../../../src/application/appearance-service.mjs'
-import { FakeAgentRuntime } from '../../../test/support/fake-agent-runtime.mjs'
+import { createDesktopProductRuntime, DESKTOP_RUNTIME_MODES } from '../../../src/composition/desktop-product-runtime.mjs'
+import { startDshMockServer } from '../../../test/support/dsh-mock-server.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const MOCK_SUCCESS_JSON = '{"title":"Review project priorities","rationale":"The current project context indicates this is the next useful step."}'
 
 function jsonFileStorage(path) {
   return {
@@ -32,44 +32,43 @@ function jsonFileStorage(path) {
   }
 }
 
-/**
- * The AgentRuntimePort implementation for this desktop shell. The first slice
- * uses the deterministic test runtime so the UI boots without any model
- * credential; the production DSH host binding plugs in here later without
- * touching the facade or the Renderer contract.
- */
-function createAgentRuntime() {
-  return new FakeAgentRuntime()
+function resolveMode() {
+  const mode = process.env.PERSONAL_OS_RUNTIME_MODE || DESKTOP_RUNTIME_MODES.VALIDATION_LOCAL_MOCK
+  if (!Object.values(DESKTOP_RUNTIME_MODES).includes(mode)) {
+    throw new Error(`unknown PERSONAL_OS_RUNTIME_MODE: ${mode}`)
+  }
+  return mode
 }
 
-let composition
-let facade
+let runtime
 
-function createProductFacade() {
-  const userData = app.getPath('userData')
-  composition = createProjectReadProposeComposition({
-    databasePath: join(userData, 'personal-os.db'),
-    agentRuntime: createAgentRuntime(),
-  })
-  facade = new DesktopProductFacade({
-    service: composition.service,
-    projectRepository: composition.projectRepository,
-    taskRepository: composition.taskRepository,
-    proposalRepository: composition.proposalRepository,
-    appearanceService: new AppearanceService(jsonFileStorage(join(userData, 'appearance.json'))),
+async function createRuntime() {
+  const mode = resolveMode()
+  const dshRoot = process.env.PERSONAL_OS_DSH_ROOT
+
+  if (mode === DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE) {
+    throw new Error('unit-test-fake is not a valid Desktop Main runtime mode')
+  }
+
+  runtime = await createDesktopProductRuntime({
+    mode,
+    databasePath: join(app.getPath('userData'), 'personal-os.db'),
+    appearanceStorage: jsonFileStorage(join(app.getPath('userData'), 'appearance.json')),
+    dshRoot,
+    startMockServer: () => startDshMockServer({ dshRoot, successText: MOCK_SUCCESS_JSON }),
   })
 }
 
 function registerIpc() {
-  ipcMain.handle('personalOS:projects:list', () => facade.listProjects())
-  ipcMain.handle('personalOS:projects:get', (_event, projectId) => facade.getProject(projectId))
-  ipcMain.handle('personalOS:projects:getWorkspace', (_event, projectId) => facade.getWorkspace(projectId))
-  ipcMain.handle('personalOS:projects:proposeNextStep', (_event, projectId) => facade.proposeNextStep(projectId))
-  ipcMain.handle('personalOS:proposals:approve', (_event, proposalId) => facade.approveProposal(proposalId))
-  ipcMain.handle('personalOS:proposals:reject', (_event, proposalId) => facade.rejectProposal(proposalId))
-  ipcMain.handle('personalOS:appearance:get', () => facade.getAppearance())
-  ipcMain.handle('personalOS:appearance:update', (_event, patch) => facade.updateAppearance(patch))
-  ipcMain.handle('personalOS:runtime:status', () => facade.getRuntimeStatus())
+  ipcMain.handle('personalOS:projects:list', () => runtime.facade.listProjects())
+  ipcMain.handle('personalOS:projects:get', (_event, projectId) => runtime.facade.getProject(projectId))
+  ipcMain.handle('personalOS:projects:getWorkspace', (_event, projectId) => runtime.facade.getWorkspace(projectId))
+  ipcMain.handle('personalOS:projects:proposeNextStep', (_event, projectId) => runtime.facade.proposeNextStep(projectId))
+  ipcMain.handle('personalOS:proposals:approve', (_event, proposalId) => runtime.facade.approveProposal(proposalId))
+  ipcMain.handle('personalOS:proposals:reject', (_event, proposalId) => runtime.facade.rejectProposal(proposalId))
+  ipcMain.handle('personalOS:appearance:get', () => runtime.facade.getAppearance())
+  ipcMain.handle('personalOS:appearance:update', (_event, patch) => runtime.facade.updateAppearance(patch))
+  ipcMain.handle('personalOS:runtime:status', () => runtime.facade.getRuntimeStatus())
 }
 
 function createWindow() {
@@ -84,17 +83,25 @@ function createWindow() {
       sandbox: true,
     },
   })
-  const devUrl = process.env.VITE_DEV_SERVER_URL
+  // MAIN_WINDOW_VITE_DEV_SERVER_URL / MAIN_WINDOW_VITE_NAME are injected by
+  // @electron-forge/plugin-vite during the frozen Forge build chain.
+  const devUrl = typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== 'undefined' ? MAIN_WINDOW_VITE_DEV_SERVER_URL : process.env.VITE_DEV_SERVER_URL
   if (devUrl) {
     void win.loadURL(devUrl)
   } else {
-    void win.loadFile(join(__dirname, '..', 'renderer', 'dist', 'index.html'))
+    void win.loadFile(join(__dirname, '..', 'renderer', 'main_window', 'index.html'))
   }
   return win
 }
 
-app.whenReady().then(() => {
-  createProductFacade()
+app.whenReady().then(async () => {
+  await createRuntime()
+  try {
+    await runtime.start()
+  } catch (error) {
+    // The facade reports RUNTIME_UNAVAILABLE; the UI shows it. Do not crash.
+    console.error('desktop runtime failed to start:', error)
+  }
   registerIpc()
   createWindow()
   app.on('activate', () => {
@@ -103,10 +110,12 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  try {
-    composition?.close()
-  } catch {
-    // ignore
-  }
-  if (process.platform !== 'darwin') app.quit()
+  void (async () => {
+    try {
+      await runtime?.stop()
+    } catch {
+      // ignore
+    }
+    if (process.platform !== 'darwin') app.quit()
+  })()
 })

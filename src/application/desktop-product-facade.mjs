@@ -11,11 +11,12 @@ import { ok, fail, ERROR_CODES, validateProjectId, validateProposalId, normalize
 import { ProjectQueryService } from './project-query-service.mjs'
 
 export class DesktopProductFacade {
-  constructor({ service, projectRepository, taskRepository, proposalRepository, appearanceService, runtimeMode = 'fixture' }) {
+  constructor({ service, projectRepository, taskRepository, proposalRepository, appearanceService, runtimeMode = 'fixture', getRuntimeState = () => 'ready' }) {
     this.service = service
     this.query = new ProjectQueryService({ projectRepository, taskRepository, proposalRepository })
     this.appearance = appearanceService
     this.runtimeMode = runtimeMode
+    this.getRuntimeState = getRuntimeState
   }
 
   // ---- queries ----
@@ -57,7 +58,7 @@ export class DesktopProductFacade {
   }
 
   getRuntimeStatus() {
-    return ok({ mode: this.runtimeMode, configured: true, externalModel: false })
+    return ok({ mode: this.runtimeMode, state: this.getRuntimeState(), externalModel: false })
   }
 
   // ---- commands ----
@@ -65,6 +66,9 @@ export class DesktopProductFacade {
   async proposeNextStep(projectId) {
     const invalid = validateProjectId(projectId)
     if (invalid) return invalid
+    if (this.getRuntimeState() !== 'ready') {
+      return fail(ERROR_CODES.RUNTIME_UNAVAILABLE, 'agent runtime is not ready', true)
+    }
     try {
       const proposal = await this.service.proposeNextStep(projectId)
       return ok({ proposalId: proposal.id, title: proposal.title, rationale: proposal.rationale, status: proposal.status })
