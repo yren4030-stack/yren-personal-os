@@ -21,7 +21,7 @@ export function resolveRealDshHostChildEntry() {
  * child. `dshRoot` is supplied by the caller (e.g. an Electron main, a CLI
  * argument, or a validation runner); it is never read from a hardcoded path.
  */
-export function createDeepSeekHarnessLaunchConfig({ dshRoot, executable = process.execPath }) {
+export function createDeepSeekHarnessLaunchConfig({ dshRoot, executable = process.execPath, extraEnv = {} }) {
   if (!dshRoot || typeof dshRoot !== 'string') {
     throw new TypeError('createDeepSeekHarnessLaunchConfig requires a dshRoot string')
   }
@@ -29,6 +29,6 @@ export function createDeepSeekHarnessLaunchConfig({ dshRoot, executable = proces
     executable,
     args: ['--import', 'tsx/esm', REAL_DSH_HOST_CHILD_ENTRY],
     cwd: dshRoot,
-    env: buildChildEnvironment({ DSH_ROOT: dshRoot }),
+    env: buildChildEnvironment({ DSH_ROOT: dshRoot, ...extraEnv }),
   }
 }

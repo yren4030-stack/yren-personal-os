@@ -51,6 +51,24 @@ rl.on('line', (line) => {
         },
       })
       break
+    case 'agent-turn':
+      // 03C unified adapter path: the fixture returns a deterministic raw JSON
+      // proposal text that the adapter parses/validates like a real agent turn.
+      // It must honor FIXTURE_CRASH_ON_PROPOSE=1 exactly like the legacy
+      // propose-next-project-step contract.
+      if (crashOnPropose) {
+        process.exit(9)
+      }
+      send({
+        type: 'response',
+        id: message.id,
+        ok: true,
+        result: {
+          text: '{"title":"Implement Project bookshelf skeleton","rationale":"Deterministic fixture proposal."}',
+          sessionId: 'fixture-session',
+        },
+      })
+      break
     case 'shutdown':
       send({ type: 'response', id: message.id, ok: true, result: { bye: true } })
       process.exit(0)

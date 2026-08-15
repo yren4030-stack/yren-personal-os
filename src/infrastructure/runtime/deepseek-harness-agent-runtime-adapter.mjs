@@ -2,10 +2,14 @@
  * DeepSeekHarnessAgentRuntimeAdapter — implements the Personal OS
  * AgentRuntimePort in front of a RuntimeProcessBridge.
  *
- * The application layer only ever sees `proposeNextProjectStep({ context })`
- * and gets back a plain `{ title, rationale }`. It knows nothing about
- * processes, stdio, framing, the protocol, or any DSH SDK/Host/ApiProxy.
+ * It maps `proposeNextProjectStep({ context })` to a real DSH agent turn
+ * (`agent-turn`) on the other side of the bridge, then strictly parses the
+ * assistant's raw final text through the Personal OS proposal protocol. The
+ * application layer only ever sees `{ title, rationale }` and knows nothing of
+ * processes, stdio, framing, DSH, agents, sessions, or the mock LLM.
  */
+import { buildProposalInstruction, parseProposalText } from './proposal-protocol.mjs'
+
 export class DeepSeekHarnessAgentRuntimeAdapter {
   constructor(bridge) {
     if (!bridge || typeof bridge.request !== 'function') {
@@ -15,13 +19,9 @@ export class DeepSeekHarnessAgentRuntimeAdapter {
   }
 
   async proposeNextProjectStep({ context }) {
-    const result = await this.bridge.request('propose-next-project-step', { context })
-    if (!result || typeof result.title !== 'string' || result.title.trim() === '') {
-      throw new TypeError('runtime returned an invalid proposal')
-    }
-    return {
-      title: result.title.trim(),
-      rationale: typeof result.rationale === 'string' ? result.rationale.trim() : '',
-    }
+    const instruction = buildProposalInstruction(context)
+    const result = await this.bridge.request('agent-turn', { context, instruction })
+    const text = result && typeof result.text === 'string' ? result.text : ''
+    return parseProposalText(text)
   }
 }
