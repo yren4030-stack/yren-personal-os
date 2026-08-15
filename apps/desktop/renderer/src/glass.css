@@ -28,10 +28,10 @@
 
   /* Liquid Glass tokens — defaults matching computeGlassTokens (60/40).
      The Renderer overrides these live per appearance. */
-  --glass-bg: rgba(255, 255, 255, 0.54);
+  --glass-bg: rgba(255, 255, 255, 0.583);
   --glass-blur: 19.2px;
   --glass-border: 1px solid rgba(0, 0, 0, 0.07);
-  --glass-shadow: rgba(255, 255, 255, 0.352) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.08);
+  --glass-shadow: rgba(255, 255, 255, 0.352) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.032), 0 6px 24px rgba(0, 0, 0, 0.061);
   --glass-saturation: 1.26;
   --glass-highlight: rgba(255, 255, 255, 0.352);
 }

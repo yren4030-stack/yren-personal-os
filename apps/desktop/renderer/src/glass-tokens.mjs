@@ -27,16 +27,25 @@ function clampSlider(value) {
  */
 export function computeGlassTokens(appearance) {
   const frost = clampSlider(appearance && appearance.frostIntensity) / 100
-  const transparency = clampSlider(appearance && appearance.transparencyLevel) / 100
+  const t = clampSlider(appearance && appearance.transparencyLevel) / 100
 
-  // Liquid Glass base: blur follows frost (0→32px); alpha follows
-  // transparency (0.74 dense → 0.24 open, never invisible).
+  // Liquid Glass base: blur follows frost (0→32px). Alpha follows transparency
+  // through a power easing (t^1.4): gradual opening at low values, clearly
+  // more transparent in the mid range, rapidly approaching clear glass above
+  // 80 — but never exactly 0 (fill stays materially present via border,
+  // highlight and shadow).
   const blurPx = frost * 32
-  const alpha = Math.round((0.74 - transparency * 0.5) * 1000) / 1000
-  const borderAlpha = 0.05 + transparency * 0.05
-  const highlightAlpha = 0.28 + transparency * 0.18
+  const eased = Math.pow(t, 1.4)
+  const alpha = Math.round((0.78 - (0.78 - 0.07) * eased) * 1000) / 1000
+  // Edge response: border and inner highlight strengthen slightly with
+  // transparency so clear glass keeps a defined edge.
+  const borderAlpha = 0.05 + t * 0.05
+  const highlightAlpha = 0.28 + t * 0.18
   const saturation = 1.05 + frost * 0.35
   const highlight = `rgba(255, 255, 255, ${highlightAlpha.toFixed(3)})`
+  // Depth response: outer shadow lightens at high transparency, never gone.
+  const shadowNear = 0.04 * (1 - 0.5 * t)
+  const shadowFar = 0.08 * (1 - 0.6 * t)
 
   return {
     glassBg: `rgba(255, 255, 255, ${alpha.toFixed(3)})`,
@@ -44,7 +53,7 @@ export function computeGlassTokens(appearance) {
     glassBorder: `1px solid rgba(0, 0, 0, ${borderAlpha.toFixed(3)})`,
     glassSaturation: saturation.toFixed(2),
     glassHighlight: highlight,
-    glassShadow: `${highlight} inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.08)`,
+    glassShadow: `${highlight} inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, ${shadowNear.toFixed(3)}), 0 6px 24px rgba(0, 0, 0, ${shadowFar.toFixed(3)})`,
     blurPx,
     alpha,
   }
