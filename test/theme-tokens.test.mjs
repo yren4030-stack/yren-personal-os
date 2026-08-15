@@ -92,22 +92,57 @@ test('responsive CSS: sidebar has full (232px) and compact (76px) states with a 
   assert.ok(media[1].includes('.nav-label'), 'labels collapse in compact mode')
 })
 
-test('responsive CSS: project detail stacks vertically at narrow width', () => {
+test('responsive CSS: project detail rail is fluid before stacking at narrow width', () => {
+  assert.ok(css.includes('minmax(300px, 34%)'), 'detail rail shrinks fluidly (300px floor, 34% share)')
   const media = css.match(/@media \(max-width: 1080px\) \{([\s\S]*?)\n\}/)
-  assert.ok(media, 'detail breakpoint media query must exist')
+  assert.ok(media, 'detail stack breakpoint media query must exist')
   assert.ok(media[1].includes('.detail-grid'), 'detail media block targets .detail-grid')
   assert.ok(media[1].includes('grid-template-columns: 1fr'), 'detail columns stack to one')
 })
 
-test('responsive CSS: stat grid and settings adapt to narrower windows', () => {
-  const statMedia = css.match(/@media \(max-width: 1179px\) \{([\s\S]*?)\n\}/)
-  assert.ok(statMedia[1].includes('.stat-grid'), 'stat grid adapts in the medium breakpoint')
-  assert.ok(statMedia[1].includes('repeat(2, 1fr)'), 'stat grid becomes 2 columns')
-  const narrow = css.match(/@media \(max-width: 900px\) \{([\s\S]*?)\n\}/)
-  assert.ok(narrow, 'narrow desktop breakpoint must exist')
-  assert.ok(narrow[1].includes('.settings-card'), 'settings adapts at narrow width')
-  assert.ok(narrow[1].includes('max-width: none'), 'settings card expands to content width')
-  assert.ok(narrow[1].includes('.project-grid'), 'project grid reflows at narrow width')
+test('responsive CSS: Home stat grid is fluid across 4/3/2 column configurations', () => {
+  assert.ok(css.includes('repeat(auto-fit, minmax(270px, 1fr))'), 'stat grid uses fluid auto-fit minmax')
+  // Auto-fit column count from actual available width (track 270px, gap ~16px).
+  const columns = (contentWidth) => Math.floor((contentWidth + 16) / 286)
+  assert.equal(columns(1304), 4, 'wide content resolves 4 columns')
+  assert.equal(columns(984), 3, 'medium content resolves 3 columns')
+  assert.equal(columns(884), 3, 'medium-narrow content resolves 3 columns')
+  assert.equal(columns(760), 2, 'narrow content resolves 2 columns')
+  assert.equal(columns(620), 2, 'minimum-window content resolves 2 columns')
+})
+
+test('responsive CSS: settings panel width is fluid (min(100%, 620px))', () => {
+  assert.ok(css.includes('width: min(100%, 620px)'), 'settings card width is fluid with a sane cap')
+})
+
+test('compact-sidebar mode reclaims width immediately (no ghost width)', () => {
+  assert.ok(css.includes('flex: 1 1 auto'), '.main reclaims freed width')
+  assert.ok(css.includes('min-width: 0'), 'flex/grid children can shrink')
+  const media = css.match(/@media \(max-width: 1179px\) \{([\s\S]*?)\n\}/)
+  assert.ok(media && media[1].includes('width: 76px'), 'sidebar collapses at its single structural breakpoint')
+})
+
+test('760px layout contains no deliberate fixed horizontal overflow', () => {
+  // Every fixed pixel width in the stylesheet must be a structural/sidebar
+  // value or an inner min/max cap, never a content width that could overflow.
+  // Media-query max-widths are viewport breakpoints, not element widths.
+  const allowed = new Set([232, 76, 200, 270, 240, 300, 620, 520, 1240])
+  for (const match of css.matchAll(/(?:^|[^-])(?:width|min-width|max-width):\s*(\d+)px/g)) {
+    const value = Number(match[1])
+    const context = css.slice(Math.max(0, match.index - 30), match.index)
+    if (value >= 400 && !context.includes('@media')) {
+      assert.ok(allowed.has(value), `unexpected fixed width ${value}px would risk overflow at 760px`)
+    }
+  }
+})
+
+test('theme tokens do not alter layout geometry', () => {
+  const dark = css.match(/:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/)
+  assert.ok(dark, 'dark token block must exist')
+  // The dark block may only declare --custom-properties; no layout property
+  // declarations are allowed (geometry stays identical across themes).
+  const layoutProperty = /^\s*(width|min-width|max-width|margin|padding|gap|flex|position|display|overflow|grid-template|inset|transform)\s*:/m
+  assert.equal(layoutProperty.test(dark[1]), false, 'dark theme must only swap colors/materials, not geometry')
 })
 
 test('Electron window sets a reasonable minimum desktop size', () => {

@@ -51,10 +51,12 @@ test('no later CSS rule overrides background/backdrop-filter/opacity on glass su
     assert.equal(rule.body.includes('opacity'), false, `${selector} must not set opacity`)
   }
   // No rule AFTER the shared rule may set a background on any *-card surface.
-  // Pseudo-element edge-highlight layers (::before) are excluded: they are
-  // the intended inner-light overlay, not a glass-background override.
+  // Pseudo-element edge-highlight layers (::before/::after) are excluded: they
+  // are the intended inner-light overlay, not a glass-background override. The
+  // Level-1 engine rule (.glass-l1, .sidebar) is the same engine, explicitly
+  // re-consumed — also excluded.
   for (const rule of rules.slice(sharedIndex + 1)) {
-    if (/card|sidebar/.test(rule.selector) && !rule.selector.includes('::before')) {
+    if (/card|sidebar/.test(rule.selector) && !rule.selector.includes('::') && rule.selector !== '.glass-l1, .sidebar') {
       assert.equal(rule.body.includes('background'), false, `later rule ${rule.selector} must not override glass background`)
       assert.equal(rule.body.includes('backdrop-filter'), false, `later rule ${rule.selector} must not override backdrop-filter`)
     }
@@ -90,13 +92,20 @@ test('glass tokens are defined only in :root and consumed by the shared surface 
     assert.ok(rootRule.body.includes(token), `${token} must be defined in :root`)
     assert.ok(shared.body.includes(token), `${token} must be consumed by the shared surface rule`)
   }
-  // No rule other than the :root scopes and the shared surface rule may
+  // No rule other than the :root scopes and the shared surface rules may
   // reference the material-core tokens. (--glass-border is intentionally also
   // consumed by controls such as .btn-secondary and select; --glass-shadow may
-  // be LAYERED on depth-hierarchy surfaces such as .card-hover:hover and
-  // .proposal-card, but never replaced by a fixed shadow.)
+  // be LAYERED on depth-hierarchy surfaces such as .card-hover:hover,
+  // .proposal-card and .glass-l1, but never replaced by a fixed shadow.)
   for (const rule of rules) {
-    if (rule.selector === ':root' || rule.selector.startsWith(':root[') || rule.selector === '.card, .glass') continue
+    if (
+      rule.selector === ':root' ||
+      rule.selector.startsWith(':root[') ||
+      rule.selector === '.card, .glass' ||
+      rule.selector === '.glass-l1, .sidebar' ||
+      rule.selector === '.glass-l1' ||
+      rule.selector.startsWith('@media (prefers-reduced-transparency')
+    ) continue
     for (const token of ['--glass-bg', '--glass-blur', '--glass-saturation']) {
       assert.equal(rule.body.includes(token), false, `${rule.selector} must not reference ${token}`)
     }
@@ -108,6 +117,53 @@ test('glass tokens are defined only in :root and consumed by the shared surface 
     }
   }
   assert.ok(css.split('--glass-highlight').length - 1 >= 1, '--glass-highlight token must exist')
+})
+
+test('semantic glass levels exist and Level 1 differs from Level 2 treatment', () => {
+  const l1 = findRule('.glass-l1, .sidebar')
+  assert.ok(l1, 'Level-1 glass rule must exist')
+  // L1 explicitly consumes the SAME global engine (frost/transparency stay global).
+  assert.ok(l1.body.includes('var(--glass-bg)'))
+  assert.ok(l1.body.includes('var(--glass-blur)'))
+  // L1 floats above content: deeper lift layered on the base shadow.
+  assert.ok(l1.body.includes('var(--glass-lift)'))
+
+  const shared = findRule('.card, .glass')
+  assert.ok(shared)
+  assert.equal(shared.body.includes('--glass-lift'), false, 'Level 2 must stay flatter (no lift)')
+  assert.equal(shared.body.includes('--glass-specular'), false, 'Level 2 must not carry the specular layer')
+  assert.equal(shared.body.includes('--glass-reflection'), false, 'Level 2 must not carry the reflection layer')
+
+  // Pseudo layers: L1 specular + internal reflection; L2 keeps only the top light.
+  const l1Before = findRule('.glass-l1::before, .sidebar::before')
+  const l1After = findRule('.glass-l1::after, .sidebar::after')
+  assert.ok(l1Before && l1Before.body.includes('var(--glass-specular)'), 'L1 specular highlight layer exists')
+  assert.ok(l1After && l1After.body.includes('var(--glass-reflection)'), 'L1 internal reflection layer exists')
+  assert.ok(l1After.body.includes('var(--glass-edge-dark)'), 'L1 darker lower edge exists')
+  assert.ok(l1Before.body.includes('pointer-events: none'), 'overlay layers never capture input')
+  assert.ok(l1After.body.includes('pointer-events: none'))
+})
+
+test('edge/specular/reflection construction tokens exist in both theme scopes', () => {
+  for (const token of ['--glass-lift', '--glass-specular', '--glass-reflection', '--glass-edge-dark']) {
+    assert.ok(css.includes(token), `${token} token must exist`)
+  }
+  const dark = css.match(/:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/)
+  assert.ok(dark && dark[1].includes('--glass-specular'), 'dark theme defines its own specular/edge set')
+  assert.ok(dark[1].includes('--glass-edge-dark'), 'dark theme keeps a darker lower edge')
+})
+
+test('shared content rows do not receive independent backdrop-filter (glass only at surface boundaries)', () => {
+  for (const selector of ['.list-row', '.nav-item', '.chip', '.btn', '.field']) {
+    const rule = findRule(selector)
+    assert.ok(rule, `${selector} rule must exist`)
+    assert.equal(rule.body.includes('backdrop-filter'), false, `${selector} must not carry its own backdrop-filter`)
+  }
+})
+
+test('reduced-motion and reduced-transparency safety blocks exist', () => {
+  assert.ok(css.includes('prefers-reduced-motion'), 'reduced-motion media query must exist')
+  assert.ok(css.includes('prefers-reduced-transparency'), 'reduced-transparency fallback must exist')
 })
 
 test('DOM writer targets documentElement (root scope inherited by all surfaces)', () => {

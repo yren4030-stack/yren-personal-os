@@ -64,6 +64,15 @@
   --glass-shadow: rgba(255, 255, 255, 0.352) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.032), 0 6px 24px rgba(0, 0, 0, 0.061);
   --glass-saturation: 1.26;
   --glass-highlight: rgba(255, 255, 255, 0.352);
+
+  /* Glass hierarchy + true-edge construction, derived from the SAME engine.
+     L1 (functional/floating) multiplies the global material with a specular
+     top-left wash, faint internal reflection, darker lower edge and a deeper
+     external lift; L2 (content) keeps the quiet base treatment. */
+  --glass-lift: 0 18px 40px -20px rgba(0, 0, 0, 0.22);
+  --glass-specular: linear-gradient(135deg, color-mix(in srgb, var(--glass-highlight) 70%, transparent), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--glass-highlight) 45%, transparent) 100%);
+  --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
@@ -108,6 +117,11 @@
   --glass-shadow: rgba(255, 255, 255, 0.1) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 24px rgba(0, 0, 0, 0.35);
   --glass-saturation: 1.1;
   --glass-highlight: rgba(255, 255, 255, 0.1);
+
+  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  --glass-specular: linear-gradient(135deg, color-mix(in srgb, var(--glass-highlight) 80%, transparent), transparent 48%);
+  --glass-reflection: linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--glass-highlight) 50%, transparent) 100%);
+  --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -178,6 +192,40 @@ body {
   pointer-events: none;
 }
 
+/* LEVEL 1 — functional / floating glass (sidebar, action surfaces, settings
+   controls). The same global engine, explicitly referenced, multiplied with a
+   specular top-left wash, faint internal reflection, darker lower edge and a
+   deeper external lift. L1 visibly floats above L2 content. */
+.glass-l1,
+.sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-lift);
+}
+.glass-l1::before,
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-specular);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.glass-l1::after,
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-reflection);
+  opacity: 0.6;
+  box-shadow: var(--glass-edge-dark);
+  pointer-events: none;
+}
+
 .card-hover {
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
@@ -192,8 +240,8 @@ body {
 .app-shell {
   display: flex;
   height: 100%;
-  padding: 12px;
-  gap: 12px;
+  padding: clamp(8px, 1vw, 12px);
+  gap: clamp(10px, 1vw, 12px);
   min-width: 0;
 }
 
@@ -209,11 +257,11 @@ body {
 }
 
 .main {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 20px 28px;
+  padding: 8px clamp(14px, 2.2vw, 24px) clamp(16px, 2vw, 28px);
 }
 
 .page {
@@ -330,7 +378,7 @@ body {
   min-width: 0;
 }
 .page-title {
-  font-size: 28px;
+  font-size: clamp(24px, 2.6vw, 28px);
   font-weight: 700;
   letter-spacing: -0.3px;
   margin: 0 0 4px;
@@ -341,7 +389,7 @@ body {
   margin: 0;
 }
 .section {
-  margin-bottom: 24px;
+  margin-bottom: clamp(16px, 1.5vw, 24px);
   min-width: 0;
 }
 .section-title {
@@ -414,9 +462,9 @@ select:focus-visible {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: clamp(12px, 1.4vw, 16px);
+  margin-bottom: clamp(16px, 1.5vw, 24px);
   min-width: 0;
 }
 .stat-card {
@@ -474,9 +522,15 @@ select:focus-visible {
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(12px, 1.4vw, 16px);
   min-width: 0;
+}
+
+/* A single project stretches only to a sensible width, never across the
+   whole content column. */
+.project-card:only-child {
+  max-width: 520px;
 }
 
 .project-card {
@@ -577,10 +631,10 @@ select:focus-visible {
 }
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 34%);
+  gap: clamp(12px, 1.4vw, 16px);
   align-items: start;
-  margin-bottom: 24px;
+  margin-bottom: clamp(16px, 1.5vw, 24px);
   min-width: 0;
 }
 .detail-grid > * {
@@ -665,7 +719,8 @@ select:focus-visible {
 /* --- Settings ------------------------------------------------------------ */
 
 .settings-card {
-  max-width: 560px;
+  width: min(100%, 620px);
+  max-width: none;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -806,9 +861,6 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
     justify-content: center;
     padding: 0;
   }
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 /* Project Detail: stack tasks + pending proposals vertically. */
@@ -818,18 +870,38 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   }
 }
 
-/* Narrow desktop: tighter padding, wider settings, smaller project cards. */
+/* Narrow desktop: activity rows reflow instead of truncating useful info —
+   type + status on the first line, title may wrap, timestamp stays right. */
 @media (max-width: 900px) {
-  .main {
-    padding: 8px 14px 20px;
+  .list-row {
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
-  .page-title {
-    font-size: 26px;
+  .list-row .grow {
+    white-space: normal;
+    overflow: visible;
   }
-  .project-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  .list-time {
+    margin-left: auto;
   }
-  .settings-card {
-    max-width: none;
+}
+
+/* --- Accessibility safety ------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card,
+  .glass,
+  .glass-l1,
+  .sidebar {
+    background: color-mix(in srgb, var(--glass-bg) 45%, var(--bg-base));
   }
 }

@@ -326,6 +326,22 @@ export default function App() {
     return watchSystemTheme(setSystemDark)
   }, [followsSystem])
 
+  // Development-only layout diagnostic: enable in DevTools with
+  // `window.__LAYOUT_DEBUG__ = true`, then resize the window. Warns whenever
+  // horizontal overflow appears. Never shown in the UI.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.__LAYOUT_DEBUG__) return undefined
+    const check = () => {
+      const { scrollWidth, clientWidth } = document.documentElement
+      if (scrollWidth > clientWidth + 1) {
+        console.warn('[layout-debug] horizontal overflow', { scrollWidth, clientWidth })
+      }
+    }
+    window.addEventListener('resize', check)
+    check()
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const navigate = (id) => {
     setRoute(id)
     setSelectedProject(null)
@@ -609,7 +625,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <div className="card proposal-card">
+    <div className="card glass-l1 proposal-card">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -653,7 +669,7 @@ function SettingsPage({ appearance, setAppearance }) {
     <div className="page">
       <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
-      <div className="card settings-card">
+      <div className="card glass-l1 settings-card">
         <Section title={t('settings.appearance')}>
           <div className="field">
             <span className="field-label">{t('settings.glassEffect')}</span>
