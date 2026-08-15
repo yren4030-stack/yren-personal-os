@@ -1,16 +1,18 @@
 /**
- * Renderer-owned glass material token mapping (pure presentation logic).
+ * Renderer-owned Liquid Glass material token mapping (pure presentation logic).
  *
- * computeGlassTokens maps the persisted appearance state onto the centralized
- * --glass-* CSS custom properties consumed by every glass surface. It is a
- * pure function of the appearance object (no DOM), so it is deterministic and
- * unit-testable. The two sliders stay independent:
- *   - 磨砂强度 (frostIntensity) controls blur/diffusion only.
- *   - 通透程度 (transparencyLevel) controls surface alpha only.
+ * Personal OS has ONE global material engine — Liquid Glass. There is no
+ * material mode enum: two independent continuous parameters drive the whole
+ * UI:
+ *   - 磨砂强度 (frostIntensity): backdrop blur / diffusion / saturation only.
+ *   - 通透程度 (transparencyLevel): surface alpha / background transmission /
+ *     edge highlight only.
  *
- * FROSTED (磨砂): strong blur range 0–32px, relatively opaque surface.
- * TRANSPARENT (通透): lighter blur range 0–14px, surface alpha 0.72→0.20
- * (never zero, always readable).
+ * computeGlassTokens is a pure function of the two parameters (any legacy
+ * `material` field is ignored — zero rendering effect, compatibility only),
+ * so it is deterministic and unit-testable. Future visual work (edge
+ * highlight, specular response, refraction, depth) can refine the base preset
+ * without touching the Settings data model.
  */
 
 function clampSlider(value) {
@@ -20,27 +22,29 @@ function clampSlider(value) {
 }
 
 /**
- * @param {{ material?: string, frostIntensity?: number, transparencyLevel?: number }} appearance
- * @returns {{ glassBg: string, glassBlur: string, glassBorder: string, glassSaturation: string, glassShadow: string, blurPx: number, alpha: number }}
+ * @param {{ frostIntensity?: number, transparencyLevel?: number }} appearance
+ * @returns {{ glassBg: string, glassBlur: string, glassBorder: string, glassSaturation: string, glassShadow: string, glassHighlight: string, blurPx: number, alpha: number }}
  */
 export function computeGlassTokens(appearance) {
-  const material = appearance && appearance.material === 'transparent' ? 'transparent' : 'frosted'
   const frost = clampSlider(appearance && appearance.frostIntensity) / 100
   const transparency = clampSlider(appearance && appearance.transparencyLevel) / 100
 
-  const blurPx = material === 'frosted' ? frost * 32 : frost * 14
-  // Rounded to 3 decimals so the numeric value matches the CSS string exactly.
-  const alpha = Math.round((material === 'frosted' ? 0.66 - transparency * 0.18 : 0.72 - transparency * 0.52) * 1000) / 1000
+  // Liquid Glass base: blur follows frost (0→32px); alpha follows
+  // transparency (0.74 dense → 0.24 open, never invisible).
+  const blurPx = frost * 32
+  const alpha = Math.round((0.74 - transparency * 0.5) * 1000) / 1000
+  const borderAlpha = 0.05 + transparency * 0.05
+  const highlightAlpha = 0.28 + transparency * 0.18
+  const saturation = 1.05 + frost * 0.35
+  const highlight = `rgba(255, 255, 255, ${highlightAlpha.toFixed(3)})`
 
   return {
     glassBg: `rgba(255, 255, 255, ${alpha.toFixed(3)})`,
     glassBlur: `${blurPx.toFixed(1)}px`,
-    glassBorder: `1px solid rgba(0, 0, 0, ${material === 'transparent' ? 0.04 : 0.08})`,
-    glassSaturation: material === 'frosted' ? '1.35' : '1.05',
-    glassShadow:
-      material === 'transparent'
-        ? 'inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.05)'
-        : 'inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.08)',
+    glassBorder: `1px solid rgba(0, 0, 0, ${borderAlpha.toFixed(3)})`,
+    glassSaturation: saturation.toFixed(2),
+    glassHighlight: highlight,
+    glassShadow: `${highlight} inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.08)`,
     blurPx,
     alpha,
   }
@@ -54,4 +58,5 @@ export function applyGlassTokens(tokens) {
   root.style.setProperty('--glass-border', tokens.glassBorder)
   root.style.setProperty('--glass-shadow', tokens.glassShadow)
   root.style.setProperty('--glass-saturation', tokens.glassSaturation)
+  root.style.setProperty('--glass-highlight', tokens.glassHighlight)
 }

@@ -617,15 +617,7 @@ function SettingsPage({ appearance, setAppearance }) {
       <div className="card settings-card">
         <Section title={t('settings.appearance')}>
           <div className="field">
-            <span className="field-label">{t('settings.glassMaterial')}</span>
-            <div className="segmented">
-              <button type="button" className={appearance.material === 'frosted' ? 'active' : ''} onClick={() => update({ material: 'frosted' })}>
-                {t('settings.frosted')}
-              </button>
-              <button type="button" className={appearance.material === 'transparent' ? 'active' : ''} onClick={() => update({ material: 'transparent' })}>
-                {t('settings.transparent')}
-              </button>
-            </div>
+            <span className="field-label">{t('settings.glassEffect')}</span>
           </div>
 
           <div className="field">

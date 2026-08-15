@@ -36,14 +36,17 @@ test('page dictionaries cover the keys the UI renders', () => {
     assert.equal(typeof detail[key], 'string', `projectDetail.${key}`)
   }
   const settings = messages.settings
-  for (const key of ['title', 'subtitle', 'appearance', 'glassMaterial', 'frosted', 'transparent', 'frostIntensity', 'transparencyLevel', 'theme']) {
+  for (const key of ['title', 'subtitle', 'appearance', 'glassEffect', 'frostIntensity', 'transparencyLevel', 'theme']) {
     assert.equal(typeof settings[key], 'string', `settings.${key}`)
   }
-  // The two appearance sliders stay independent with their own labels.
-  assert.equal(settings.frosted, '磨砂')
-  assert.equal(settings.transparent, '通透')
+  // Liquid Glass: the two independent sliders have their own labels; the
+  // obsolete material-mode selector keys are gone.
+  assert.equal(settings.glassEffect, '玻璃效果')
   assert.equal(settings.frostIntensity, '磨砂强度')
   assert.equal(settings.transparencyLevel, '通透程度')
+  assert.equal('glassMaterial' in settings, false)
+  assert.equal('frosted' in settings, false)
+  assert.equal('transparent' in settings, false)
 })
 
 test('t() interpolates placeholders', () => {

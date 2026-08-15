@@ -1,77 +1,113 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import { computeGlassTokens } from '../apps/desktop/renderer/src/glass-tokens.mjs'
 
-function tokens(material, frostIntensity, transparencyLevel) {
-  return computeGlassTokens({ material, frostIntensity, transparencyLevel })
+function tokens(frostIntensity, transparencyLevel) {
+  return computeGlassTokens({ frostIntensity, transparencyLevel })
 }
 
-test('Frosted 0 and Frosted 100 produce different blur values (host-visible range)', () => {
-  const low = tokens('frosted', 0, 40)
-  const high = tokens('frosted', 100, 40)
-  assert.equal(low.blurPx, 0)
-  assert.equal(high.blurPx, 32)
-  assert.notEqual(low.glassBlur, high.glassBlur)
+test('no material-mode selection is required to compute glass tokens', () => {
+  const t = tokens(60, 40)
+  assert.equal(typeof t.glassBg, 'string')
+  assert.equal(typeof t.glassBlur, 'string')
+  assert.equal(typeof t.glassBorder, 'string')
+  assert.equal(typeof t.glassSaturation, 'string')
+  assert.equal(typeof t.glassShadow, 'string')
+  assert.equal(typeof t.glassHighlight, 'string')
+  assert.ok(Number.isFinite(t.blurPx) && Number.isFinite(t.alpha))
 })
 
-test('Transparent 0 and Transparent 100 produce materially different background alpha', () => {
-  const solid = tokens('transparent', 60, 0)
-  const open = tokens('transparent', 60, 100)
-  assert.equal(solid.alpha, 0.72)
-  assert.equal(open.alpha, 0.2)
-  assert.ok(open.alpha < solid.alpha, 'higher transparency level must lower alpha')
-  assert.notEqual(solid.glassBg, open.glassBg)
+test('frostIntensity 0 vs 100 changes global blur significantly', () => {
+  assert.equal(tokens(0, 40).blurPx, 0)
+  assert.equal(tokens(100, 40).blurPx, 32)
+  assert.notEqual(tokens(0, 40).glassBlur, tokens(100, 40).glassBlur)
 })
 
-test('frostIntensity never overwrites transparencyLevel (alpha is transparency-driven only)', () => {
-  const a = tokens('frosted', 0, 55)
-  const b = tokens('frosted', 100, 55)
+test('transparencyLevel 0 vs 100 changes global alpha significantly', () => {
+  assert.equal(tokens(60, 0).alpha, 0.74)
+  assert.equal(tokens(60, 100).alpha, 0.24)
+  assert.notEqual(tokens(60, 0).glassBg, tokens(60, 100).glassBg)
+})
+
+test('both parameters change simultaneously (combined Liquid Glass states)', () => {
+  // frost 10 / transparency 90 → clear, transparent glass
+  const clear = tokens(10, 90)
+  assert.equal(clear.blurPx, 3.2)
+  assert.equal(clear.alpha, 0.29)
+
+  // frost 85 / transparency 25 → dense, heavily diffused glass
+  const dense = tokens(85, 25)
+  assert.equal(dense.blurPx, 27.2)
+  assert.equal(dense.alpha, 0.615)
+
+  // frost 55 / transparency 65 → balanced Liquid Glass
+  const balanced = tokens(55, 65)
+  assert.equal(balanced.blurPx, 17.6)
+  assert.equal(balanced.alpha, 0.415)
+
+  // All three states are visually distinct from each other.
+  assert.notEqual(clear.glassBlur, dense.glassBlur)
+  assert.notEqual(clear.glassBg, dense.glassBg)
+})
+
+test('changing frost does not overwrite transparency', () => {
+  const a = tokens(0, 55)
+  const b = tokens(100, 55)
   assert.equal(a.alpha, b.alpha)
   assert.equal(a.glassBg, b.glassBg)
 })
 
-test('transparencyLevel never replaces frostIntensity (blur is frost-driven only)', () => {
-  const a = tokens('transparent', 42, 0)
-  const b = tokens('transparent', 42, 100)
+test('changing transparency does not overwrite frost', () => {
+  const a = tokens(42, 0)
+  const b = tokens(42, 100)
   assert.equal(a.blurPx, b.blurPx)
   assert.equal(a.glassBlur, b.glassBlur)
 })
 
-test('appearance returned from persisted storage recreates identical tokens', () => {
-  // Shape the AppearanceService returns after load/clamp.
-  const persisted = { material: 'transparent', frostIntensity: 42, transparencyLevel: 77, theme: 'light' }
+test('restored persisted settings recreate identical global tokens', () => {
+  const persisted = { frostIntensity: 42, transparencyLevel: 77, theme: 'light' }
   const first = computeGlassTokens(persisted)
   const second = computeGlassTokens({ ...persisted })
   assert.deepEqual(first, second)
-  assert.equal(first.glassBg, second.glassBg)
-  assert.equal(first.glassBlur, second.glassBlur)
+})
+
+test('obsolete material field (frosted/transparent) has zero effect on tokens', () => {
+  const plain = tokens(60, 40)
+  assert.deepEqual(computeGlassTokens({ material: 'frosted', frostIntensity: 60, transparencyLevel: 40 }), plain)
+  assert.deepEqual(computeGlassTokens({ material: 'transparent', frostIntensity: 60, transparencyLevel: 40 }), plain)
+})
+
+test('Settings UI no longer exposes the 磨砂/通透 material selector', () => {
+  const src = readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8')
+  assert.equal(src.includes('settings.glassMaterial'), false)
+  assert.equal(src.includes('settings.frosted'), false)
+  assert.equal(src.includes('settings.transparent'), false)
+  assert.equal(src.includes('className="segmented"'), false)
+  assert.equal(src.includes("material: 'frosted'"), false)
+  assert.equal(src.includes("material: 'transparent'"), false)
 })
 
 test('token values stay within safe clamped ranges for all slider positions', () => {
   for (const value of [0, 1, 25, 50, 99, 100]) {
-    const frosted = tokens('frosted', value, value)
-    assert.ok(frosted.blurPx >= 0 && frosted.blurPx <= 32, `frosted blur ${frosted.blurPx}`)
-    assert.ok(frosted.alpha >= 0.48 && frosted.alpha <= 0.66, `frosted alpha ${frosted.alpha}`)
-
-    const transparent = tokens('transparent', value, value)
-    assert.ok(transparent.blurPx >= 0 && transparent.blurPx <= 14, `transparent blur ${transparent.blurPx}`)
-    assert.ok(transparent.alpha >= 0.2 && transparent.alpha <= 0.72, `transparent alpha ${transparent.alpha}`)
-    assert.ok(transparent.alpha > 0, 'alpha must never reach zero')
+    const t = tokens(value, value)
+    assert.ok(t.blurPx >= 0 && t.blurPx <= 32, `blur ${t.blurPx}`)
+    assert.ok(t.alpha >= 0.24 && t.alpha <= 0.74, `alpha ${t.alpha}`)
+    assert.ok(t.alpha > 0, 'alpha must never reach zero')
   }
-
-  // Out-of-range persisted values clamp instead of producing NaN/invalid CSS.
-  const clamped = tokens('transparent', -5, 150)
+  const clamped = tokens(-5, 150)
   assert.equal(clamped.blurPx, 0)
-  assert.equal(clamped.alpha, 0.2)
+  assert.equal(clamped.alpha, 0.24)
   assert.ok(Number.isFinite(clamped.blurPx) && Number.isFinite(clamped.alpha))
 })
 
 test('token output is CSS-ready and the mapping is renderer-only (no backend contract)', () => {
-  const t = tokens('frosted', 60, 40)
+  const t = tokens(60, 40)
   assert.match(t.glassBg, /^rgba\(255, 255, 255, 0\.\d{3}\)$/)
   assert.match(t.glassBlur, /^\d+(\.\d+)?px$/)
-  assert.match(t.glassBorder, /^1px solid rgba\(0, 0, 0, 0\.0\d\)$/)
-  assert.match(t.glassSaturation, /^1\.\d+$/)
-  assert.ok(t.glassShadow.includes('inset'), 'glass has a subtle inner edge highlight')
+  assert.match(t.glassBorder, /^1px solid rgba\(0, 0, 0, 0\.\d{3}\)$/)
+  assert.match(t.glassSaturation, /^\d\.\d{2}$/)
+  assert.match(t.glassHighlight, /^rgba\(255, 255, 255, 0\.\d{3}\)$/)
+  assert.ok(t.glassShadow.includes('inset 0 1px 0'), 'glass has a subtle inner edge highlight')
 })
