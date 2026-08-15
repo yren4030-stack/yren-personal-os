@@ -15,6 +15,7 @@ on:
       - 'test/**'
       - 'scripts/validate-runtime-bridge-03a.mjs'
       - 'scripts/validate-real-dsh-host-03b.mjs'
+      - 'scripts/validate-real-dsh-agent-turn-03c.mjs'
   workflow_dispatch:
 
 permissions:
@@ -73,6 +74,6 @@ jobs:
           if ($head -ne '47f943859bef60e4160492346772ded9b24f765a') { throw "DSH SHA moved after install: $head" }
           Write-Host 'DSH tracked tree clean and frozen SHA intact'
 
-      - name: Run complete 03B real DSH host validation
+      - name: Run complete 03C real DSH agent turn validation
         shell: pwsh
-        run: node scripts/validate-real-dsh-host-03b.mjs --dsh-root "${{ github.workspace }}\.external\deepseek-harness"
+        run: node scripts/validate-real-dsh-agent-turn-03c.mjs --dsh-root "${{ github.workspace }}\.external\deepseek-harness"
