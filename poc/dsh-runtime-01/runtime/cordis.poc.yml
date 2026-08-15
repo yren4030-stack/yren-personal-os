@@ -25,6 +25,3 @@
   config:
     root: !!js process.env.DSH_SESSION_ROOT ?? './.sessions-poc'
     compression: none
-
-- id: token-meter
-  name: '@deepseek-ai/dsh-token-meter'
