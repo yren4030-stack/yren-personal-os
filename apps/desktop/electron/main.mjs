@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 
 import { createDesktopProductRuntime, DESKTOP_RUNTIME_MODES } from '../../../src/composition/desktop-product-runtime.mjs'
+import { seedValidationProjectIfEmpty } from '../../../src/application/desktop-validation-seed.mjs'
 import { startDshMockServer } from '../../../test/support/dsh-mock-server.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -41,9 +42,10 @@ function resolveMode() {
 }
 
 let runtime
+let mode
 
 async function createRuntime() {
-  const mode = resolveMode()
+  mode = resolveMode()
   const dshRoot = process.env.PERSONAL_OS_DSH_ROOT
 
   if (mode === DESKTOP_RUNTIME_MODES.UNIT_TEST_FAKE) {
@@ -101,6 +103,18 @@ app.whenReady().then(async () => {
   } catch (error) {
     // The facade reports RUNTIME_UNAVAILABLE; the UI shows it. Do not crash.
     console.error('desktop runtime failed to start:', error)
+  }
+  // Validation-only bootstrap: seeds one deterministic project when the
+  // database is empty and the mode is validation-local-mock. Never runs in
+  // real-dsh / production / unit-test-fake / unknown modes.
+  try {
+    const seed = await seedValidationProjectIfEmpty({
+      mode,
+      projectRepository: runtime.composition.projectRepository,
+    })
+    if (seed.seeded) console.log(`[desktop] validation project seeded: ${seed.projectId}`)
+  } catch (error) {
+    console.error('desktop validation seed failed:', error)
   }
   registerIpc()
   createWindow()
