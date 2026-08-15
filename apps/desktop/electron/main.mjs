@@ -77,7 +77,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    backgroundColor: '#f2f1f6',
+    backgroundColor: '#f3f2f7',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
