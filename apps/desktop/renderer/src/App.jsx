@@ -624,7 +624,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <div className="glass-float proposal-card">
+    <div className="card glass-l1 proposal-card">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -668,9 +668,9 @@ function SettingsPage({ appearance, setAppearance }) {
     <div className="page">
       <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
-      <div className="card glass-l1 settings-card">
-        <Section title={t('settings.appearance')}>
-          <div className="field">
+      <Section title={t('settings.appearance')}>
+        <div className="settings-groups">
+          <div className="card settings-group">
             <span className="field-label">{t('settings.appearanceMode')}</span>
             <div className="segmented">
               <button type="button" className={appearance.theme === 'light' ? 'active' : ''} onClick={() => update({ theme: 'light' })}>
@@ -685,7 +685,7 @@ function SettingsPage({ appearance, setAppearance }) {
             </div>
           </div>
 
-          <div className="field">
+          <div className="card settings-group">
             <span className="field-label">{t('settings.glassStyle')}</span>
             <div className="segmented">
               <button type="button" className={(appearance.liquidGlassStyle || 'clear') === 'clear' ? 'active' : ''} onClick={() => update({ liquidGlassStyle: 'clear' })}>
@@ -696,8 +696,8 @@ function SettingsPage({ appearance, setAppearance }) {
               </button>
             </div>
           </div>
-        </Section>
-      </div>
+        </div>
+      </Section>
     </div>
   )
 }

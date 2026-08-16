@@ -71,31 +71,42 @@
   --control-height: 40px;
   --page-title-size: clamp(24px, 2.6vw, 28px);
 
-  /* Liquid Glass engine defaults (clear · light · navigation). The Renderer
-     overrides these live via applyGlassTokens(). */
-  --glass-bg: rgba(255, 255, 255, 0.192);
-  --glass-blur: 14.7px;
-  --glass-border: 1px solid rgba(0, 0, 0, 0.12);
-  --glass-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.06);
-  --glass-saturation: 1.3;
+  /* Liquid Glass engine defaults (clear · light · REGULAR navigation).
+     The Renderer overrides these live via applyGlassTokens(). */
+  --glass-bg: rgba(255, 255, 255, 0.147);
+  --glass-blur: 13.2px;
+  --glass-border: 1px solid rgba(0, 0, 0, 0.16);
+  --glass-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.55) inset 0 0 0 1px, rgba(0, 0, 0, 0.07) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.044), 0 18px 50px -20px rgba(0, 0, 0, 0.115);
+  --glass-saturation: 1.25;
+  --glass-brightness: 1.05;
+  --glass-contrast: 1.03;
   --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-rim-light: rgba(255, 255, 255, 0.55);
+  --glass-rim-shade: rgba(0, 0, 0, 0.07);
   --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
-  --glass-reflection: linear-gradient(180deg, transparent 40%, rgba(255, 255, 255, 0.6) 100%);
-  --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.24);
-  --glass-rim: rgba(255, 255, 255, 0.1);
+  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.6) 100%);
+  --glass-spill: linear-gradient(160deg, rgba(150, 158, 186, 0.144), transparent 52%);
 
-  /* Content (Level 2) — quieter standard translucent material. */
-  --glass-bg-content: rgba(255, 255, 255, 0.184);
-  --glass-blur-content: 11.2px;
-  --glass-border-content: 1px solid rgba(0, 0, 0, 0.108);
-  --glass-shadow-content: rgba(255, 255, 255, 0.45) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.021), 0 6px 24px rgba(0, 0, 0, 0.042);
+  /* CLEAR liquid glass (small floating controls, segmented capsules). */
+  --glass-clear-bg: rgba(255, 255, 255, 0.075);
+  --glass-clear-blur: 5.8px;
+  --glass-clear-border: 1px solid rgba(0, 0, 0, 0.198);
+  --glass-clear-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.6) inset 0 0 0 1px, rgba(0, 0, 0, 0.08) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.026), 0 18px 50px -20px rgba(0, 0, 0, 0.046);
+  --glass-clear-saturation: 1.3;
+  --glass-clear-brightness: 1.06;
+  --glass-clear-contrast: 1.04;
+  --glass-clear-highlight: rgba(255, 255, 255, 0.6);
+  --glass-clear-rim-light: rgba(255, 255, 255, 0.6);
+  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
 
-  /* Floating (small functional surfaces) — clearer, thinner, sharper edge. */
-  --glass-bg-float: rgba(255, 255, 255, 0.16);
-  --glass-blur-float: 9.8px;
-  --glass-border-float: 1px solid rgba(0, 0, 0, 0.138);
-  --glass-shadow-float: rgba(255, 255, 255, 0.5) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.018), 0 6px 24px rgba(0, 0, 0, 0.036);
+  /* STANDARD content material (ordinary content cards). */
+  --glass-content-bg: rgba(255, 255, 255, 0.13);
+  --glass-content-blur: 9px;
+  --glass-content-border: 1px solid rgba(0, 0, 0, 0.12);
+  --glass-content-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.3) inset 0 0 0 1px, rgba(0, 0, 0, 0.05) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.069);
+  --glass-content-saturation: 1.2;
+  --glass-content-brightness: 1.03;
+  --glass-content-contrast: 1.02;
 }
 
 /* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
@@ -133,28 +144,39 @@
   --error-border: rgba(255, 69, 58, 0.32);
   --error-text: #ff8a80;
 
-  /* Pre-JS dark defaults (clear · dark · navigation). */
-  --glass-bg: rgba(34, 36, 42, 0.23);
-  --glass-blur: 15.4px;
-  --glass-border: 1px solid rgba(255, 255, 255, 0.16);
-  --glass-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.06);
-  --glass-saturation: 1.2;
-  --glass-highlight: rgba(255, 255, 255, 0.4);
-  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 46%);
-  --glass-reflection: linear-gradient(180deg, transparent 40%, rgba(255, 255, 255, 0.4) 100%);
-  --glass-edge-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
-  --glass-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.54);
-  --glass-rim: rgba(255, 255, 255, 0.14);
+  /* Pre-JS dark defaults (clear · dark · REGULAR navigation). */
+  --glass-bg: rgba(34, 36, 42, 0.173);
+  --glass-blur: 15.2px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.184);
+  --glass-shadow: rgba(255, 255, 255, 0.42) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.32) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.05), 0 18px 50px -20px rgba(0, 0, 0, 0.32);
+  --glass-saturation: 1.1;
+  --glass-brightness: 1.04;
+  --glass-contrast: 1.03;
+  --glass-highlight: rgba(255, 255, 255, 0.42);
+  --glass-rim-light: rgba(255, 255, 255, 0.46);
+  --glass-rim-shade: rgba(0, 0, 0, 0.32);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.42) 100%);
+  --glass-spill: linear-gradient(160deg, rgba(110, 122, 160, 0.17), transparent 52%);
 
-  --glass-bg-content: rgba(34, 36, 42, 0.22);
-  --glass-blur-content: 12.3px;
-  --glass-border-content: 1px solid rgba(255, 255, 255, 0.144);
-  --glass-shadow-content: rgba(255, 255, 255, 0.3) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.021), 0 6px 24px rgba(0, 0, 0, 0.042);
+  --glass-clear-bg: rgba(34, 36, 42, 0.1);
+  --glass-clear-blur: 6.7px;
+  --glass-clear-border: 1px solid rgba(255, 255, 255, 0.228);
+  --glass-clear-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.3) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.18);
+  --glass-clear-saturation: 1.15;
+  --glass-clear-brightness: 1.05;
+  --glass-clear-contrast: 1.04;
+  --glass-clear-highlight: rgba(255, 255, 255, 0.4);
+  --glass-clear-rim-light: rgba(255, 255, 255, 0.46);
+  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 46%);
 
-  --glass-bg-float: rgba(34, 36, 42, 0.19);
-  --glass-blur-float: 10.8px;
-  --glass-border-float: 1px solid rgba(255, 255, 255, 0.184);
-  --glass-shadow-float: rgba(255, 255, 255, 0.34) inset 0 1px 0, 0 1px 2px rgba(0, 0, 0, 0.018), 0 6px 24px rgba(0, 0, 0, 0.036);
+  --glass-content-bg: rgba(34, 36, 42, 0.13);
+  --glass-content-blur: 10px;
+  --glass-content-border: 1px solid rgba(255, 255, 255, 0.138);
+  --glass-content-shadow: rgba(255, 255, 255, 0.28) inset 0 1px 0, rgba(255, 255, 255, 0.24) inset 0 0 0 1px, rgba(0, 0, 0, 0.22) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.2);
+  --glass-content-saturation: 1.1;
+  --glass-content-brightness: 1.02;
+  --glass-content-contrast: 1.02;
 }
 
 * {
@@ -198,16 +220,17 @@ body {
 
 /* --- Glass surfaces ------------------------------------------------------ */
 
-/* LEVEL 2 — content material: quieter standard translucent surfaces
-   (project cards, task groups, activity panels, dashboard stats). */
+/* STANDARD content material: quieter translucent surfaces (project cards,
+   task groups, activity panels, dashboard stats, page sections). Not full
+   Liquid Glass — a clean standard material. */
 .card,
 .glass {
   position: relative;
-  background: var(--glass-bg-content);
-  backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation));
-  -webkit-backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation));
-  border: var(--glass-border-content);
-  box-shadow: var(--glass-shadow-content);
+  background: var(--glass-content-bg);
+  backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
+  border: var(--glass-content-border);
+  box-shadow: var(--glass-content-shadow);
   border-radius: var(--radius-glass-medium);
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
@@ -224,17 +247,18 @@ body {
   pointer-events: none;
 }
 
-/* LEVEL 1 — functional / floating glass (sidebar, settings controls,
-   action surfaces). Full Liquid Glass fidelity: asymmetric specular,
-   internal reflection, darker lower edge, refractive rim, deeper lift.
-   The same engine, explicitly referenced. */
+/* REGULAR Liquid Glass — text-heavy functional surfaces (sidebar, proposal
+   panel, control regions, inspectors). Perimeter-driven optical model:
+   coordinated backdrop stack, refractive rim light + opposite-edge shade,
+   specular, internal reflection, environmental spill, contact + ambient
+   shadows. The center stays relatively clear; the EDGE carries the material. */
 .glass-l1,
 .sidebar {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
   border: var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-lift), inset 0 0 0 1px var(--glass-rim);
+  box-shadow: var(--glass-shadow);
 }
 .glass-l1::before,
 .sidebar::before {
@@ -242,7 +266,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--glass-specular);
+  background: var(--glass-specular), var(--glass-spill);
   opacity: 0.5;
   pointer-events: none;
 }
@@ -253,20 +277,21 @@ body {
   inset: 0;
   border-radius: inherit;
   background: var(--glass-reflection);
-  opacity: 0.55;
-  box-shadow: var(--glass-edge-dark);
+  opacity: 0.5;
+  box-shadow: var(--glass-rim-shade) inset 0 -1px 0;
   pointer-events: none;
 }
 
-/* LEVEL 1 float — small floating action surfaces: clearer, thinner,
-   sharper refractive edge, lighter shadow (size-adaptive material). */
+/* CLEAR Liquid Glass — small/lightweight floating controls (segmented
+   capsules, compact action capsules). Thinner, higher transmission,
+   sharper perimeter, stronger optical edge. */
 .glass-float {
   position: relative;
-  background: var(--glass-bg-float);
-  backdrop-filter: blur(var(--glass-blur-float)) saturate(var(--glass-saturation));
-  -webkit-backdrop-filter: blur(var(--glass-blur-float)) saturate(var(--glass-saturation));
-  border: var(--glass-border-float);
-  box-shadow: var(--glass-shadow-float), inset 0 0 0 1px var(--glass-rim);
+  background: var(--glass-clear-bg);
+  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  border: var(--glass-clear-border);
+  box-shadow: var(--glass-clear-shadow);
   border-radius: var(--radius-glass-medium);
 }
 .glass-float::before {
@@ -274,7 +299,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--glass-specular);
+  background: var(--glass-clear-specular);
   opacity: 0.4;
   pointer-events: none;
 }
@@ -285,7 +310,7 @@ body {
 .card-hover:hover {
   transform: translateY(-2px);
   border-color: rgba(120, 73, 209, 0.25);
-  box-shadow: var(--glass-shadow-content), 0 14px 34px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--glass-content-shadow), 0 14px 34px rgba(0, 0, 0, 0.1);
 }
 
 /* --- App shell ----------------------------------------------------------- */
@@ -321,7 +346,6 @@ body {
 }
 
 .page {
-  max-width: 1240px;
   min-width: 0;
 }
 
@@ -521,7 +545,7 @@ select:focus-visible {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--grid-gap);
   margin-bottom: var(--section-gap);
   min-width: 0;
@@ -581,7 +605,7 @@ select:focus-visible {
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--grid-gap);
   min-width: 0;
 }
@@ -690,7 +714,7 @@ select:focus-visible {
 }
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 34%);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, min(34%, 480px));
   gap: var(--grid-gap);
   align-items: start;
   margin-bottom: var(--section-gap);
@@ -775,13 +799,37 @@ select:focus-visible {
 
 /* --- Settings ------------------------------------------------------------ */
 
-.settings-card {
-  width: min(100%, 620px);
-  max-width: none;
-  padding: 24px;
+/* Settings lives naturally in the STANDARD content layer — no giant glass
+   panel. Grouped control regions (standard cards), width driven by the
+   main-content container: nearly full on compact, balanced column on
+   standard, moderately wider on spacious displays. */
+.settings-groups {
+  display: grid;
+  gap: 14px;
+  max-width: 100%;
+  margin-inline: auto;
+  min-width: 0;
+}
+@container (max-width: 760px) {
+  .settings-groups {
+    width: 100%;
+  }
+}
+@container (min-width: 761px) and (max-width: 1100px) {
+  .settings-groups {
+    width: min(100%, 660px);
+  }
+}
+@container (min-width: 1101px) {
+  .settings-groups {
+    width: min(100%, 780px);
+  }
+}
+.settings-group {
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   min-width: 0;
 }
 .field {
@@ -809,14 +857,19 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* macOS-style Liquid Glass segmented control: the selected segment is a
-   small glass capsule with internal highlight, not a flat filled rectangle. */
+/* macOS-style CLEAR Liquid Glass segmented control: the outer group is a
+   lightweight clear glass capsule; the selected segment is a SECOND optical
+   glass layer (internal reflection, thin refractive rim, subtle elevation)
+   — never a flat filled rectangle. */
 .segmented {
   display: inline-flex;
   padding: 3px;
   gap: 3px;
-  background: var(--glass-bg-content);
-  border: var(--glass-border-content);
+  background: var(--glass-clear-bg);
+  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  border: var(--glass-clear-border);
+  box-shadow: var(--glass-clear-shadow);
   border-radius: var(--radius-capsule);
   align-self: flex-start;
   max-width: 100%;
@@ -842,12 +895,12 @@ select:focus-visible {
 }
 .segmented button.active {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--glass-highlight) 40%, transparent), transparent 60%),
-    var(--glass-bg);
-  border-color: var(--glass-border-content);
-  color: var(--text-primary);
+    linear-gradient(180deg, var(--glass-clear-specular), transparent 55%),
+    var(--glass-clear-bg);
+  border-color: var(--glass-clear-border);
+  color: var(--accent);
   font-weight: 600;
-  box-shadow: var(--glass-shadow-content), inset 0 1px 0 var(--glass-highlight);
+  box-shadow: var(--glass-clear-shadow), inset 0 1px 0 var(--glass-clear-highlight), inset 0 0 0 1px var(--glass-clear-rim-light);
 }
 .segmented button:focus-visible {
   outline: 2px solid var(--accent-focus);

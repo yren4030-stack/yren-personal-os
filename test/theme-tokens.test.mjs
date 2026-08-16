@@ -120,7 +120,7 @@ test('responsive CSS: sidebar has full (232px) and compact (76px) states with a 
 })
 
 test('responsive CSS: project detail rail is fluid before stacking when the CONTENT column narrows', () => {
-  assert.ok(css.includes('minmax(300px, 34%)'), 'detail rail shrinks fluidly (300px floor, 34% share)')
+  assert.ok(css.includes('minmax(300px, min(34%, 480px))'), 'detail rail shrinks fluidly with a proportionate cap')
   const container = css.match(/@container \(max-width: 900px\) \{([\s\S]*?)\n\}/)
   assert.ok(container, 'detail stack container query must exist')
   assert.ok(container[1].includes('.detail-grid'), 'container block targets .detail-grid')
@@ -128,18 +128,31 @@ test('responsive CSS: project detail rail is fluid before stacking when the CONT
 })
 
 test('responsive CSS: Home stat grid is fluid across 4/3/2 column configurations', () => {
-  assert.ok(css.includes('repeat(auto-fit, minmax(270px, 1fr))'), 'stat grid uses fluid auto-fit minmax')
-  // Auto-fit column count from actual available width (track 270px, gap ~16px).
-  const columns = (contentWidth) => Math.floor((contentWidth + 16) / 286)
+  assert.ok(css.includes('repeat(auto-fit, minmax(280px, 1fr))'), 'stat grid uses fluid auto-fit minmax')
+  // Auto-fit column count from actual available width (track 280px, gap ~16px).
+  const columns = (contentWidth) => Math.floor((contentWidth + 16) / 296)
   assert.equal(columns(1304), 4, 'wide content resolves 4 columns')
+  assert.equal(columns(1144), 3, 'standard content resolves 3 columns')
   assert.equal(columns(984), 3, 'medium content resolves 3 columns')
-  assert.equal(columns(884), 3, 'medium-narrow content resolves 3 columns')
   assert.equal(columns(760), 2, 'narrow content resolves 2 columns')
   assert.equal(columns(620), 2, 'minimum-window content resolves 2 columns')
 })
 
-test('responsive CSS: settings panel width is fluid (min(100%, 620px))', () => {
-  assert.ok(css.includes('width: min(100%, 620px)'), 'settings card width is fluid with a sane cap')
+test('responsive CSS: settings width is container-driven across compact/standard/spacious', () => {
+  const compact = css.match(/@container \(max-width: 760px\) \{([\s\S]*?)\n\}/)
+  assert.ok(compact && compact[1].includes('.settings-groups'), 'compact tier targets settings groups')
+  assert.ok(compact[1].includes('width: 100%'), 'compact settings fills available width')
+  const standard = css.match(/@container \(min-width: 761px\) and \(max-width: 1100px\) \{([\s\S]*?)\n\}/)
+  assert.ok(standard && standard[1].includes('width: min(100%, 660px)'), 'standard tier is a balanced column')
+  const spacious = css.match(/@container \(min-width: 1101px\) \{([\s\S]*?)\n\}/)
+  assert.ok(spacious && spacious[1].includes('width: min(100%, 780px)'), 'spacious tier grows moderately')
+  assert.ok(css.includes('margin-inline: auto'), 'settings column is optically balanced')
+})
+
+test('no one global page max-width artificially constrains every module', () => {
+  const pageRule = css.match(/\.page\s*\{([\s\S]*?)\n\}/)
+  assert.ok(pageRule)
+  assert.equal(pageRule[1].includes('max-width'), false, 'the global .page rule must not cap every module')
 })
 
 test('compact-sidebar mode reclaims width immediately (no ghost width)', () => {
@@ -152,11 +165,11 @@ test('compact-sidebar mode reclaims width immediately (no ghost width)', () => {
 test('760px layout contains no deliberate fixed horizontal overflow', () => {
   // Every fixed pixel width in the stylesheet must be a structural/sidebar
   // value or an inner min/max cap, never a content width that could overflow.
-  // Media-query max-widths are viewport breakpoints, not element widths.
-  const allowed = new Set([232, 76, 200, 270, 240, 300, 620, 520, 1240])
+  // Media/container-query max-widths are adaptation thresholds, not element widths.
+  const allowed = new Set([232, 76, 200, 280, 260, 300, 480, 520])
   for (const match of css.matchAll(/(?:^|[^-])(?:width|min-width|max-width):\s*(\d+)px/g)) {
     const value = Number(match[1])
-    const context = css.slice(Math.max(0, match.index - 30), match.index)
+    const context = css.slice(Math.max(0, match.index - 80), match.index)
     if (value >= 400 && !context.includes('@media') && !context.includes('@container')) {
       assert.ok(allowed.has(value), `unexpected fixed width ${value}px would risk overflow at 760px`)
     }

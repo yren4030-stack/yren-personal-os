@@ -28,28 +28,30 @@ function ruleChunks() {
 const rules = ruleChunks()
 
 const findRule = (selector) => rules.find((r) => r.selector === selector)
-const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-card', '.proposal-card', '.list-card']
+const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-group', '.proposal-card', '.list-card']
 
-test('shared glass surface rule consumes the centralized CONTENT tokens (Level 2)', () => {
+test('shared glass surface rule consumes the centralized CONTENT tokens (standard content material)', () => {
   const shared = findRule('.card, .glass')
   assert.ok(shared, 'shared .card/.glass rule must exist')
-  assert.ok(shared.body.includes('background: var(--glass-bg-content)'))
-  assert.ok(shared.body.includes('backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation))'))
-  assert.ok(shared.body.includes('-webkit-backdrop-filter: blur(var(--glass-blur-content)) saturate(var(--glass-saturation))'))
-  assert.ok(shared.body.includes('border: var(--glass-border-content)'))
-  assert.ok(shared.body.includes('box-shadow: var(--glass-shadow-content)'))
+  assert.ok(shared.body.includes('background: var(--glass-content-bg)'))
+  assert.ok(shared.body.includes('backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast))'))
+  assert.ok(shared.body.includes('border: var(--glass-content-border)'))
+  assert.ok(shared.body.includes('box-shadow: var(--glass-content-shadow)'))
 })
 
-test('Level-1 and floating rules consume their engine token sets', () => {
+test('REGULAR and CLEAR surface rules consume their engine token sets', () => {
   const l1 = findRule('.glass-l1, .sidebar')
   assert.ok(l1)
-  assert.ok(l1.body.includes('var(--glass-bg)'), 'L1 uses the functional fill')
-  assert.ok(l1.body.includes('var(--glass-lift)'), 'L1 carries the lift layer')
-  assert.ok(l1.body.includes('var(--glass-rim)'), 'L1 carries the refractive rim')
+  assert.ok(l1.body.includes('var(--glass-bg)'), 'regular uses the regular fill')
+  assert.ok(l1.body.includes('var(--glass-blur)'), 'regular uses the regular scattering')
+  assert.ok(l1.body.includes('brightness(var(--glass-brightness))'), 'regular carries luminosity')
+  assert.ok(l1.body.includes('contrast(var(--glass-contrast))'), 'regular carries contrast')
+  assert.ok(l1.body.includes('box-shadow: var(--glass-shadow)'), 'regular shadow carries rim/contact/ambient')
   const float = findRule('.glass-float')
   assert.ok(float)
-  assert.ok(float.body.includes('var(--glass-bg-float)'), 'floating uses its own clearer fill')
-  assert.ok(float.body.includes('var(--glass-blur-float)'), 'floating uses its own scattering')
+  assert.ok(float.body.includes('var(--glass-clear-bg)'), 'clear uses the clear fill')
+  assert.ok(float.body.includes('var(--glass-clear-blur)'), 'clear uses the clear scattering')
+  assert.ok(float.body.includes('var(--glass-clear-shadow)'), 'clear carries its optical shadow')
 })
 
 test('no later CSS rule overrides background/backdrop-filter/opacity on glass surfaces', () => {
@@ -108,11 +110,11 @@ test('glass tokens are defined only in :root and consumed by their surface rules
   for (const token of base) {
     assert.ok(rootRule.body.includes(token), `${token} must be defined in :root`)
   }
-  assert.ok(l1.body.includes('var(--glass-bg)'), 'L1 consumes the functional fill')
-  assert.ok(l1.body.includes('var(--glass-blur)'), 'L1 consumes the functional scattering')
-  assert.ok(shared.body.includes('var(--glass-bg-content)'), 'content consumes the content fill')
-  assert.ok(shared.body.includes('var(--glass-blur-content)'), 'content consumes the content scattering')
-  assert.ok(float.body.includes('var(--glass-bg-float)'), 'floating consumes the floating fill')
+  assert.ok(l1.body.includes('var(--glass-bg)'), 'regular consumes the regular fill')
+  assert.ok(l1.body.includes('var(--glass-blur)'), 'regular consumes the regular scattering')
+  assert.ok(shared.body.includes('var(--glass-content-bg)'), 'content consumes the content fill')
+  assert.ok(shared.body.includes('var(--glass-content-blur)'), 'content consumes the content scattering')
+  assert.ok(float.body.includes('var(--glass-clear-bg)'), 'clear consumes the clear fill')
 
   // No rule other than the :root scopes and the surface rules may reference
   // the material-core tokens. (--glass-border is intentionally also consumed
@@ -145,39 +147,38 @@ test('glass tokens are defined only in :root and consumed by their surface rules
   assert.ok(css.split('--glass-highlight').length - 1 >= 1, '--glass-highlight token must exist')
 })
 
-test('semantic glass levels exist and Level 1 differs from Level 2 treatment', () => {
+test('semantic material hierarchy: REGULAR functional differs from STANDARD content', () => {
   const l1 = findRule('.glass-l1, .sidebar')
-  assert.ok(l1, 'Level-1 glass rule must exist')
-  // L1 explicitly consumes the SAME global engine (frost/transparency stay global).
+  assert.ok(l1, 'regular glass rule must exist')
   assert.ok(l1.body.includes('var(--glass-bg)'))
   assert.ok(l1.body.includes('var(--glass-blur)'))
-  // L1 floats above content: deeper lift layered on the base shadow.
-  assert.ok(l1.body.includes('var(--glass-lift)'))
 
   const shared = findRule('.card, .glass')
   assert.ok(shared)
-  assert.equal(shared.body.includes('--glass-lift'), false, 'Level 2 must stay flatter (no lift)')
-  assert.equal(shared.body.includes('--glass-specular'), false, 'Level 2 must not carry the specular layer')
-  assert.equal(shared.body.includes('--glass-reflection'), false, 'Level 2 must not carry the reflection layer')
+  assert.equal(shared.body.includes('var(--glass-bg)'), false, 'content must NOT use the regular fill')
+  assert.equal(shared.body.includes('var(--glass-specular)'), false, 'content must not carry the specular layer')
+  assert.equal(shared.body.includes('var(--glass-reflection)'), false, 'content must not carry the reflection layer')
 
-  // Pseudo layers: L1 specular + internal reflection; L2 keeps only the top light.
+  // Pseudo layers: regular specular + internal reflection + rim shade;
+  // content keeps only the top light.
   const l1Before = findRule('.glass-l1::before, .sidebar::before')
   const l1After = findRule('.glass-l1::after, .sidebar::after')
-  assert.ok(l1Before && l1Before.body.includes('var(--glass-specular)'), 'L1 specular highlight layer exists')
-  assert.ok(l1After && l1After.body.includes('var(--glass-reflection)'), 'L1 internal reflection layer exists')
-  assert.ok(l1After.body.includes('var(--glass-edge-dark)'), 'L1 darker lower edge exists')
+  assert.ok(l1Before && l1Before.body.includes('var(--glass-specular)'), 'regular specular layer exists')
+  assert.ok(l1Before.body.includes('var(--glass-spill)'), 'regular environmental spill exists')
+  assert.ok(l1After && l1After.body.includes('var(--glass-reflection)'), 'regular internal reflection exists')
+  assert.ok(l1After.body.includes('var(--glass-rim-shade)'), 'regular opposite-edge shade exists')
   assert.ok(l1Before.body.includes('pointer-events: none'), 'overlay layers never capture input')
   assert.ok(l1After.body.includes('pointer-events: none'))
 })
 
 test('edge/specular/reflection construction tokens exist in both theme scopes', () => {
-  for (const token of ['--glass-lift', '--glass-specular', '--glass-reflection', '--glass-edge-dark', '--glass-rim']) {
+  for (const token of ['--glass-specular', '--glass-reflection', '--glass-spill', '--glass-rim-light', '--glass-rim-shade', '--glass-clear-rim-light']) {
     assert.ok(css.includes(token), `${token} token must exist`)
   }
   const dark = css.match(/:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/)
   assert.ok(dark && dark[1].includes('--glass-specular'), 'dark theme defines its own specular/edge set')
-  assert.ok(dark[1].includes('--glass-edge-dark'), 'dark theme keeps a darker lower edge')
-  assert.ok(dark[1].includes('--glass-rim'), 'dark theme keeps a refractive rim')
+  assert.ok(dark[1].includes('--glass-rim-shade'), 'dark theme keeps a darker lower edge')
+  assert.ok(dark[1].includes('--glass-rim-light'), 'dark theme keeps a brighter rim light')
 })
 
 test('shared content rows do not receive independent backdrop-filter (glass only at surface boundaries)', () => {
@@ -186,6 +187,29 @@ test('shared content rows do not receive independent backdrop-filter (glass only
     assert.ok(rule, `${selector} rule must exist`)
     assert.equal(rule.body.includes('backdrop-filter'), false, `${selector} must not carry its own backdrop-filter`)
   }
+})
+
+test('segmented control is a CLEAR glass capsule; selected state is not a flat fill-only rule', () => {
+  const group = findRule('.segmented')
+  assert.ok(group)
+  assert.ok(group.body.includes('var(--glass-clear-bg)'), 'outer group uses clear glass')
+  assert.ok(group.body.includes('var(--glass-clear-blur)'), 'outer group carries clear scattering')
+  const active = findRule('.segmented button.active')
+  assert.ok(active)
+  assert.ok(active.body.includes('linear-gradient'), 'selected segment has an optical gradient (not flat fill)')
+  assert.ok(active.body.includes('var(--glass-clear-specular)'), 'selected segment carries a specular layer')
+  assert.ok(active.body.includes('inset 0 1px 0 var(--glass-clear-highlight)'), 'selected segment has internal reflection')
+  assert.ok(active.body.includes('inset 0 0 0 1px var(--glass-clear-rim-light)'), 'selected segment has a thin refractive rim')
+})
+
+test('no WebGL / canvas material renderer is introduced', () => {
+  const rendererSources = [
+    tokensSrc,
+    readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8'),
+  ].join('\n')
+  assert.equal(/webgl/i.test(rendererSources), false)
+  assert.equal(/getContext\(/i.test(rendererSources), false)
+  assert.equal(/<canvas/i.test(rendererSources), false)
 })
 
 test('reduced-motion and reduced-transparency safety blocks exist', () => {
@@ -197,10 +221,12 @@ test('DOM writer targets documentElement (root scope inherited by all surfaces)'
   assert.ok(tokensSrc.includes('document.documentElement'))
   // The writer iterates a key list and prefixes with '--'; assert the keys.
   for (const key of [
-    'glassBg', 'glassBlur', 'glassBorder', 'glassShadow', 'glassSaturation', 'glassHighlight',
-    'glassSpecular', 'glassReflection', 'glassEdgeDark', 'glassLift', 'glassRim',
-    'glassBgContent', 'glassBlurContent', 'glassBorderContent', 'glassShadowContent',
-    'glassBgFloat', 'glassBlurFloat', 'glassBorderFloat', 'glassShadowFloat',
+    'glassBg', 'glassBlur', 'glassBorder', 'glassShadow', 'glassSaturation', 'glassBrightness', 'glassContrast',
+    'glassHighlight', 'glassRimLight', 'glassRimShade', 'glassSpecular', 'glassReflection', 'glassSpill',
+    'glassClearBg', 'glassClearBlur', 'glassClearBorder', 'glassClearShadow', 'glassClearSaturation',
+    'glassClearBrightness', 'glassClearContrast', 'glassClearHighlight', 'glassClearRimLight', 'glassClearSpecular',
+    'glassContentBg', 'glassContentBlur', 'glassContentBorder', 'glassContentShadow',
+    'glassContentSaturation', 'glassContentBrightness', 'glassContentContrast',
   ]) {
     assert.ok(tokensSrc.includes(`'${key}'`), `applyGlassTokens must write --${key}`)
   }
