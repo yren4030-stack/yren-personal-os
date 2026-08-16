@@ -22,6 +22,18 @@ export const RUNTIME_BRIDGE_STATES = Object.freeze({
   crashed: 'crashed',
 })
 
+/**
+ * Minimal redaction for obvious credential/token forms in captured child
+ * stderr. Applied at capture time so stored/printed stderr never contains
+ * API keys, tokens, passwords, or authorization headers.
+ */
+export function redactSensitive(text) {
+  return String(text)
+    .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/g, 'sk-***')
+    .replace(/\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|authorization)\b\s*[:=]\s*["']?(?:bearer\s+)?[^\s"',;]+/gi, '$1=***')
+    .replace(/\bbearer\s+[a-z0-9._~+/=-]+/gi, 'Bearer ***')
+}
+
 export class RuntimeProcessBridge extends EventEmitter {
   constructor({
     executable,
@@ -216,7 +228,9 @@ export class RuntimeProcessBridge extends EventEmitter {
     rl.on('line', (line) => this._handleLine(line))
 
     child.stderr.on('data', (chunk) => {
-      this.stderrText = (this.stderrText + chunk.toString()).slice(-this.stderrMaxChars)
+      // Bounded (stderrMaxChars) and redacted at capture: stored/printed
+      // stderr never contains credential/token forms.
+      this.stderrText = (this.stderrText + redactSensitive(chunk.toString())).slice(-this.stderrMaxChars)
     })
 
     child.on('error', (error) => {
@@ -287,6 +301,11 @@ export class RuntimeProcessBridge extends EventEmitter {
   }
 
   _rejectStartup(error) {
+    // Attach the bounded, redacted child stderr to the startup error so the
+    // Main-side caller can surface the child's fatal reason in the console.
+    if (error && typeof error === 'object') {
+      error.stderr = this.stderrText
+    }
     if (this._readyReject) {
       const reject = this._readyReject
       this._readyResolve = null

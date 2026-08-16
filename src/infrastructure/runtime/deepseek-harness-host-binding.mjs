@@ -14,13 +14,14 @@ export class DeepSeekHarnessHostBinding {
   constructor({
     dshRoot,
     executable,
+    hostChildEntry,
     extraEnv = {},
     startupTimeoutMs = 30000,
     requestTimeoutMs = 30000,
     shutdownTimeoutMs = 10000,
   }) {
     this.dshRoot = dshRoot
-    const config = createDeepSeekHarnessLaunchConfig({ dshRoot, executable, extraEnv })
+    const config = createDeepSeekHarnessLaunchConfig({ dshRoot, executable, hostChildEntry, extraEnv })
     this.bridge = new RuntimeProcessBridge({
       ...config,
       startupTimeoutMs,

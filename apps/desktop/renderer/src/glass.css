@@ -1,0 +1,1065 @@
+/* ==========================================================================
+ * Personal OS — Liquid Glass Material System (macOS 26 visual language)
+ *
+ * ONE optical engine: appearance (light/dark) × Liquid Glass profile
+ * (clear/tinted) × surface role (functional / content / floating). The
+ * Renderer writes the resolved semantic tokens via applyGlassTokens();
+ * components never hand-write material values.
+ *
+ * Shell-level adaptation (sidebar, display geometry) is viewport/display
+ * aware; page-level adaptation uses CONTAINER queries on .main.
+ * ========================================================================== */
+
+/* --- Light theme (default) ---------------------------------------------- */
+
+:root {
+  /* Brand */
+  --accent: #7849D1;
+  --accent-hover: #6a3fbd;
+  --accent-soft: rgba(120, 73, 209, 0.14);
+  --accent-tint: rgba(120, 73, 209, 0.08);
+  --accent-focus: rgba(120, 73, 209, 0.32);
+
+  /* Surfaces & text (light, cool neutral) */
+  --bg-base: #f1eff6;
+  --bg-depth-1: #f9f8fb;
+  --bg-depth-2: #e9e7f0;
+  --text-primary: #1b1b1f;
+  --text-secondary: #6b6b72;
+  --text-tertiary: #9b9ba2;
+
+  /* Controls & structure */
+  --control-bg: rgba(0, 0, 0, 0.06);
+  --control-bg-active: #fff;
+  --control-solid: #fff;
+  --control-border: 1px solid rgba(0, 0, 0, 0.08);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.7);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.95);
+  --hover-bg: rgba(0, 0, 0, 0.045);
+  --interact-hover: color-mix(in srgb, var(--glass-highlight) 35%, transparent);
+  --interact-active: color-mix(in srgb, var(--glass-highlight) 55%, transparent);
+  --chip-bg: rgba(0, 0, 0, 0.05);
+  --track-bg: rgba(0, 0, 0, 0.08);
+  --empty-bg: rgba(255, 255, 255, 0.35);
+  --divider: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.14);
+  --glass-edge-top: rgba(255, 255, 255, 0.55);
+
+  /* Status */
+  --status-success: #34c759;
+  --status-warning: #ff9f0a;
+  --status-danger: #ff453a;
+  --error-bg: rgba(255, 69, 58, 0.07);
+  --error-border: rgba(255, 69, 58, 0.18);
+  --error-text: #b3261e;
+
+  /* Coherent concentric radius system */
+  --radius-window: 24px;
+  --radius-glass-large: 20px;
+  --radius-glass-medium: 16px;
+  --radius-control: 10px;
+  --radius-capsule: 999px;
+
+  /* Adaptive density tokens (fluid, clamp-based) */
+  --shell-padding: clamp(8px, 1vw, 12px);
+  --shell-gap: clamp(10px, 1vw, 12px);
+  --page-padding-x: clamp(14px, 2.2vw, 24px);
+  --page-padding-bottom: clamp(16px, 2vw, 28px);
+  --section-gap: clamp(16px, 1.5vw, 24px);
+  --grid-gap: clamp(12px, 1.4vw, 16px);
+  --sidebar-width: 232px;
+  --control-height: 40px;
+  --page-title-size: clamp(24px, 2.6vw, 28px);
+
+  /* Liquid Glass engine defaults (clear · light · REGULAR navigation).
+     The Renderer overrides these live via applyGlassTokens(). */
+  --glass-bg: rgba(255, 255, 255, 0.147);
+  --glass-blur: 13.2px;
+  --glass-border: 1px solid rgba(0, 0, 0, 0.16);
+  --glass-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.55) inset 0 0 0 1px, rgba(0, 0, 0, 0.07) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.044), 0 18px 50px -20px rgba(0, 0, 0, 0.115);
+  --glass-saturation: 1.25;
+  --glass-brightness: 1.05;
+  --glass-contrast: 1.03;
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-rim-light: rgba(255, 255, 255, 0.55);
+  --glass-rim-shade: rgba(0, 0, 0, 0.07);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.6) 100%);
+  --glass-spill: linear-gradient(160deg, rgba(150, 158, 186, 0.144), transparent 52%);
+
+  /* CLEAR liquid glass (small floating controls, segmented capsules). */
+  --glass-clear-bg: rgba(255, 255, 255, 0.075);
+  --glass-clear-blur: 5.8px;
+  --glass-clear-border: 1px solid rgba(0, 0, 0, 0.198);
+  --glass-clear-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.6) inset 0 0 0 1px, rgba(0, 0, 0, 0.08) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.026), 0 18px 50px -20px rgba(0, 0, 0, 0.046);
+  --glass-clear-saturation: 1.3;
+  --glass-clear-brightness: 1.06;
+  --glass-clear-contrast: 1.04;
+  --glass-clear-highlight: rgba(255, 255, 255, 0.6);
+  --glass-clear-rim-light: rgba(255, 255, 255, 0.6);
+  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
+
+  /* STANDARD content material (ordinary content cards). */
+  --glass-content-bg: rgba(255, 255, 255, 0.13);
+  --glass-content-blur: 9px;
+  --glass-content-border: 1px solid rgba(0, 0, 0, 0.12);
+  --glass-content-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.3) inset 0 0 0 1px, rgba(0, 0, 0, 0.05) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.069);
+  --glass-content-saturation: 1.2;
+  --glass-content-brightness: 1.03;
+  --glass-content-contrast: 1.02;
+}
+
+/* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
+
+:root[data-theme='dark'] {
+  --accent-soft: rgba(120, 73, 209, 0.26);
+  --accent-tint: rgba(120, 73, 209, 0.18);
+  --accent-focus: rgba(120, 73, 209, 0.5);
+
+  --bg-base: #15161a;
+  --bg-depth-1: #1b1d23;
+  --bg-depth-2: #101116;
+  --text-primary: #f2f2f6;
+  --text-secondary: #b9bbc3;
+  --text-tertiary: #7e808a;
+
+  --control-bg: rgba(255, 255, 255, 0.08);
+  --control-bg-active: rgba(255, 255, 255, 0.16);
+  --control-solid: #26282f;
+  --control-border: 1px solid rgba(255, 255, 255, 0.12);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.16);
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --chip-bg: rgba(255, 255, 255, 0.08);
+  --track-bg: rgba(255, 255, 255, 0.14);
+  --empty-bg: rgba(255, 255, 255, 0.05);
+  --divider: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --glass-edge-top: rgba(255, 255, 255, 0.1);
+
+  --status-success: #32d74b;
+  --status-warning: #ffd60a;
+  --status-danger: #ff453a;
+  --error-bg: rgba(255, 69, 58, 0.14);
+  --error-border: rgba(255, 69, 58, 0.32);
+  --error-text: #ff8a80;
+
+  /* Pre-JS dark defaults (clear · dark · REGULAR navigation). */
+  --glass-bg: rgba(34, 36, 42, 0.173);
+  --glass-blur: 15.2px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.184);
+  --glass-shadow: rgba(255, 255, 255, 0.42) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.32) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.05), 0 18px 50px -20px rgba(0, 0, 0, 0.32);
+  --glass-saturation: 1.1;
+  --glass-brightness: 1.04;
+  --glass-contrast: 1.03;
+  --glass-highlight: rgba(255, 255, 255, 0.42);
+  --glass-rim-light: rgba(255, 255, 255, 0.46);
+  --glass-rim-shade: rgba(0, 0, 0, 0.32);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 46%);
+  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.42) 100%);
+  --glass-spill: linear-gradient(160deg, rgba(110, 122, 160, 0.17), transparent 52%);
+
+  --glass-clear-bg: rgba(34, 36, 42, 0.1);
+  --glass-clear-blur: 6.7px;
+  --glass-clear-border: 1px solid rgba(255, 255, 255, 0.228);
+  --glass-clear-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.3) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.18);
+  --glass-clear-saturation: 1.15;
+  --glass-clear-brightness: 1.05;
+  --glass-clear-contrast: 1.04;
+  --glass-clear-highlight: rgba(255, 255, 255, 0.4);
+  --glass-clear-rim-light: rgba(255, 255, 255, 0.46);
+  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 46%);
+
+  --glass-content-bg: rgba(34, 36, 42, 0.13);
+  --glass-content-blur: 10px;
+  --glass-content-border: 1px solid rgba(255, 255, 255, 0.138);
+  --glass-content-shadow: rgba(255, 255, 255, 0.28) inset 0 1px 0, rgba(255, 255, 255, 0.24) inset 0 0 0 1px, rgba(0, 0, 0, 0.22) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.2);
+  --glass-content-saturation: 1.1;
+  --glass-content-brightness: 1.02;
+  --glass-content-contrast: 1.02;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  /* Neutral spatial depth layer BEHIND the glass: low-frequency luminance
+     variation with gentle warm/cool regions — enough non-uniform information
+     for lensing/refraction to be visible, still clean and light. */
+  background:
+    radial-gradient(1100px 620px at 12% 6%, rgba(118, 130, 168, 0.16), transparent 62%),
+    radial-gradient(900px 540px at 88% 2%, rgba(178, 158, 126, 0.13), transparent 58%),
+    radial-gradient(1200px 700px at 50% 112%, rgba(96, 110, 148, 0.14), transparent 65%),
+    radial-gradient(700px 420px at 30% 80%, rgba(142, 152, 180, 0.09), transparent 60%),
+    linear-gradient(165deg, var(--bg-depth-1) 0%, var(--bg-base) 55%, var(--bg-depth-2) 100%);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+:root[data-theme='dark'] body {
+  /* Graphite depth: restrained cool undertones, not pure black. */
+  background:
+    radial-gradient(1100px 620px at 12% 6%, rgba(110, 122, 160, 0.11), transparent 62%),
+    radial-gradient(900px 540px at 88% 2%, rgba(152, 134, 106, 0.07), transparent 58%),
+    radial-gradient(1200px 700px at 50% 112%, rgba(88, 102, 140, 0.1), transparent 65%),
+    radial-gradient(700px 420px at 30% 80%, rgba(120, 130, 160, 0.06), transparent 60%),
+    linear-gradient(165deg, var(--bg-depth-1) 0%, var(--bg-base) 55%, var(--bg-depth-2) 100%);
+}
+
+/* --- Glass surfaces ------------------------------------------------------ */
+
+/* STANDARD content material: quieter translucent surfaces (project cards,
+   task groups, activity panels, dashboard stats, page sections). Not full
+   Liquid Glass — a clean standard material. */
+.card,
+.glass {
+  position: relative;
+  background: var(--glass-content-bg);
+  backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
+  border: var(--glass-content-border);
+  box-shadow: var(--glass-content-shadow);
+  border-radius: var(--radius-glass-medium);
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+/* Soft inner top light on content surfaces (static, no blur cost). */
+.card::before,
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--glass-edge-top), transparent 38%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* REGULAR Liquid Glass — text-heavy functional surfaces (sidebar, proposal
+   panel, control regions, inspectors). Perimeter-driven optical model:
+   coordinated backdrop stack, refractive rim light + opposite-edge shade,
+   specular, internal reflection, environmental spill, contact + ambient
+   shadows. The center stays relatively clear; the EDGE carries the material. */
+.glass-l1,
+.sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.glass-l1::before,
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-specular), var(--glass-spill);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.glass-l1::after,
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-reflection);
+  opacity: 0.5;
+  box-shadow: var(--glass-rim-shade) inset 0 -1px 0;
+  pointer-events: none;
+}
+
+/* CLEAR Liquid Glass — small/lightweight floating controls (segmented
+   capsules, compact action capsules). Thinner, higher transmission,
+   sharper perimeter, stronger optical edge. */
+.glass-float {
+  position: relative;
+  background: var(--glass-clear-bg);
+  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  border: var(--glass-clear-border);
+  box-shadow: var(--glass-clear-shadow);
+  border-radius: var(--radius-glass-medium);
+}
+.glass-float::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-clear-specular);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.card-hover {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(120, 73, 209, 0.25);
+  box-shadow: var(--glass-content-shadow), 0 14px 34px rgba(0, 0, 0, 0.1);
+}
+
+/* --- App shell ----------------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  height: 100%;
+  padding: var(--shell-padding);
+  gap: var(--shell-gap);
+  min-width: 0;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px 10px;
+  border-radius: var(--radius-glass-large);
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px var(--page-padding-x) var(--page-padding-bottom);
+  /* Component responsiveness belongs to the container: pages adapt to the
+     main content width (sidebar state changes available width). */
+  container-type: inline-size;
+}
+
+.page {
+  min-width: 0;
+}
+
+/* --- Brand --------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 14px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(120, 73, 209, 0.28);
+}
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-foot {
+  margin-top: auto;
+  padding: 12px 8px 4px;
+  border-top: 1px solid var(--divider);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* --- Navigation ---------------------------------------------------------- */
+
+.nav-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  padding: 12px 10px 6px;
+  white-space: nowrap;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: left;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+.nav-item:hover {
+  background: var(--interact-hover);
+  color: var(--text-primary);
+}
+.nav-item:active {
+  background: var(--interact-active);
+}
+.nav-item.active {
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-weight: 600;
+}
+.nav-item.active svg {
+  color: var(--accent);
+}
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 1px;
+}
+
+.soon-chip {
+  margin-left: auto;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--chip-bg);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* --- Typography ---------------------------------------------------------- */
+
+.page-header {
+  margin: 4px 0 20px;
+  min-width: 0;
+}
+.page-title {
+  font-size: var(--page-title-size);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 0 0 4px;
+}
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.section {
+  margin-bottom: var(--section-gap);
+  min-width: 0;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-height);
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, transform 0.12s ease, opacity 0.14s ease;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(120, 73, 209, 0.24);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 18px rgba(120, 73, 209, 0.3);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--text-primary);
+  border: var(--control-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--btn-secondary-bg-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+
+/* --- Home dashboard ------------------------------------------------------ */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--grid-gap);
+  margin-bottom: var(--section-gap);
+  min-width: 0;
+}
+.stat-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+.stat-value.small {
+  font-size: 22px;
+  letter-spacing: -0.2px;
+}
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.ai-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.ready {
+  background: var(--status-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 15%, transparent);
+}
+.status-dot.starting {
+  background: var(--status-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-warning) 15%, transparent);
+}
+.status-dot.unavailable {
+  background: var(--status-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-danger) 15%, transparent);
+}
+
+/* --- Project cards ------------------------------------------------------- */
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--grid-gap);
+  min-width: 0;
+}
+
+/* A single project stretches only to a sensible width, never across the
+   whole content column. */
+.project-card:only-child {
+  max-width: 520px;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-width: 0;
+}
+.project-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.open-affordance {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* --- Lists --------------------------------------------------------------- */
+
+.list-card {
+  padding: 6px 18px;
+  min-width: 0;
+}
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 14px;
+  min-width: 0;
+}
+.list-row:last-child {
+  border-bottom: none;
+}
+.list-row .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* --- Chips --------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.chip-accent {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+.chip-neutral {
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+
+/* --- Project detail ------------------------------------------------------ */
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 12px 0 20px;
+  min-width: 0;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, min(34%, 480px));
+  gap: var(--grid-gap);
+  align-items: start;
+  margin-bottom: var(--section-gap);
+  min-width: 0;
+}
+.detail-grid > * {
+  min-width: 0;
+}
+
+.proposal-card {
+  padding: 18px 20px;
+  border: 1px solid rgba(120, 73, 209, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.proposal-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.proposal-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.proposal-rationale {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.proposal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.error-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--error-text);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* --- Empty & loading states ---------------------------------------------- */
+
+.empty {
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  border: 1px dashed var(--control-border);
+  border-radius: var(--radius-glass-medium);
+  background: var(--empty-bg);
+}
+.boot {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--control-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Settings ------------------------------------------------------------ */
+
+/* Settings lives naturally in the STANDARD content layer — no giant glass
+   panel. Grouped control regions (standard cards), width driven by the
+   main-content container: nearly full on compact, balanced column on
+   standard, moderately wider on spacious displays. */
+.settings-groups {
+  display: grid;
+  gap: 14px;
+  max-width: 100%;
+  margin-inline: auto;
+  min-width: 0;
+}
+@container (max-width: 760px) {
+  .settings-groups {
+    width: 100%;
+  }
+}
+@container (min-width: 761px) and (max-width: 1100px) {
+  .settings-groups {
+    width: min(100%, 660px);
+  }
+}
+@container (min-width: 1101px) {
+  .settings-groups {
+    width: min(100%, 780px);
+  }
+}
+.settings-group {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.field-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* macOS-style CLEAR Liquid Glass segmented control: the outer group is a
+   lightweight clear glass capsule; the selected segment is a SECOND optical
+   glass layer (internal reflection, thin refractive rim, subtle elevation)
+   — never a flat filled rectangle. */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--glass-clear-bg);
+  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
+  border: var(--glass-clear-border);
+  box-shadow: var(--glass-clear-shadow);
+  border-radius: var(--radius-capsule);
+  align-self: flex-start;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.segmented button {
+  height: 30px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-capsule);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+}
+.segmented button:hover {
+  background: var(--interact-hover);
+}
+.segmented button:active {
+  background: var(--interact-active);
+}
+.segmented button.active {
+  background:
+    linear-gradient(180deg, var(--glass-clear-specular), transparent 55%),
+    var(--glass-clear-bg);
+  border-color: var(--glass-clear-border);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--glass-clear-shadow), inset 0 1px 0 var(--glass-clear-highlight), inset 0 0 0 1px var(--glass-clear-rim-light);
+}
+.segmented button:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 1px;
+}
+
+select {
+  height: var(--control-height);
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: var(--control-border);
+  background: var(--control-solid);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  align-self: flex-start;
+  min-width: 200px;
+  max-width: 100%;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track-bg);
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--control-bg-active);
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.14s ease;
+}
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+input[type='range']:focus-visible {
+  outline: none;
+}
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--accent-focus);
+}
+
+/* --- Coming soon --------------------------------------------------------- */
+
+.coming-soon {
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.coming-soon-icon {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+/* --- Scrollbars ---------------------------------------------------------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--scrollbar-thumb) 150%, transparent);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ==========================================================================
+ * Adaptation
+ * ========================================================================== */
+
+/* Shell-level: ONE structural sidebar transition (usable app width). */
+@media (max-width: 1179px) {
+  .sidebar {
+    width: 76px;
+    padding: 14px 8px 10px;
+  }
+  .sidebar .brand {
+    justify-content: center;
+    padding: 6px 0 14px;
+  }
+  .sidebar .brand-name,
+  .sidebar .brand-sub,
+  .sidebar .nav-group-label,
+  .sidebar .nav-label,
+  .sidebar .soon-chip,
+  .sidebar .sidebar-foot {
+    display: none;
+  }
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Component-level: content-container queries (main content width decides). */
+
+/* Project Detail: stack tasks + pending proposals when the CONTENT column
+   (not the window) becomes too narrow for a useful rail. */
+@container (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Activity rows reflow instead of truncating useful info. */
+@container (max-width: 700px) {
+  .list-row {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .list-row .grow {
+    white-space: normal;
+    overflow: visible;
+  }
+  .list-time {
+    margin-left: auto;
+  }
+}
+
+/* --- Accessibility safety ------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card,
+  .glass,
+  .glass-l1,
+  .glass-float,
+  .sidebar {
+    background: color-mix(in srgb, var(--glass-bg-content) 45%, var(--bg-base));
+  }
+}
