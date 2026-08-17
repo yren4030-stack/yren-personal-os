@@ -4,6 +4,7 @@ import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
 import { GLOBAL_ENTRIES, GLOBAL_PANEL_IDS, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
+import { isFeatureSkeletonRoute } from './feature-skeleton.mjs'
 
 const api = () => window.personalOS?.v1
 
@@ -483,6 +484,53 @@ function SkeletonNotice({ text }) {
   )
 }
 
+/* ------------------------------------------------------------------ */
+/* Feature skeleton (Step 3)                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Honest, consistent skeleton view for not-yet-implemented feature routes.
+ * Presentation only: shows the area title, its future responsibility (from
+ * the navigation description), current availability ("no formal capability
+ * yet"), and the expected future slice. Navigation back to the owning space
+ * is the only allowed action — no fake data, no fake business operations.
+ */
+function FeatureSkeleton({ item, space, onNavigate }) {
+  const futureSlice = item.futureSliceKey ? t(item.futureSliceKey) : t('featureSkeleton.laterSlice')
+  return (
+    <div className="page">
+      <PageHeader title={item.label} subtitle={t('featureSkeleton.status')} />
+      <div className="card feature-skeleton">
+        <div className="feature-skeleton-icon">
+          <Icon name="sparkles" size={22} />
+        </div>
+
+        <div className="feature-skeleton-block">
+          <span className="field-label">{t('featureSkeleton.willDo')}</span>
+          <p className="feature-skeleton-description">{item.description}</p>
+        </div>
+
+        <div className="feature-skeleton-block">
+          <span className="field-label">{t('featureSkeleton.currentAvailability')}</span>
+          <p className="feature-skeleton-availability">{t('featureSkeleton.notAvailable')}</p>
+        </div>
+
+        <div className="feature-skeleton-block">
+          <span className="field-label">{t('featureSkeleton.futureSlice')}</span>
+          <span className="chip chip-neutral">{futureSlice}</span>
+        </div>
+
+        {space && (
+          <button type="button" className="btn btn-secondary" onClick={() => onNavigate(space.route)}>
+            <Icon name="chevronLeft" size={16} />
+            {t('featureSkeleton.backToSpace', { space: space.label })}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 
 
 export default function App() {
@@ -594,7 +642,11 @@ export default function App() {
           {route === 'projects' && <ProjectsPage openProject={openProject} />}
           {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
           {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} />}
-          {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && <ComingSoon label={routeNav ? routeNav.label : route} />}
+          {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && (isFeatureSkeletonRoute(route) && routeNav ? (
+            <FeatureSkeleton item={routeNav} space={currentSpace} onNavigate={navigate} />
+          ) : (
+            <ComingSoon label={routeNav ? routeNav.label : route} />
+          ))}
         </main>
       </div>
 

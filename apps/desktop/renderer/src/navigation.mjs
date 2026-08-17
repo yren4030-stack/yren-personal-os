@@ -1,6 +1,14 @@
 import { t } from './i18n/index.mjs'
 
-function item({ id, icon, labelKey, descriptionKey, real = false }) {
+/**
+ * Step 3 presentation metadata extension: `futureSliceKey` is renderer
+ * presentation metadata ONLY — it describes which accepted future slice is
+ * expected to realize this area (see docs/product-architecture/02 §12 Phase
+ * B–E). It is NOT a business fact and does not create any source of truth.
+ * Items without a confirmed roadmap slice stay `null` and display
+ * "Later Slice".
+ */
+function item({ id, icon, labelKey, descriptionKey, real = false, futureSliceKey = null }) {
   return Object.freeze({
     id,
     icon,
@@ -9,6 +17,7 @@ function item({ id, icon, labelKey, descriptionKey, real = false }) {
     descriptionKey,
     description: t(descriptionKey),
     real,
+    futureSliceKey,
   })
 }
 
@@ -45,11 +54,11 @@ export const APP_SPACES = Object.freeze([
     labelKey: 'nav.manage',
     descriptionKey: 'nav.manageDescription',
     children: [
-      item({ id: 'manage-goals', icon: 'target', labelKey: 'nav.manageGoals', descriptionKey: 'nav.manageGoalsDescription' }),
+      item({ id: 'manage-goals', icon: 'target', labelKey: 'nav.manageGoals', descriptionKey: 'nav.manageGoalsDescription', futureSliceKey: 'featureSkeleton.sliceManagement' }),
       item({ id: 'projects', icon: 'grid', labelKey: 'nav.projects', descriptionKey: 'nav.projectsDescription', real: true }),
-      item({ id: 'manage-planning', icon: 'calendar', labelKey: 'nav.managePlanning', descriptionKey: 'nav.managePlanningDescription' }),
-      item({ id: 'manage-execution', icon: 'zap', labelKey: 'nav.manageExecution', descriptionKey: 'nav.manageExecutionDescription' }),
-      item({ id: 'manage-review', icon: 'repeat', labelKey: 'nav.manageReview', descriptionKey: 'nav.manageReviewDescription' }),
+      item({ id: 'manage-planning', icon: 'calendar', labelKey: 'nav.managePlanning', descriptionKey: 'nav.managePlanningDescription', futureSliceKey: 'featureSkeleton.sliceManagement' }),
+      item({ id: 'manage-execution', icon: 'zap', labelKey: 'nav.manageExecution', descriptionKey: 'nav.manageExecutionDescription', futureSliceKey: 'featureSkeleton.sliceManagement' }),
+      item({ id: 'manage-review', icon: 'repeat', labelKey: 'nav.manageReview', descriptionKey: 'nav.manageReviewDescription', futureSliceKey: 'featureSkeleton.sliceManagement' }),
     ],
   }),
   space({
@@ -58,8 +67,8 @@ export const APP_SPACES = Object.freeze([
     labelKey: 'nav.library',
     descriptionKey: 'nav.libraryDescription',
     children: [
-      item({ id: 'library-knowledge', icon: 'book', labelKey: 'nav.libraryKnowledge', descriptionKey: 'nav.libraryKnowledgeDescription' }),
-      item({ id: 'library-assets', icon: 'sparkles', labelKey: 'nav.libraryAssets', descriptionKey: 'nav.libraryAssetsDescription' }),
+      item({ id: 'library-knowledge', icon: 'book', labelKey: 'nav.libraryKnowledge', descriptionKey: 'nav.libraryKnowledgeDescription', futureSliceKey: 'featureSkeleton.sliceKnowledge' }),
+      item({ id: 'library-assets', icon: 'sparkles', labelKey: 'nav.libraryAssets', descriptionKey: 'nav.libraryAssetsDescription', futureSliceKey: 'featureSkeleton.sliceAiAssets' }),
       item({ id: 'library-files', icon: 'folder', labelKey: 'nav.libraryFiles', descriptionKey: 'nav.libraryFilesDescription' }),
       item({ id: 'library-collections', icon: 'grid', labelKey: 'nav.libraryCollections', descriptionKey: 'nav.libraryCollectionsDescription' }),
     ],
@@ -70,10 +79,10 @@ export const APP_SPACES = Object.freeze([
     labelKey: 'nav.create',
     descriptionKey: 'nav.createDescription',
     children: [
-      item({ id: 'create-ai-lab', icon: 'sparkles', labelKey: 'nav.createAiLab', descriptionKey: 'nav.createAiLabDescription' }),
-      item({ id: 'create-canvas', icon: 'layout', labelKey: 'nav.createCanvas', descriptionKey: 'nav.createCanvasDescription' }),
-      item({ id: 'create-workflows', icon: 'repeat', labelKey: 'nav.createWorkflows', descriptionKey: 'nav.createWorkflowsDescription' }),
-      item({ id: 'create-outputs', icon: 'database', labelKey: 'nav.createOutputs', descriptionKey: 'nav.createOutputsDescription' }),
+      item({ id: 'create-ai-lab', icon: 'sparkles', labelKey: 'nav.createAiLab', descriptionKey: 'nav.createAiLabDescription', futureSliceKey: 'featureSkeleton.sliceAiLab' }),
+      item({ id: 'create-canvas', icon: 'layout', labelKey: 'nav.createCanvas', descriptionKey: 'nav.createCanvasDescription', futureSliceKey: 'featureSkeleton.sliceCanvas' }),
+      item({ id: 'create-workflows', icon: 'repeat', labelKey: 'nav.createWorkflows', descriptionKey: 'nav.createWorkflowsDescription', futureSliceKey: 'featureSkeleton.sliceCanvas' }),
+      item({ id: 'create-outputs', icon: 'database', labelKey: 'nav.createOutputs', descriptionKey: 'nav.createOutputsDescription', futureSliceKey: 'featureSkeleton.sliceOutputs' }),
     ],
   }),
   space({
@@ -82,9 +91,9 @@ export const APP_SPACES = Object.freeze([
     labelKey: 'nav.publish',
     descriptionKey: 'nav.publishDescription',
     children: [
-      item({ id: 'publish-candidates', icon: 'folder', labelKey: 'nav.publishCandidates', descriptionKey: 'nav.publishCandidatesDescription' }),
-      item({ id: 'publish-portfolio', icon: 'book', labelKey: 'nav.publishPortfolio', descriptionKey: 'nav.publishPortfolioDescription' }),
-      item({ id: 'publish-public-content', icon: 'send', labelKey: 'nav.publishPublicContent', descriptionKey: 'nav.publishPublicContentDescription' }),
+      item({ id: 'publish-candidates', icon: 'folder', labelKey: 'nav.publishCandidates', descriptionKey: 'nav.publishCandidatesDescription', futureSliceKey: 'featureSkeleton.slicePublish' }),
+      item({ id: 'publish-portfolio', icon: 'book', labelKey: 'nav.publishPortfolio', descriptionKey: 'nav.publishPortfolioDescription', futureSliceKey: 'featureSkeleton.slicePublish' }),
+      item({ id: 'publish-public-content', icon: 'send', labelKey: 'nav.publishPublicContent', descriptionKey: 'nav.publishPublicContentDescription', futureSliceKey: 'featureSkeleton.slicePublish' }),
     ],
   }),
   space({

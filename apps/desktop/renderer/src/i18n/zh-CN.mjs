@@ -165,4 +165,21 @@ export const zhCN = Object.freeze({
   comingSoon: {
     description: '该功能尚未实现，将在后续 Slice 提供。',
   },
+
+  featureSkeleton: {
+    status: '尚未实现',
+    willDo: '未来职责',
+    currentAvailability: '当前可用性',
+    notAvailable: '当前没有正式业务能力。',
+    futureSlice: '后续实现',
+    laterSlice: 'Later Slice',
+    backToSpace: '返回{space}',
+    sliceManagement: '个人管理闭环',
+    sliceKnowledge: '知识激活',
+    sliceAiAssets: 'AI 资产库',
+    sliceAiLab: 'AI 实验室',
+    sliceCanvas: '个人工作流画布',
+    sliceOutputs: '创作输出',
+    slicePublish: '发布与作品集',
+  },
 })
