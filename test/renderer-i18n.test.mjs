@@ -10,20 +10,33 @@ test('default user-facing locale is zh-CN', () => {
 test('nav dictionary covers every sidebar item used by the renderer', () => {
   const nav = messages.nav
   const required = [
-    'work', 'home', 'projects', 'canvas', 'calendar',
-    'knowledge', 'knowledgeBase', 'files',
-    'ai', 'agent', 'skills', 'automations', 'memory',
-    'system', 'settings', 'comingSoon',
+    'spaces', 'secondary', 'home', 'homeDescription',
+    'manage', 'manageDescription', 'projects', 'projectsDescription',
+    'manageGoals', 'manageGoalsDescription', 'managePlanning', 'managePlanningDescription',
+    'manageExecution', 'manageExecutionDescription', 'manageReview', 'manageReviewDescription',
+    'library', 'libraryDescription', 'libraryKnowledge', 'libraryKnowledgeDescription',
+    'libraryAssets', 'libraryAssetsDescription', 'libraryFiles', 'libraryFilesDescription',
+    'libraryCollections', 'libraryCollectionsDescription',
+    'create', 'createDescription', 'createAiLab', 'createAiLabDescription',
+    'createCanvas', 'createCanvasDescription', 'createWorkflows', 'createWorkflowsDescription',
+    'createOutputs', 'createOutputsDescription', 'publish', 'publishDescription',
+    'publishCandidates', 'publishCandidatesDescription', 'publishPortfolio', 'publishPortfolioDescription',
+    'publishPublicContent', 'publishPublicContentDescription', 'settings', 'settingsDescription',
+    'skeleton', 'realCapability', 'comingSoon',
   ]
   for (const key of required) {
     assert.equal(typeof nav[key], 'string', `nav.${key} must be a string`)
     assert.ok(nav[key].length > 0, `nav.${key} must not be empty`)
   }
-  // Groups match the requested zh-CN labels.
-  assert.equal(nav.work, '工作')
+  // The six product spaces are the only first-level navigation labels.
+  assert.equal(nav.spaces, '产品空间')
   assert.equal(nav.home, '首页')
-  assert.equal(nav.canvas, '无限画布')
-  assert.equal(nav.comingSoon, '开发中')
+  assert.equal(nav.manage, '管理')
+  assert.equal(nav.library, '资料库 / 书架')
+  assert.equal(nav.create, '创作')
+  assert.equal(nav.publish, '发布')
+  assert.equal(nav.settings, '设置')
+  assert.equal(nav.comingSoon, '尚未实现')
 })
 
 test('page dictionaries cover the keys the UI renders', () => {

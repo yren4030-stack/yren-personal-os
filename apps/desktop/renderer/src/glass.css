@@ -407,6 +407,34 @@ body {
   padding: 12px 10px 6px;
   white-space: nowrap;
 }
+.nav-shell {
+  min-width: 0;
+}
+.nav-primary {
+  font-weight: 600;
+}
+.nav-secondary {
+  margin: 2px 0 8px 10px;
+  padding-left: 8px;
+  border-left: 1px solid var(--divider);
+}
+.nav-subgroup-label {
+  padding: 6px 8px 4px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.nav-secondary-item {
+  height: 32px;
+  padding: 0 8px;
+  gap: 8px;
+  font-size: 13px;
+}
+.real-chip {
+  color: var(--accent);
+  background: var(--accent-tint);
+}
 
 .nav-item {
   display: flex;
@@ -479,6 +507,55 @@ body {
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 12px;
+}
+
+/* --- Whole-product space skeleton --------------------------------------- */
+
+.space-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--grid-gap);
+  min-width: 0;
+}
+.space-link-card {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 18px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.space-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+.space-link-heading {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.space-link-title {
+  min-width: 0;
+  font-weight: 650;
+}
+.space-link-description {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 /* --- Buttons ------------------------------------------------------------- */
@@ -1007,6 +1084,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   .sidebar .brand-name,
   .sidebar .brand-sub,
   .sidebar .nav-group-label,
+  .sidebar .nav-subgroup-label,
   .sidebar .nav-label,
   .sidebar .soon-chip,
   .sidebar .sidebar-foot {
@@ -1015,6 +1093,14 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   .sidebar .nav-item {
     justify-content: center;
     padding: 0;
+  }
+  .sidebar .nav-secondary {
+    margin: 2px 0 8px;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .sidebar .nav-secondary-item {
+    gap: 0;
   }
 }
 

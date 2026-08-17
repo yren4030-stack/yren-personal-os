@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { t } from './i18n/index.mjs'
 import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
+import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
 
 const api = () => window.personalOS?.v1
 
@@ -65,6 +66,22 @@ const ICONS = {
       <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
     </>
   ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="2" x2="12" y2="4" />
+      <line x1="12" y1="20" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="4" y2="12" />
+      <line x1="20" y1="12" x2="22" y2="12" />
+    </>
+  ),
+  send: (
+    <>
+      <path d="M22 2 11 13" />
+      <path d="m22 2-7 20-4-9-9-4Z" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />
@@ -81,44 +98,6 @@ function Icon({ name, size = 18 }) {
     </svg>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/* Navigation (zh-CN)                                                 */
-/* ------------------------------------------------------------------ */
-
-const NAV = [
-  {
-    group: t('nav.work'),
-    items: [
-      { id: 'home', icon: 'home', label: t('nav.home') },
-      { id: 'projects', icon: 'grid', label: t('nav.projects') },
-      { id: 'canvas', icon: 'layout', label: t('nav.canvas'), soon: true },
-      { id: 'calendar', icon: 'calendar', label: t('nav.calendar'), soon: true },
-    ],
-  },
-  {
-    group: t('nav.knowledge'),
-    items: [
-      { id: 'knowledge', icon: 'book', label: t('nav.knowledgeBase'), soon: true },
-      { id: 'files', icon: 'folder', label: t('nav.files'), soon: true },
-    ],
-  },
-  {
-    group: t('nav.ai'),
-    items: [
-      { id: 'agent', icon: 'sparkles', label: t('nav.agent'), soon: true },
-      { id: 'skills', icon: 'zap', label: t('nav.skills'), soon: true },
-      { id: 'automations', icon: 'repeat', label: t('nav.automations'), soon: true },
-      { id: 'memory', icon: 'database', label: t('nav.memory'), soon: true },
-    ],
-  },
-  {
-    group: t('nav.system'),
-    items: [{ id: 'settings', icon: 'settings', label: t('nav.settings') }],
-  },
-]
-
-const ROUTE_IDS = ['home', 'projects', 'project', 'settings']
 
 /* ------------------------------------------------------------------ */
 /* Appearance -> glass tokens                                          */
@@ -291,6 +270,77 @@ function ActivityRow({ item }) {
   )
 }
 
+function SidebarNavigation({ route, navigate }) {
+  return (
+    <nav className="nav-shell" aria-label={t('nav.spaces')}>
+      <div className="nav-group-label">{t('nav.spaces')}</div>
+      {APP_SPACES.map((space) => {
+        const active = isSpaceActive(space, route)
+        return (
+          <React.Fragment key={space.id}>
+            <button
+              type="button"
+              title={space.label}
+              aria-current={active ? 'page' : undefined}
+              className={`nav-item nav-primary${active ? ' active' : ''}`}
+              onClick={() => navigate(space.route)}
+            >
+              <Icon name={space.icon} size={17} />
+              <span className="nav-label">{space.label}</span>
+            </button>
+
+            {active && space.children.length > 0 && (
+              <div className="nav-secondary" aria-label={space.label}>
+                <div className="nav-subgroup-label">{t('nav.secondary')}</div>
+                {space.children.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={item.label}
+                    aria-current={route === item.id ? 'page' : undefined}
+                    className={`nav-item nav-secondary-item${route === item.id ? ' active' : ''}`}
+                    onClick={() => navigate(item.id)}
+                  >
+                    <Icon name={item.icon} size={16} />
+                    <span className="nav-label">{item.label}</span>
+                    <span className={`soon-chip${item.real ? ' real-chip' : ''}`}>
+                      {item.real ? t('nav.realCapability') : t('nav.comingSoon')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </React.Fragment>
+        )
+      })}
+    </nav>
+  )
+}
+
+function SpaceLandingPage({ space, onNavigate }) {
+  return (
+    <div className="page">
+      <PageHeader title={space.label} subtitle={space.description} />
+      <Section title={t('nav.secondary')}>
+        <div className="space-link-grid">
+          {space.children.map((item) => (
+            <button type="button" key={item.id} className="card card-hover space-link-card" onClick={() => onNavigate(item.id)}>
+              <span className="space-link-icon"><Icon name={item.icon} size={20} /></span>
+              <span className="space-link-heading">
+                <span className="space-link-title">{item.label}</span>
+                <span className={`chip ${item.real ? 'chip-accent' : 'chip-neutral'}`}>
+                  {item.real ? t('nav.realCapability') : t('nav.skeleton')}
+                </span>
+              </span>
+              <span className="space-link-description">{item.description}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /* App                                                                 */
 /* ------------------------------------------------------------------ */
@@ -359,7 +409,10 @@ export default function App() {
     )
   }
 
-  const routeNav = NAV.flatMap((g) => g.items).find((item) => item.id === route)
+  const routeNav = findNavigationRoute(route)
+  const currentSpace = getSpace(route)
+  const spaceLandingRoutes = ['manage', 'library', 'create', 'publish']
+  const realRoutes = ['home', 'projects', 'project', 'settings']
 
   return (
     <div className="app-shell">
@@ -374,18 +427,7 @@ export default function App() {
           </div>
         </div>
 
-        {NAV.map((group) => (
-          <div key={group.group}>
-            <div className="nav-group-label">{group.group}</div>
-            {group.items.map((item) => (
-              <button key={item.id} type="button" title={item.label} className={`nav-item${route === item.id ? ' active' : ''}`} onClick={() => navigate(item.id)}>
-                <Icon name={item.icon} size={17} />
-                <span className="nav-label">{item.label}</span>
-                {item.soon && <span className="soon-chip">{t('nav.comingSoon')}</span>}
-              </button>
-            ))}
-          </div>
-        ))}
+        <SidebarNavigation route={route} navigate={navigate} />
 
         <div className="sidebar-foot">
           {t('app.name')} · {t('app.version')}
@@ -394,10 +436,11 @@ export default function App() {
 
       <main className="main">
         {route === 'home' && <HomePage navigate={openProject} />}
+        {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
         {route === 'projects' && <ProjectsPage openProject={openProject} />}
         {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
         {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} />}
-        {!ROUTE_IDS.includes(route) && <ComingSoon label={routeNav ? routeNav.label : route} />}
+        {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && <ComingSoon label={routeNav ? routeNav.label : route} />}
       </main>
     </div>
   )
