@@ -7,6 +7,22 @@ test('default user-facing locale is zh-CN', () => {
   assert.equal(currentLocale, 'zh-CN')
 })
 
+test('global dictionary covers every global shell entry used by the renderer', () => {
+  const global = messages.global
+  const required = [
+    'label', 'mainAi', 'mainAiDescription', 'search', 'searchDescription',
+    'notifications', 'notificationsDescription', 'proposals', 'proposalsDescription',
+    'quickCreate', 'quickCreateDescription', 'skeleton', 'notImplemented',
+    'laterSlice', 'close', 'mainAiStatus', 'searchInputPlaceholder', 'searchStatus',
+    'notificationsStatus', 'proposalsStatus', 'proposalsGoToProjects',
+    'quickCreateStatus', 'quickCreateItems', 'currentContext',
+  ]
+  for (const key of required) {
+    assert.equal(typeof global[key], 'string', `global.${key} must be a string`)
+    assert.ok(global[key].length > 0, `global.${key} must not be empty`)
+  }
+})
+
 test('nav dictionary covers every sidebar item used by the renderer', () => {
   const nav = messages.nav
   const required = [

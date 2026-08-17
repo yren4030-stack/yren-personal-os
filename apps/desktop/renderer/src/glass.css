@@ -511,6 +511,131 @@ body {
 
 /* --- Whole-product space skeleton --------------------------------------- */
 
+.app-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* --- Global utility bar (Step 2 global entry skeletons) ------------------ */
+
+.global-utility-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--divider);
+  min-width: 0;
+}
+.global-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.global-entry:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
+}
+.global-entry.active {
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+.global-entry-label {
+  min-width: 0;
+}
+.current-context-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 12px;
+  background: var(--glass-content-bg);
+  min-width: 0;
+}
+.current-context-chip .grow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-panel {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  overflow: auto;
+  z-index: 40;
+  padding: 14px;
+  border: 1px solid var(--glass-content-border);
+  border-radius: var(--radius-glass-medium);
+  background: var(--glass-content-bg);
+  box-shadow: var(--glass-content-shadow);
+}
+.global-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.global-panel-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.global-panel-close {
+  padding: 4px;
+}
+.global-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.global-search-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.global-search-skeleton .input,
+.input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--glass-content-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.global-skeleton-notice p {
+  margin: 0;
+}
+.global-note {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* --- Whole-product space skeleton --------------------------------------- */
+
 .space-link-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
