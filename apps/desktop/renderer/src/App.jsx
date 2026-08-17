@@ -3,6 +3,7 @@ import { t } from './i18n/index.mjs'
 import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
+import { GLOBAL_ENTRIES, GLOBAL_PANEL_IDS, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
 
 const api = () => window.personalOS?.v1
 
@@ -89,6 +90,37 @@ const ICONS = {
     </>
   ),
   chevronLeft: <polyline points="15 18 9 12 15 6" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </>
+  ),
+  plus: (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </>
+  ),
+  x: (
+    <>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
 }
 
 function Icon({ name, size = 18 }) {
@@ -342,14 +374,123 @@ function SpaceLandingPage({ space, onNavigate }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* App                                                                 */
+/* Global shell - cross-cutting utility layer (Step 2 skeletons)       */
 /* ------------------------------------------------------------------ */
+
+const GLOBAL_ICONS = { 'main-ai': 'sparkles', search: 'search', notifications: 'bell', proposals: 'repeat', 'quick-create': 'plus' }
+
+function GlobalUtilityBar({ activePanel, onToggle, context }) {
+  return (
+    <div className="global-utility-bar" role="toolbar" aria-label={t('global.label')}>
+      {GLOBAL_ENTRIES.map((entry) => {
+        const active = activePanel === entry.id
+        return (
+          <button
+            key={entry.id}
+            type="button"
+            className={`global-entry${active ? ' active' : ''}`}
+            title={entry.description}
+            aria-label={entry.label}
+            aria-expanded={active}
+            aria-controls="global-panel"
+            onClick={() => onToggle(entry.id)}
+          >
+            <Icon name={GLOBAL_ICONS[entry.id]} size={17} />
+            <span className="global-entry-label">{entry.label}</span>
+            <span className="soon-chip">{t('global.skeleton')}</span>
+          </button>
+        )
+      })}
+      <CurrentContextChip context={context} />
+    </div>
+  )
+}
+
+function CurrentContextChip({ context }) {
+  if (!context) return null
+  const parts = [context.space]
+  if (context.projectId) parts.push(` / ${context.projectTitle || t('nav.projects')}`)
+  return (
+    <div className="current-context-chip" aria-label={t('global.currentContext')}>
+      <Icon name="info" size={14} />
+      <span className="grow">{parts.join('')}</span>
+    </div>
+  )
+}
+
+function GlobalPanel({ id, onClose, onNavigate }) {
+  const entry = getGlobalEntry(id)
+  if (!entry) return null
+  return (
+    <div className="global-panel" id="global-panel" role="dialog" aria-label={entry.label}>
+      <div className="global-panel-header">
+        <span className="global-panel-title">{entry.label}</span>
+        <button type="button" className="btn btn-ghost global-panel-close" onClick={onClose} aria-label={t('global.close')}>
+          <Icon name="x" size={16} />
+        </button>
+      </div>
+      <div className="global-panel-body">
+        <GlobalPanelBody id={id} onNavigate={onNavigate} />
+      </div>
+    </div>
+  )
+}
+
+function GlobalPanelBody({ id, onNavigate }) {
+  if (id === 'main-ai') {
+    return <SkeletonNotice text={t('global.mainAiStatus')} />
+  }
+  if (id === 'search') {
+    return (
+      <div className="global-search-skeleton">
+        <input type="search" className="input" placeholder={t('global.searchInputPlaceholder')} aria-label={t('global.search')} disabled />
+        <SkeletonNotice text={t('global.searchStatus')} />
+      </div>
+    )
+  }
+  if (id === 'notifications') {
+    return <SkeletonNotice text={t('global.notificationsStatus')} />
+  }
+  if (id === 'proposals') {
+    return (
+      <div>
+        <p>{t('global.proposalsStatus')}</p>
+        <button type="button" className="btn btn-primary" onClick={() => onNavigate('projects')}>
+          {t('global.proposalsGoToProjects')}
+        </button>
+      </div>
+    )
+  }
+  if (id === 'quick-create') {
+    return (
+      <div>
+        <SkeletonNotice text={t('global.quickCreateStatus')} />
+        <p className="global-note">{t('global.quickCreateItems')}</p>
+      </div>
+    )
+  }
+  return null
+}
+
+function SkeletonNotice({ text }) {
+  return (
+    <div className="card coming-soon global-skeleton-notice">
+      <div className="coming-soon-icon">
+        <Icon name="sparkles" size={22} />
+      </div>
+      <p>{text}</p>
+    </div>
+  )
+}
+
+
 
 export default function App() {
   const [route, setRoute] = useState('home')
   const [selectedProject, setSelectedProject] = useState(null)
   const [appearance, setAppearance] = useState(null)
   const [systemDark, setSystemDark] = useState(() => prefersDark())
+  const [activeGlobalPanel, setActiveGlobalPanel] = useState(null)
 
   const effectiveTheme = appearance ? resolveTheme(appearance.theme, systemDark) : 'light'
 
@@ -394,10 +535,15 @@ export default function App() {
   const navigate = (id) => {
     setRoute(id)
     setSelectedProject(null)
+    setActiveGlobalPanel(null)
   }
   const openProject = (id) => {
     setSelectedProject(id)
     setRoute('project')
+    setActiveGlobalPanel(null)
+  }
+  const toggleGlobalPanel = (id) => {
+    setActiveGlobalPanel((current) => (current === id ? null : id))
   }
 
   if (!appearance) {
@@ -413,6 +559,12 @@ export default function App() {
   const currentSpace = getSpace(route)
   const spaceLandingRoutes = ['manage', 'library', 'create', 'publish']
   const realRoutes = ['home', 'projects', 'project', 'settings']
+  const currentContext = deriveCurrentContext({
+    route,
+    selectedProject,
+    projectTitle: null, // derived from existing renderer state only; Step 2 does not read/store titles
+  })
+  const panelOpen = GLOBAL_PANEL_IDS.includes(activeGlobalPanel)
 
   return (
     <div className="app-shell">
@@ -434,14 +586,19 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="main">
-        {route === 'home' && <HomePage navigate={openProject} />}
-        {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
-        {route === 'projects' && <ProjectsPage openProject={openProject} />}
-        {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
-        {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} />}
-        {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && <ComingSoon label={routeNav ? routeNav.label : route} />}
-      </main>
+      <div className="app-main">
+        <GlobalUtilityBar activePanel={activeGlobalPanel} onToggle={toggleGlobalPanel} context={currentContext} />
+        <main className="main">
+          {route === 'home' && <HomePage navigate={openProject} />}
+          {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
+          {route === 'projects' && <ProjectsPage openProject={openProject} />}
+          {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
+          {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} />}
+          {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && <ComingSoon label={routeNav ? routeNav.label : route} />}
+        </main>
+      </div>
+
+      {panelOpen && <GlobalPanel id={activeGlobalPanel} onClose={() => setActiveGlobalPanel(null)} onNavigate={navigate} />}
     </div>
   )
 }
