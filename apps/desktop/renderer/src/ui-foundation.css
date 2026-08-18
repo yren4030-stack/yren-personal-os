@@ -1,0 +1,332 @@
+/* macOS 26 UI Foundation: semantic tokens and reusable presentation primitives. */
+
+:root {
+  --ui-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+
+  --ui-color-background: #f1eff6;
+  --ui-color-surface: #f9f8fb;
+  --ui-color-surface-elevated: #ffffff;
+  --ui-color-surface-glass: var(--glass-bg);
+  --ui-color-text-primary: #1b1b1f;
+  --ui-color-text-secondary: #6b6b72;
+  --ui-color-text-tertiary: #777780;
+  --ui-color-separator: rgba(0, 0, 0, 0.12);
+  --ui-color-accent: var(--accent);
+  --ui-color-success: #34c759;
+  --ui-color-warning: #ff9f0a;
+  --ui-color-critical: #ff453a;
+  --ui-color-selection: rgba(120, 73, 209, 0.16);
+  --ui-color-focus: rgba(120, 73, 209, 0.46);
+
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+
+  --ui-radius-control-sm: 6px;
+  --ui-radius-control-md: 8px;
+  --ui-radius-surface-sm: 10px;
+  --ui-radius-surface-md: 12px;
+  --ui-radius-surface-lg: 16px;
+  --ui-radius-floating: 20px;
+  --ui-radius-capsule: 999px;
+
+  --ui-type-caption-size: 11px;
+  --ui-type-label-size: 12px;
+  --ui-type-body-size: 13px;
+  --ui-type-section-size: 14px;
+  --ui-type-title3-size: 17px;
+  --ui-type-title2-size: 20px;
+  --ui-type-title1-size: 24px;
+  --ui-type-hero-size: 32px;
+  --ui-type-body-weight: 400;
+  --ui-type-strong-weight: 600;
+
+  --ui-motion-hover: 120ms;
+  --ui-motion-press: 100ms;
+  --ui-motion-selection: 160ms;
+  --ui-motion-popover: 200ms;
+  --ui-motion-panel: 240ms;
+  --ui-motion-page: 280ms;
+
+  --ui-glass-background: var(--glass-bg);
+  --ui-glass-border: var(--glass-border);
+  --ui-glass-shadow: var(--glass-shadow);
+  --ui-glass-blur: var(--glass-blur);
+  --ui-glass-saturation: var(--glass-saturation);
+  --ui-focus-ring: 0 0 0 3px var(--ui-color-focus);
+
+  /* Compatibility alias used by the pre-existing content fallback. */
+  --glass-bg-content: var(--glass-content-bg);
+}
+
+:root[data-theme='dark'] {
+  --ui-color-background: #15161a;
+  --ui-color-surface: #1b1d23;
+  --ui-color-surface-elevated: #26282f;
+  --ui-color-surface-glass: var(--glass-bg);
+  --ui-color-text-primary: #f2f2f6;
+  --ui-color-text-secondary: #b9bbc3;
+  --ui-color-text-tertiary: #9a9ca7;
+  --ui-color-separator: rgba(255, 255, 255, 0.14);
+  --ui-color-accent: #a984ff;
+  --ui-color-success: #32d74b;
+  --ui-color-warning: #ffd60a;
+  --ui-color-critical: #ff453a;
+  --ui-color-selection: rgba(169, 132, 255, 0.28);
+  --ui-color-focus: rgba(169, 132, 255, 0.62);
+}
+
+body {
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-type-body-size);
+}
+
+/* One material surface. Content remains stable and should not receive this
+   class by default; use it only for navigation/control/floating layers. */
+.ui-liquid-glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--ui-glass-background);
+  border: var(--ui-glass-border);
+  border-radius: var(--ui-radius-surface-md);
+  box-shadow: var(--ui-glass-shadow);
+  backdrop-filter: blur(var(--ui-glass-blur)) saturate(var(--ui-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur)) saturate(var(--ui-glass-saturation));
+}
+
+.ui-liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--glass-specular), var(--glass-spill);
+  pointer-events: none;
+}
+
+.ui-liquid-glass[data-material='clear'] {
+  --ui-glass-background: var(--glass-clear-bg);
+  --ui-glass-border: var(--glass-clear-border);
+  --ui-glass-shadow: var(--glass-clear-shadow);
+  --ui-glass-blur: var(--glass-clear-blur);
+  --ui-glass-saturation: var(--glass-clear-saturation);
+  border-radius: var(--ui-radius-floating);
+}
+
+/* Prevent accidental nested material stacking (glass-on-glass). */
+.ui-liquid-glass .ui-liquid-glass {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@supports not ((backdrop-filter: blur(1px))) {
+  .ui-liquid-glass {
+    background: var(--ui-color-surface-elevated);
+  }
+}
+
+.ui-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  padding: 0 var(--ui-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-control-md);
+  color: var(--ui-color-text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--ui-type-body-size);
+  font-weight: var(--ui-type-body-weight);
+  cursor: pointer;
+  transition: background-color var(--ui-motion-hover) ease-out, color var(--ui-motion-hover) ease-out, box-shadow var(--ui-motion-press) ease-out, transform var(--ui-motion-press) ease-out, opacity var(--ui-motion-hover) ease-out;
+}
+
+.ui-button[data-variant='primary'] {
+  color: #fff;
+  background: var(--ui-color-accent);
+}
+
+.ui-button[data-variant='secondary'] {
+  background: var(--ui-color-surface-elevated);
+  border-color: var(--ui-color-separator);
+}
+
+.ui-button[data-variant='tertiary'],
+.ui-button[data-variant='plain'] {
+  color: var(--ui-color-text-secondary);
+}
+
+.ui-button[data-variant='destructive'] {
+  color: var(--ui-color-critical);
+  background: color-mix(in srgb, var(--ui-color-critical) 12%, transparent);
+}
+
+.ui-button[data-variant='icon-only'] {
+  width: 32px;
+  padding: 0;
+}
+
+.ui-button:hover:not(:disabled),
+.ui-search:hover {
+  background-color: color-mix(in srgb, var(--ui-color-text-primary) 7%, transparent);
+}
+
+.ui-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ui-button[data-state='pressed'] {
+  transform: translateY(1px);
+  background-color: color-mix(in srgb, var(--ui-color-text-primary) 12%, transparent);
+}
+
+.ui-button[data-state='active'],
+.ui-button[data-state='selected'] {
+  color: var(--ui-color-accent);
+  background-color: var(--ui-color-selection);
+}
+
+.ui-button[data-state='disabled'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-button:focus-visible,
+.ui-search:focus-within,
+.ui-focus-ring:focus-visible {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 2px;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-search {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: 0 var(--ui-space-3);
+  color: var(--ui-color-text-secondary);
+  background: color-mix(in srgb, var(--ui-color-text-primary) 5%, transparent);
+  border: 1px solid var(--ui-color-separator);
+  border-radius: var(--ui-radius-control-md);
+  transition: background-color var(--ui-motion-hover) ease-out, box-shadow var(--ui-motion-selection) ease-out;
+}
+
+.ui-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--ui-color-text-primary);
+  background: transparent;
+  font: inherit;
+}
+
+.ui-search[data-state='results'] {
+  border-color: var(--ui-color-accent);
+}
+
+.ui-search[data-state='typing'] {
+  border-color: var(--ui-color-focus);
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-search[data-state='clear'],
+.ui-search[data-state='exit'] {
+  color: var(--ui-color-text-tertiary);
+}
+
+.ui-popover,
+.ui-menu,
+.ui-sheet {
+  background: var(--ui-color-surface-elevated);
+  border: 1px solid var(--ui-color-separator);
+  border-radius: var(--ui-radius-surface-md);
+  box-shadow: var(--ui-glass-shadow);
+}
+
+.ui-popover,
+.ui-menu {
+  padding: var(--ui-space-2);
+}
+
+.ui-sheet {
+  padding: var(--ui-space-6);
+  animation: ui-panel-enter var(--ui-motion-panel) ease-out both;
+}
+
+@keyframes ui-panel-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --ui-color-separator: rgba(0, 0, 0, 0.3);
+    --ui-color-focus: #4f22a8;
+  }
+  :root[data-theme='dark'] {
+    --ui-color-separator: rgba(255, 255, 255, 0.34);
+    --ui-color-focus: #d0bfff;
+  }
+}
+
+html[data-increased-contrast='true'] {
+  --ui-color-separator: rgba(0, 0, 0, 0.3);
+  --ui-color-focus: #4f22a8;
+}
+
+html[data-theme='dark'][data-increased-contrast='true'] {
+  --ui-color-separator: rgba(255, 255, 255, 0.34);
+  --ui-color-focus: #d0bfff;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ui-liquid-glass {
+    background: var(--ui-color-surface-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+html[data-reduced-transparency='true'] .ui-liquid-glass {
+  background: var(--ui-color-surface-elevated);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+html[data-reduced-motion='true'] *,
+html[data-reduced-motion='true'] *::before,
+html[data-reduced-motion='true'] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
