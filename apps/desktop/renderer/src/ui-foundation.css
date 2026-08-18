@@ -9,8 +9,6 @@
   --ui-glass-saturation: var(--ui-glass-regular-saturation);
   --ui-glass-specular: var(--ui-glass-regular-specular);
   --ui-glass-spill: var(--ui-glass-regular-spill);
-  /* Compatibility alias for the existing content fallback in glass.css. */
-  --glass-bg-content: var(--ui-color-surface-glass);
 }
 
 body {
@@ -154,7 +152,17 @@ body {
   background-color: var(--ui-interaction-button-neutral-pressed);
 }
 
-.ui-button[data-state='selected'] {
+.ui-button[data-variant='primary'][data-state='selected'] {
+  color: var(--ui-interaction-button-primary-text);
+  background-color: var(--ui-interaction-button-primary-selected);
+}
+
+.ui-button[data-variant='destructive'][data-state='selected'] {
+  color: var(--ui-interaction-button-primary-text);
+  background-color: var(--ui-interaction-button-critical-selected);
+}
+
+.ui-button[data-state='selected']:not([data-variant='primary']):not([data-variant='destructive']) {
   color: var(--ui-color-accent);
   background-color: var(--ui-color-selection);
 }

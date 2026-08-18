@@ -14,169 +14,35 @@
 
 :root {
   /* Brand */
-  --accent: #7849D1;
-  --accent-hover: #6a3fbd;
-  --accent-soft: rgba(120, 73, 209, 0.14);
-  --accent-tint: rgba(120, 73, 209, 0.08);
-  --accent-focus: rgba(120, 73, 209, 0.32);
 
   /* Surfaces & text (light, cool neutral) */
-  --bg-base: #f1eff6;
-  --bg-depth-1: #f9f8fb;
-  --bg-depth-2: #e9e7f0;
-  --text-primary: #1b1b1f;
-  --text-secondary: #6b6b72;
-  --text-tertiary: #9b9ba2;
 
   /* Controls & structure */
-  --control-bg: rgba(0, 0, 0, 0.06);
-  --control-bg-active: #fff;
-  --control-solid: #fff;
-  --control-border: 1px solid rgba(0, 0, 0, 0.08);
-  --btn-secondary-bg: rgba(255, 255, 255, 0.7);
-  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.95);
-  --hover-bg: rgba(0, 0, 0, 0.045);
-  --interact-hover: color-mix(in srgb, var(--glass-highlight) 35%, transparent);
-  --interact-active: color-mix(in srgb, var(--glass-highlight) 55%, transparent);
-  --chip-bg: rgba(0, 0, 0, 0.05);
-  --track-bg: rgba(0, 0, 0, 0.08);
-  --empty-bg: rgba(255, 255, 255, 0.35);
-  --divider: rgba(0, 0, 0, 0.05);
-  --scrollbar-thumb: rgba(0, 0, 0, 0.14);
-  --glass-edge-top: rgba(255, 255, 255, 0.55);
 
   /* Status */
-  --status-success: #34c759;
-  --status-warning: #ff9f0a;
-  --status-danger: #ff453a;
-  --error-bg: rgba(255, 69, 58, 0.07);
-  --error-border: rgba(255, 69, 58, 0.18);
-  --error-text: #b3261e;
 
   /* Coherent concentric radius system */
-  --radius-window: 24px;
-  --radius-glass-large: 20px;
-  --radius-glass-medium: 16px;
-  --radius-control: 10px;
-  --radius-capsule: 999px;
 
   /* Adaptive density tokens (fluid, clamp-based) */
-  --shell-padding: clamp(8px, 1vw, 12px);
-  --shell-gap: clamp(10px, 1vw, 12px);
-  --page-padding-x: clamp(14px, 2.2vw, 24px);
-  --page-padding-bottom: clamp(16px, 2vw, 28px);
-  --section-gap: clamp(16px, 1.5vw, 24px);
-  --grid-gap: clamp(12px, 1.4vw, 16px);
-  --sidebar-width: 232px;
-  --control-height: 40px;
-  --page-title-size: clamp(24px, 2.6vw, 28px);
 
   /* Liquid Glass engine defaults (clear · light · REGULAR navigation).
      The Renderer overrides these live via applyGlassTokens(). */
-  --glass-bg: rgba(255, 255, 255, 0.147);
-  --glass-blur: 13.2px;
-  --glass-border: 1px solid rgba(0, 0, 0, 0.16);
-  --glass-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.55) inset 0 0 0 1px, rgba(0, 0, 0, 0.07) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.044), 0 18px 50px -20px rgba(0, 0, 0, 0.115);
-  --glass-saturation: 1.25;
-  --glass-brightness: 1.05;
-  --glass-contrast: 1.03;
-  --glass-highlight: rgba(255, 255, 255, 0.6);
-  --glass-rim-light: rgba(255, 255, 255, 0.55);
-  --glass-rim-shade: rgba(0, 0, 0, 0.07);
-  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
-  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.6) 100%);
-  --glass-spill: linear-gradient(160deg, rgba(150, 158, 186, 0.144), transparent 52%);
 
   /* CLEAR liquid glass (small floating controls, segmented capsules). */
-  --glass-clear-bg: rgba(255, 255, 255, 0.075);
-  --glass-clear-blur: 5.8px;
-  --glass-clear-border: 1px solid rgba(0, 0, 0, 0.198);
-  --glass-clear-shadow: rgba(255, 255, 255, 0.6) inset 0 1px 0, rgba(255, 255, 255, 0.6) inset 0 0 0 1px, rgba(0, 0, 0, 0.08) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.026), 0 18px 50px -20px rgba(0, 0, 0, 0.046);
-  --glass-clear-saturation: 1.3;
-  --glass-clear-brightness: 1.06;
-  --glass-clear-contrast: 1.04;
-  --glass-clear-highlight: rgba(255, 255, 255, 0.6);
-  --glass-clear-rim-light: rgba(255, 255, 255, 0.6);
-  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 46%);
 
   /* STANDARD content material (ordinary content cards). */
-  --glass-content-bg: rgba(255, 255, 255, 0.13);
-  --glass-content-blur: 9px;
-  --glass-content-border: 1px solid rgba(0, 0, 0, 0.12);
-  --glass-content-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.3) inset 0 0 0 1px, rgba(0, 0, 0, 0.05) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.069);
-  --glass-content-saturation: 1.2;
-  --glass-content-brightness: 1.03;
-  --glass-content-contrast: 1.02;
 }
 
 /* --- Dark theme: deliberate graphite Liquid Glass, not an inversion ------- */
 
 :root[data-theme='dark'] {
-  --accent-soft: rgba(120, 73, 209, 0.26);
-  --accent-tint: rgba(120, 73, 209, 0.18);
-  --accent-focus: rgba(120, 73, 209, 0.5);
 
-  --bg-base: #15161a;
-  --bg-depth-1: #1b1d23;
-  --bg-depth-2: #101116;
-  --text-primary: #f2f2f6;
-  --text-secondary: #b9bbc3;
-  --text-tertiary: #7e808a;
 
-  --control-bg: rgba(255, 255, 255, 0.08);
-  --control-bg-active: rgba(255, 255, 255, 0.16);
-  --control-solid: #26282f;
-  --control-border: 1px solid rgba(255, 255, 255, 0.12);
-  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
-  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.16);
-  --hover-bg: rgba(255, 255, 255, 0.06);
-  --chip-bg: rgba(255, 255, 255, 0.08);
-  --track-bg: rgba(255, 255, 255, 0.14);
-  --empty-bg: rgba(255, 255, 255, 0.05);
-  --divider: rgba(255, 255, 255, 0.08);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
-  --glass-edge-top: rgba(255, 255, 255, 0.1);
 
-  --status-success: #32d74b;
-  --status-warning: #ffd60a;
-  --status-danger: #ff453a;
-  --error-bg: rgba(255, 69, 58, 0.14);
-  --error-border: rgba(255, 69, 58, 0.32);
-  --error-text: #ff8a80;
 
   /* Pre-JS dark defaults (clear · dark · REGULAR navigation). */
-  --glass-bg: rgba(34, 36, 42, 0.173);
-  --glass-blur: 15.2px;
-  --glass-border: 1px solid rgba(255, 255, 255, 0.184);
-  --glass-shadow: rgba(255, 255, 255, 0.42) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.32) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.05), 0 18px 50px -20px rgba(0, 0, 0, 0.32);
-  --glass-saturation: 1.1;
-  --glass-brightness: 1.04;
-  --glass-contrast: 1.03;
-  --glass-highlight: rgba(255, 255, 255, 0.42);
-  --glass-rim-light: rgba(255, 255, 255, 0.46);
-  --glass-rim-shade: rgba(0, 0, 0, 0.32);
-  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 46%);
-  --glass-reflection: linear-gradient(180deg, transparent 42%, rgba(255, 255, 255, 0.42) 100%);
-  --glass-spill: linear-gradient(160deg, rgba(110, 122, 160, 0.17), transparent 52%);
 
-  --glass-clear-bg: rgba(34, 36, 42, 0.1);
-  --glass-clear-blur: 6.7px;
-  --glass-clear-border: 1px solid rgba(255, 255, 255, 0.228);
-  --glass-clear-shadow: rgba(255, 255, 255, 0.4) inset 0 1px 0, rgba(255, 255, 255, 0.46) inset 0 0 0 1px, rgba(0, 0, 0, 0.3) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.18);
-  --glass-clear-saturation: 1.15;
-  --glass-clear-brightness: 1.05;
-  --glass-clear-contrast: 1.04;
-  --glass-clear-highlight: rgba(255, 255, 255, 0.4);
-  --glass-clear-rim-light: rgba(255, 255, 255, 0.46);
-  --glass-clear-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 46%);
 
-  --glass-content-bg: rgba(34, 36, 42, 0.13);
-  --glass-content-blur: 10px;
-  --glass-content-border: 1px solid rgba(255, 255, 255, 0.138);
-  --glass-content-shadow: rgba(255, 255, 255, 0.28) inset 0 1px 0, rgba(255, 255, 255, 0.24) inset 0 0 0 1px, rgba(0, 0, 0, 0.22) inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 50px -20px rgba(0, 0, 0, 0.2);
-  --glass-content-saturation: 1.1;
-  --glass-content-brightness: 1.02;
-  --glass-content-contrast: 1.02;
 }
 
 * {
@@ -227,8 +93,6 @@ body {
 .glass {
   position: relative;
   background: var(--glass-content-bg);
-  backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
-  -webkit-backdrop-filter: blur(var(--glass-content-blur)) saturate(var(--glass-content-saturation)) brightness(var(--glass-content-brightness)) contrast(var(--glass-content-contrast));
   border: var(--glass-content-border);
   box-shadow: var(--glass-content-shadow);
   border-radius: var(--radius-glass-medium);
@@ -280,6 +144,17 @@ body {
   opacity: 0.5;
   box-shadow: var(--glass-rim-shade) inset 0 -1px 0;
   pointer-events: none;
+}
+
+/* Content First guard: a content card must stay a stable surface even if a
+   legacy material class is accidentally combined with it. */
+.card.glass-l1:not(.sidebar),
+.card.glass-float:not(.sidebar) {
+  background: var(--glass-content-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: var(--glass-content-border);
+  box-shadow: var(--glass-content-shadow);
 }
 
 /* CLEAR Liquid Glass — small/lightweight floating controls (segmented
@@ -1300,15 +1175,75 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }
 
+html[data-reduced-motion='true'] *,
+html[data-reduced-motion='true'] *::before,
+html[data-reduced-motion='true'] *::after {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
 @media (prefers-reduced-transparency: reduce) {
-  .card,
-  .glass,
   .glass-l1,
   .glass-float,
-  .sidebar {
-    background: color-mix(in srgb, var(--glass-bg-content) 45%, var(--bg-base));
+  .sidebar,
+  .segmented {
+    background: var(--ui-color-surface-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--ui-content-shadow);
   }
+}
+
+html[data-reduced-transparency='true'] .glass-l1,
+html[data-reduced-transparency='true'] .glass-float,
+html[data-reduced-transparency='true'] .sidebar,
+html[data-reduced-transparency='true'] .segmented {
+  background: var(--ui-color-surface-elevated);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--ui-content-shadow);
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --accent-focus: var(--ui-contrast-focus);
+    --text-primary: var(--ui-contrast-text-primary);
+    --text-secondary: var(--ui-contrast-text-secondary);
+    --divider: var(--ui-contrast-separator);
+    --chip-bg: var(--ui-contrast-selection);
+    --control-border: var(--ui-geometry-border-width) solid var(--ui-contrast-separator);
+  }
+}
+
+html[data-increased-contrast='true'] {
+  --accent-focus: var(--ui-contrast-focus);
+  --text-primary: var(--ui-contrast-text-primary);
+  --text-secondary: var(--ui-contrast-text-secondary);
+  --divider: var(--ui-contrast-separator);
+  --chip-bg: var(--ui-contrast-selection);
+  --control-border: var(--ui-geometry-border-width) solid var(--ui-contrast-separator);
+}
+
+/* Keep the content fallback opaque/stable under either preference. */
+@media (prefers-reduced-transparency: reduce) {
+  .card,
+  .glass {
+    background: var(--ui-color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+html[data-reduced-transparency='true'] .card,
+html[data-reduced-transparency='true'] .glass {
+  background: var(--ui-color-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }

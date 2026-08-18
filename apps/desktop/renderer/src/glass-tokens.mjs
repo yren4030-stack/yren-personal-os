@@ -22,6 +22,8 @@
  * spill define the perimeter — never alpha + blur alone.
  */
 
+import { FOUNDATION_TOKENS } from './ui-foundation.mjs'
+
 export const LIQUID_GLASS_STYLES = Object.freeze({ CLEAR: 'clear', TINTED: 'tinted' })
 export const MATERIAL_VARIANTS = Object.freeze({ REGULAR: 'regular', CLEAR: 'clear', CONTENT: 'content' })
 
@@ -30,38 +32,20 @@ export const MATERIAL_VARIANTS = Object.freeze({ REGULAR: 'regular', CLEAR: 'cle
  * full optical stack; userStyle changes several axes together, never alpha
  * alone.
  */
-const PROFILES = Object.freeze({
-  regular: Object.freeze({
-    clear: Object.freeze({ fill: 0.14, blur: 12, brightness: 1.05, contrast: 1.03, saturation: 1.25, border: 0.16, rimLight: 0.55, rimShade: 0.07, specular: 0.5, reflection: 0.3, contact: 0.04, ambient: 0.1, spill: 0.12 }),
-    tinted: Object.freeze({ fill: 0.32, blur: 18, brightness: 1.02, contrast: 1.05, saturation: 1.4, border: 0.18, rimLight: 0.4, rimShade: 0.09, specular: 0.35, reflection: 0.42, contact: 0.05, ambient: 0.14, spill: 0.16 }),
-  }),
-  clear: Object.freeze({
-    clear: Object.freeze({ fill: 0.08, blur: 7, brightness: 1.06, contrast: 1.04, saturation: 1.3, border: 0.18, rimLight: 0.6, rimShade: 0.08, specular: 0.55, reflection: 0.22, contact: 0.03, ambient: 0.06, spill: 0.14 }),
-    tinted: Object.freeze({ fill: 0.2, blur: 12, brightness: 1.03, contrast: 1.05, saturation: 1.45, border: 0.2, rimLight: 0.45, rimShade: 0.1, specular: 0.4, reflection: 0.32, contact: 0.04, ambient: 0.09, spill: 0.18 }),
-  }),
-  content: Object.freeze({
-    clear: Object.freeze({ fill: 0.13, blur: 9, brightness: 1.03, contrast: 1.02, saturation: 1.2, border: 0.12, rimLight: 0.3, rimShade: 0.05, specular: 0.25, reflection: 0.18, contact: 0.03, ambient: 0.06, spill: 0.08 }),
-    tinted: Object.freeze({ fill: 0.28, blur: 14, brightness: 1.02, contrast: 1.03, saturation: 1.3, border: 0.14, rimLight: 0.24, rimShade: 0.07, specular: 0.2, reflection: 0.26, contact: 0.04, ambient: 0.09, spill: 0.11 }),
-  }),
-})
-
 /** Surface-size multipliers (not user-facing). */
-const SIZES = Object.freeze({
-  small: Object.freeze({ fill: 0.85, blur: 0.75, border: 1.1, contact: 0.8, ambient: 0.7, specular: 1.1 }),
-  medium: Object.freeze({ fill: 1, blur: 1, border: 1, contact: 1, ambient: 1, specular: 1 }),
-  large: Object.freeze({ fill: 1.05, blur: 1.1, border: 1, contact: 1.1, ambient: 1.15, specular: 1 }),
-})
+
 
 /** Role → size + environmental spill emphasis. */
-const ROLES = Object.freeze({
-  navigation: Object.freeze({ size: 'large', spill: 1.2 }),
-  panel: Object.freeze({ size: 'medium', spill: 1 }),
-  control: Object.freeze({ size: 'small', spill: 1 }),
-  floating: Object.freeze({ size: 'small', spill: 1.1, specular: 1.15 }),
-})
-
-const FILL_RGB = Object.freeze({ light: '255, 255, 255', dark: '34, 36, 42' })
-const BORDER_RGB = Object.freeze({ light: '0, 0, 0', dark: '255, 255, 255' })
+const {
+  profiles: PROFILES,
+  sizes: SIZES,
+  roles: ROLES,
+  fillRgb: FILL_RGB,
+  borderRgb: BORDER_RGB,
+  highlightRgb: HIGHLIGHT_RGB,
+  shadeRgb: SHADE_RGB,
+  spillRgb: SPILL_RGB,
+} = FOUNDATION_TOKENS.glassModel
 
 function round3(value) {
   return Math.round(value * 1000) / 1000
@@ -100,17 +84,19 @@ export function resolveLiquidGlass({ theme = 'light', userStyle = 'clear', varia
     spillAlpha: round3(style.spill * (roleSpec.spill || 1)),
     fillRgb: FILL_RGB[dark ? 'dark' : 'light'],
     borderRgb: BORDER_RGB[dark ? 'dark' : 'light'],
+    highlightRgb: HIGHLIGHT_RGB[dark ? 'dark' : 'light'],
+    shadeRgb: SHADE_RGB[dark ? 'dark' : 'light'],
   }
 }
 
 function formatShadow(resolved) {
-  const highlight = `rgba(255, 255, 255, ${Math.min(0.6, resolved.specularAlpha + 0.15).toFixed(3)})`
-  const rimLight = `rgba(255, 255, 255, ${resolved.rimLightAlpha.toFixed(3)})`
-  const rimShade = `rgba(0, 0, 0, ${resolved.rimShadeAlpha.toFixed(3)})`
+  const highlight = `rgba(${resolved.highlightRgb}, ${Math.min(0.6, resolved.specularAlpha + 0.15).toFixed(3)})`
+  const rimLight = `rgba(${resolved.highlightRgb}, ${resolved.rimLightAlpha.toFixed(3)})`
+  const rimShade = `rgba(${resolved.shadeRgb}, ${resolved.rimShadeAlpha.toFixed(3)})`
   return {
     highlight,
     rimLight,
-    shadow: `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px rgba(0, 0, 0, ${resolved.contactAlpha.toFixed(3)}), 0 18px 50px -20px rgba(0, 0, 0, ${resolved.ambientAlpha.toFixed(3)})`,
+    shadow: `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px rgba(${resolved.shadeRgb}, ${resolved.contactAlpha.toFixed(3)}), 0 18px 50px -20px rgba(${resolved.shadeRgb}, ${resolved.ambientAlpha.toFixed(3)})`,
   }
 }
 
@@ -131,7 +117,7 @@ export function computeGlassTokens(appearance = {}) {
   const c = formatShadow(clear)
   const k = formatShadow(content)
 
-  const spillColor = dark ? '110, 122, 160' : '150, 158, 186'
+  const spillColor = SPILL_RGB[dark ? 'dark' : 'light']
 
   return {
     // REGULAR liquid glass (text-heavy functional surfaces).
@@ -144,7 +130,7 @@ export function computeGlassTokens(appearance = {}) {
     glassContrast: regular.contrast.toFixed(2),
     glassHighlight: r.highlight,
     glassRimLight: r.rimLight,
-    glassRimShade: `rgba(0, 0, 0, ${regular.rimShadeAlpha.toFixed(3)})`,
+    glassRimShade: `rgba(${regular.shadeRgb}, ${regular.rimShadeAlpha.toFixed(3)})`,
     glassSpecular: `linear-gradient(135deg, ${r.highlight}, transparent 46%)`,
     glassReflection: `linear-gradient(180deg, transparent 42%, ${r.highlight} 100%)`,
     glassSpill: `linear-gradient(160deg, rgba(${spillColor}, ${regular.spillAlpha.toFixed(3)}), transparent 52%)`,
@@ -179,15 +165,41 @@ export function computeGlassTokens(appearance = {}) {
 
 /** Write the computed semantic tokens onto the document root (Renderer only). */
 export function applyGlassTokens(tokens) {
+  if (typeof document === 'undefined') return
   const root = document.documentElement
-  for (const key of [
-    'glassBg', 'glassBlur', 'glassBorder', 'glassShadow', 'glassSaturation', 'glassBrightness', 'glassContrast',
-    'glassHighlight', 'glassRimLight', 'glassRimShade', 'glassSpecular', 'glassReflection', 'glassSpill',
-    'glassClearBg', 'glassClearBlur', 'glassClearBorder', 'glassClearShadow', 'glassClearSaturation',
-    'glassClearBrightness', 'glassClearContrast', 'glassClearHighlight', 'glassClearRimLight', 'glassClearSpecular',
-    'glassContentBg', 'glassContentBlur', 'glassContentBorder', 'glassContentShadow',
-    'glassContentSaturation', 'glassContentBrightness', 'glassContentContrast',
-  ]) {
-    root.style.setProperty(`--${key}`, tokens[key])
+  const values = {
+    '--ui-glass-regular-background': tokens.glassBg,
+    '--ui-glass-regular-blur': tokens.glassBlur,
+    '--ui-glass-regular-border': tokens.glassBorder,
+    '--ui-glass-regular-shadow': tokens.glassShadow,
+    '--ui-glass-regular-saturation': tokens.glassSaturation,
+    '--ui-glass-regular-brightness': tokens.glassBrightness,
+    '--ui-glass-regular-contrast': tokens.glassContrast,
+    '--ui-glass-regular-highlight': tokens.glassHighlight,
+    '--ui-glass-regular-rim-light': tokens.glassRimLight,
+    '--ui-glass-regular-rim-shade': tokens.glassRimShade,
+    '--ui-glass-regular-specular': tokens.glassSpecular,
+    '--ui-glass-regular-reflection': tokens.glassReflection,
+    '--ui-glass-regular-spill': tokens.glassSpill,
+    '--ui-glass-clear-background': tokens.glassClearBg,
+    '--ui-glass-clear-blur': tokens.glassClearBlur,
+    '--ui-glass-clear-border': tokens.glassClearBorder,
+    '--ui-glass-clear-shadow': tokens.glassClearShadow,
+    '--ui-glass-clear-saturation': tokens.glassClearSaturation,
+    '--ui-glass-clear-brightness': tokens.glassClearBrightness,
+    '--ui-glass-clear-contrast': tokens.glassClearContrast,
+    '--ui-glass-clear-highlight': tokens.glassClearHighlight,
+    '--ui-glass-clear-rim-light': tokens.glassClearRimLight,
+    '--ui-glass-clear-specular': tokens.glassClearSpecular,
+    '--ui-glass-content-background': tokens.glassContentBg,
+    '--ui-glass-content-blur': tokens.glassContentBlur,
+    '--ui-glass-content-border': tokens.glassContentBorder,
+    '--ui-glass-content-shadow': tokens.glassContentShadow,
+    '--ui-glass-content-saturation': tokens.glassContentSaturation,
+    '--ui-glass-content-brightness': tokens.glassContentBrightness,
+    '--ui-glass-content-contrast': tokens.glassContentContrast,
+  }
+  for (const [name, value] of Object.entries(values)) {
+    root.style.setProperty(name, value)
   }
 }

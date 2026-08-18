@@ -5,6 +5,9 @@ import './glass.css'
 import './ui-foundation.css'
 import { initializeFoundation } from './ui-foundation.mjs'
 
-initializeFoundation()
+const disposeFoundation = initializeFoundation()
+if (typeof window !== 'undefined') {
+  window.addEventListener('unload', disposeFoundation, { once: true })
+}
 
 createRoot(document.getElementById('root')).render(<App />)

@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import { computeGlassTokens, resolveLiquidGlass, LIQUID_GLASS_STYLES, MATERIAL_VARIANTS } from '../apps/desktop/renderer/src/glass-tokens.mjs'
+import { FOUNDATION_TOKENS } from '../apps/desktop/renderer/src/ui-foundation.mjs'
+
+const source = readFileSync(new URL('../apps/desktop/renderer/src/glass-tokens.mjs', import.meta.url), 'utf8')
 
 test('user liquidGlassStyle remains clear | tinted (Axis 1 preserved)', () => {
   assert.equal(LIQUID_GLASS_STYLES.CLEAR, 'clear')
@@ -9,6 +13,13 @@ test('user liquidGlassStyle remains clear | tinted (Axis 1 preserved)', () => {
   const clear = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
   const tinted = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'tinted' })
   assert.notEqual(clear.glassBg, tinted.glassBg)
+})
+
+test('Foundation is the only runtime optical value source', () => {
+  assert.match(source, /FOUNDATION_TOKENS\.glassModel/)
+  assert.doesNotMatch(source, /const (?:PROFILES|SIZES|ROLES|FILL_RGB|BORDER_RGB)\s*=\s*Object\.freeze/)
+  assert.match(source, /--ui-glass-regular-background/)
+  assert.equal(FOUNDATION_TOKENS.glassModel.profiles.regular.clear.fill, 0.14)
 })
 
 test('internal material variants exist: regular, clear, content (Axis 2)', () => {

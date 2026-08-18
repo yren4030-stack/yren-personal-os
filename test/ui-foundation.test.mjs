@@ -82,7 +82,8 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
     globalThis.document = previousDocument
   }
   assert.match(main, /import \{ initializeFoundation \} from ['"]\.\/ui-foundation\.mjs['"]/)
-  assert.match(main, /initializeFoundation\(\)/)
+  assert.match(main, /const disposeFoundation = initializeFoundation\(\)/)
+  assert.match(main, /addEventListener\(['"]unload['"], disposeFoundation/)
 })
 
 test('foundation exposes explicit interaction states and button/search primitives', () => {
@@ -112,6 +113,9 @@ test('primary and destructive button states retain semantic hover and pressed to
   assert.match(css, /\.ui-button\[data-variant='primary'\]:active[^}]+background: var\(--ui-interaction-button-primary-pressed\)/s)
   assert.match(css, /\.ui-button\[data-variant='destructive'\]:hover[^}]+background: var\(--ui-interaction-button-critical-hover\)/s)
   assert.match(css, /\.ui-button\[data-variant='destructive'\]:active[^}]+background: var\(--ui-interaction-button-critical-pressed\)/s)
+  assert.match(css, /\.ui-button\[data-variant='primary'\]\[data-state='selected'\][^}]+background-color: var\(--ui-interaction-button-primary-selected\)/s)
+  assert.match(css, /\.ui-button\[data-variant='destructive'\]\[data-state='selected'\][^}]+background-color: var\(--ui-interaction-button-critical-selected\)/s)
+  assert.match(css, /data-state='selected'\]:not\(\[data-variant='primary'\]\):not\(\[data-variant='destructive'\]\)/)
   assert.doesNotMatch(css, /\.ui-button:hover:not\(:disabled\),/)
 })
 
