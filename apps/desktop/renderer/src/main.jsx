@@ -9,5 +9,8 @@ const disposeFoundation = initializeFoundation()
 if (typeof window !== 'undefined') {
   window.addEventListener('unload', disposeFoundation, { once: true })
 }
+if (import.meta.hot) {
+  import.meta.hot.dispose(disposeFoundation)
+}
 
 createRoot(document.getElementById('root')).render(<App />)

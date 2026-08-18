@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 import { computeGlassTokens } from '../apps/desktop/renderer/src/glass-tokens.mjs'
-import { FOUNDATION_TOKENS } from '../apps/desktop/renderer/src/ui-foundation.mjs'
+import { buildLegacyAliases, resolveFoundationTokens } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
 const tokensSrc = readFileSync(new URL('../apps/desktop/renderer/src/glass-tokens.mjs', import.meta.url), 'utf8')
@@ -108,8 +108,9 @@ test('glass tokens are runtime aliases owned by FOUNDATION_TOKENS', () => {
   const float = findRule('.glass-float')
   assert.ok(float)
 
-  assert.ok(foundationSrc.includes("'--glass-bg': 'var(--ui-glass-regular-background)'"))
-  assert.ok(foundationSrc.includes("'--glass-blur': 'var(--ui-glass-regular-blur)'"))
+  const aliases = buildLegacyAliases(resolveFoundationTokens({ appearance: 'light' }))
+  assert.equal(aliases['--glass-bg'], 'var(--ui-glass-regular-background)')
+  assert.equal(aliases['--glass-blur'], 'var(--ui-glass-regular-blur)')
   assert.equal(/--glass-(?:bg|blur|border|shadow)\s*:\s*(?:#|rgba|linear-gradient|[0-9])/i.test(css), false)
   assert.ok(l1.body.includes('var(--glass-bg)'), 'regular consumes the regular fill')
   assert.ok(l1.body.includes('var(--glass-blur)'), 'regular consumes the regular scattering')
@@ -172,9 +173,10 @@ test('edge/specular/reflection construction tokens exist in both theme scopes', 
   for (const token of ['--glass-specular', '--glass-reflection', '--glass-spill', '--glass-rim-light', '--glass-rim-shade', '--glass-clear-rim-light']) {
     assert.ok(foundationSrc.includes(token), `${token} alias must exist`)
   }
-  assert.ok(FOUNDATION_TOKENS.glass.dark.regular.specular)
-  assert.ok(FOUNDATION_TOKENS.glass.dark.regular.rimShade)
-  assert.ok(FOUNDATION_TOKENS.glass.dark.regular.rimLight)
+  const dark = resolveFoundationTokens({ appearance: 'dark' }).glass.regular
+  assert.ok(dark.specular)
+  assert.ok(dark.rimShade)
+  assert.ok(dark.rimLight)
 })
 
 test('shared content rows do not receive independent backdrop-filter (glass only at surface boundaries)', () => {
@@ -238,7 +240,9 @@ test('real renderer accessibility and Content First boundary are wired', () => {
   assert.match(css, /html\[data-reduced-transparency='true'\][\s\S]*\.sidebar[\s\S]*backdrop-filter: none;/)
   assert.match(css, /html\[data-reduced-transparency='true'\][\s\S]*-webkit-backdrop-filter: none;/)
   assert.match(css, /html\[data-reduced-motion='true'\]/)
-  assert.match(css, /html\[data-increased-contrast='true'\][\s\S]*--text-primary: var\(--ui-contrast-text-primary\)/)
+  assert.match(css, /\.btn-primary\[data-state='selected'\]/)
+  assert.match(css, /\.btn-destructive\[data-state='selected'\]/)
+  assert.doesNotMatch(css, /prefers-contrast|data-increased-contrast/)
   assert.equal(appSrc.includes('card glass-l1 proposal-card'), false, 'proposal content is not a glass surface')
   assert.match(appSrc, /className="card proposal-card"/)
   assert.equal(findRule('.card, .glass').body.includes('backdrop-filter'), false)

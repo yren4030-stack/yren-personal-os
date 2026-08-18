@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 import { computeGlassTokens, resolveLiquidGlass, LIQUID_GLASS_STYLES, MATERIAL_VARIANTS } from '../apps/desktop/renderer/src/glass-tokens.mjs'
-import { FOUNDATION_TOKENS } from '../apps/desktop/renderer/src/ui-foundation.mjs'
+import { FOUNDATION_TOKENS, resolveFoundationTokens } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const source = readFileSync(new URL('../apps/desktop/renderer/src/glass-tokens.mjs', import.meta.url), 'utf8')
 
@@ -16,10 +16,11 @@ test('user liquidGlassStyle remains clear | tinted (Axis 1 preserved)', () => {
 })
 
 test('Foundation is the only runtime optical value source', () => {
-  assert.match(source, /FOUNDATION_TOKENS\.glassModel/)
+  assert.match(source, /resolveFoundationTokens/)
   assert.doesNotMatch(source, /const (?:PROFILES|SIZES|ROLES|FILL_RGB|BORDER_RGB)\s*=\s*Object\.freeze/)
+  assert.doesNotMatch(source, /glassModel|LIGHT_GLASS|DARK_GLASS/)
   assert.match(source, /--ui-glass-regular-background/)
-  assert.equal(FOUNDATION_TOKENS.glassModel.profiles.regular.clear.fill, 0.14)
+  assert.equal(FOUNDATION_TOKENS.glass.profiles.regular.clear.fill, 0.14)
 })
 
 test('internal material variants exist: regular, clear, content (Axis 2)', () => {
@@ -109,8 +110,9 @@ test('user tinted preference coordinates optical tokens, never alpha alone', () 
 
 test('standard content material is quieter than regular glass', () => {
   const t = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
-  assert.ok(t.contentFillAlpha < t.regularFillAlpha, 'content fill is quieter')
-  assert.ok(t.glassContentBlur !== t.glassBlur, 'content scattering is lower')
+  assert.equal(t.glassContentBg, resolveFoundationTokens({ appearance: 'light' }).colors.surface, 'content uses stable surface')
+  assert.equal(t.glassContentBlur, '0px', 'content has no blur')
+  assert.equal(t.glassContentShadow, 'none', 'content has no glass shadow')
 })
 
 test('legacy continuous fields stay irrelevant; invalid inputs fall back safely', () => {

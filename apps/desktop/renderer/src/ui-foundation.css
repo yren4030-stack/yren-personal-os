@@ -242,18 +242,6 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-contrast: more) {
-  :root {
-    --ui-color-separator: var(--ui-contrast-separator);
-    --ui-color-focus: var(--ui-contrast-focus);
-  }
-}
-
-html[data-increased-contrast='true'] {
-  --ui-color-separator: var(--ui-contrast-separator);
-  --ui-color-focus: var(--ui-contrast-focus);
-}
-
 @media (prefers-reduced-transparency: reduce) {
   .ui-liquid-glass {
     background: var(--ui-color-surface-elevated);
@@ -272,18 +260,18 @@ html[data-reduced-transparency='true'] .ui-liquid-glass {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
   }
 }
 
 html[data-reduced-motion='true'] *,
 html[data-reduced-motion='true'] *::before,
 html[data-reduced-motion='true'] *::after {
-  scroll-behavior: auto !important;
-  transition-duration: 0.01ms !important;
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
+  scroll-behavior: auto;
+  transition-duration: 0.01ms;
+  animation-duration: 0.01ms;
+  animation-iteration-count: 1;
 }

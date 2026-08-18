@@ -8,7 +8,10 @@ import {
   SEMANTIC_COLOR_ROLES,
   applyFoundationPreferences,
   applyFoundationTokens,
+  buildLegacyAliases,
   initializeFoundation,
+  resolveButtonTokens,
+  resolveFoundationTokens,
   resolveFoundationPreferences,
 } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
@@ -45,7 +48,7 @@ test('runtime CSS vars are applied from FOUNDATION_TOKENS without a CSS token ta
   assert.equal(root.values['--ui-space-4'], '16px')
   assert.equal(root.values['--ui-radius-surface-md'], '12px')
   assert.equal(root.values['--ui-motion-panel'], '240ms')
-  assert.equal(root.values['--ui-glass-clear-blur'], FOUNDATION_TOKENS.glass.dark.clear.blur)
+  assert.equal(root.values['--ui-glass-clear-blur'], resolveFoundationTokens({ appearance: 'dark' }).glass.clear.blur)
   assert.equal(root.dataset.foundationTheme, 'dark')
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}/i)
   assert.doesNotMatch(css, /--glass-(?:bg|border|blur|saturation)(?:[:;\s])/)
@@ -71,12 +74,9 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
     const stop = initializeFoundation()
     assert.equal(root.values['--ui-color-background'], FOUNDATION_TOKENS.colors.light.background)
     assert.equal(root.values['--ui-font-family'], FOUNDATION_TOKENS.typography.family)
-    assert.deepEqual(root.dataset, {
-      foundationTheme: 'light',
-      reducedMotion: 'false',
-      reducedTransparency: 'false',
-      increasedContrast: 'false',
-    })
+    assert.equal(root.dataset.foundationTheme, 'light')
+    assert.equal(root.dataset.reducedMotion, 'false')
+    assert.equal(root.dataset.foundationAppearance, 'clear')
     stop()
   } finally {
     globalThis.document = previousDocument
@@ -87,7 +87,7 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
 })
 
 test('foundation exposes explicit interaction states and button/search primitives', () => {
-  assert.deepEqual(FOUNDATION_STATES, ['default', 'hover', 'pressed', 'focus-visible', 'active', 'disabled'])
+  assert.deepEqual(FOUNDATION_STATES, ['default', 'hover', 'pressed', 'focus-visible', 'selected', 'active', 'disabled'])
   for (const selector of [
     '.ui-button[data-variant=\'primary\']',
     '.ui-button[data-variant=\'secondary\']',
@@ -108,6 +108,76 @@ test('foundation exposes explicit interaction states and button/search primitive
   assert.match(css, /\.ui-search\[data-state='clear'/)
 })
 
+test('resolveFoundationTokens is deterministic and resolves accessibility inputs', () => {
+  const normal = resolveFoundationTokens({ appearance: 'light', liquidGlassStyle: 'clear' })
+  const contrast = resolveFoundationTokens({ appearance: 'light', liquidGlassStyle: 'clear', increasedContrast: true })
+  const reduced = resolveFoundationTokens({ appearance: 'light', liquidGlassStyle: 'clear', reducedTransparency: true })
+  assert.deepEqual(normal, resolveFoundationTokens({ appearance: 'light', liquidGlassStyle: 'clear' }))
+  assert.notEqual(normal.colors['text-primary'], contrast.colors['text-primary'])
+  assert.notEqual(normal.colors.separator, contrast.colors.separator)
+  assert.equal(reduced.glass.regular.blur, '0px')
+  assert.equal(reduced.glass.regular.shadow, 'none')
+  assert.equal(buildLegacyAliases(contrast)['--accent'], 'var(--ui-color-accent)')
+})
+
+test('applyFoundationTokens applies resolved contrast and transparency maps', () => {
+  const normalRoot = createRoot()
+  const contrastRoot = createRoot()
+  const reducedRoot = createRoot()
+  applyFoundationTokens(normalRoot, resolveFoundationTokens({ appearance: 'light' }))
+  applyFoundationTokens(contrastRoot, resolveFoundationTokens({ appearance: 'light', increasedContrast: true }))
+  applyFoundationTokens(reducedRoot, resolveFoundationTokens({ appearance: 'light', reducedTransparency: true }))
+  assert.equal(normalRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.colors.light['text-primary'])
+  assert.equal(contrastRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.contrast.light['text-primary'])
+  assert.equal(contrastRoot.values['--ui-color-separator'], FOUNDATION_TOKENS.contrast.light.separator)
+  assert.equal(reducedRoot.values['--ui-glass-regular-blur'], '0px')
+  assert.equal(reducedRoot.values['--ui-glass-regular-shadow'], 'none')
+  assert.equal(reducedRoot.values['--glass-bg'], 'var(--ui-glass-regular-background)')
+})
+
+test('resolveButtonTokens keeps primary and destructive semantic identity', () => {
+  for (const variant of ['primary', 'destructive']) {
+    const normal = resolveButtonTokens({ variant, state: 'default' })
+    const hover = resolveButtonTokens({ variant, state: 'hover' })
+    const pressed = resolveButtonTokens({ variant, state: 'pressed' })
+    const selected = resolveButtonTokens({ variant, state: 'selected' })
+    const disabled = resolveButtonTokens({ variant, state: 'disabled' })
+    assert.notEqual(normal.background, hover.background)
+    assert.notEqual(hover.background, pressed.background)
+    assert.notEqual(pressed.background, selected.background)
+    assert.equal(selected.variant, variant)
+    assert.equal(disabled.disabledOpacity, FOUNDATION_TOKENS.geometry['disabled-opacity'])
+  }
+})
+
+test('initializeFoundation is idempotent and removes listeners on dispose', () => {
+  const previousDocument = globalThis.document
+  const previousWindow = globalThis.window
+  const previousObserver = globalThis.MutationObserver
+  const root = createRoot()
+  const queries = new Map()
+  const makeQuery = (name) => ({ matches: false, listeners: new Set(), addEventListener(_type, fn) { this.listeners.add(fn) }, removeEventListener(_type, fn) { this.listeners.delete(fn) } })
+  globalThis.window = { matchMedia(name) { if (!queries.has(name)) queries.set(name, makeQuery(name)); return queries.get(name) } }
+  class FakeObserver { constructor() { this.disconnected = false; FakeObserver.instances.push(this) } observe() {} disconnect() { this.disconnected = true } }
+  FakeObserver.instances = []
+  globalThis.MutationObserver = FakeObserver
+  globalThis.document = { documentElement: root }
+  try {
+    const first = initializeFoundation()
+    assert.deepEqual([...queries.values()].map((query) => query.listeners.size), [1, 1, 1])
+    const second = initializeFoundation()
+    assert.equal(FakeObserver.instances[0].disconnected, true)
+    assert.deepEqual([...queries.values()].map((query) => query.listeners.size), [1, 1, 1])
+    first()
+    second()
+    assert.deepEqual([...queries.values()].map((query) => query.listeners.size), [0, 0, 0])
+  } finally {
+    globalThis.document = previousDocument
+    globalThis.window = previousWindow
+    globalThis.MutationObserver = previousObserver
+  }
+})
+
 test('primary and destructive button states retain semantic hover and pressed tokens', () => {
   assert.match(css, /\.ui-button\[data-variant='primary'\]:hover[^}]+background: var\(--ui-interaction-button-primary-hover\)/s)
   assert.match(css, /\.ui-button\[data-variant='primary'\]:active[^}]+background: var\(--ui-interaction-button-primary-pressed\)/s)
@@ -117,6 +187,7 @@ test('primary and destructive button states retain semantic hover and pressed to
   assert.match(css, /\.ui-button\[data-variant='destructive'\]\[data-state='selected'\][^}]+background-color: var\(--ui-interaction-button-critical-selected\)/s)
   assert.match(css, /data-state='selected'\]:not\(\[data-variant='primary'\]\):not\(\[data-variant='destructive'\]\)/)
   assert.doesNotMatch(css, /\.ui-button:hover:not\(:disabled\),/)
+  assert.doesNotMatch(css, /!important/)
 })
 
 test('Liquid Glass has fallback and nested-material guardrails', () => {

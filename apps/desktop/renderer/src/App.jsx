@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { t } from './i18n/index.mjs'
-import { computeGlassTokens, applyGlassTokens } from './glass-tokens.mjs'
+import { applyFoundationTokens, resolveFoundationTokens } from './ui-foundation.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
 import { GLOBAL_ENTRIES, GLOBAL_PANEL_IDS, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
@@ -138,7 +138,13 @@ function Icon({ name, size = 18 }) {
 
 function applyAppearance(appearance, theme) {
   applyTheme(theme)
-  applyGlassTokens(computeGlassTokens({ theme, liquidGlassStyle: appearance.liquidGlassStyle }))
+  const root = document.documentElement
+  applyFoundationTokens(root, resolveFoundationTokens({
+    appearance: theme,
+    liquidGlassStyle: appearance.liquidGlassStyle,
+    increasedContrast: root.dataset.increasedContrast === 'true',
+    reducedTransparency: root.dataset.reducedTransparency === 'true',
+  }))
   glassDebugLog(appearance, theme)
 }
 
@@ -904,7 +910,14 @@ function SettingsPage({ appearance, setAppearance }) {
 
   const update = (patch) => {
     // 1) Live: apply the material to the workspace immediately (while dragging).
-    applyGlassTokens(computeGlassTokens({ ...appearance, ...patch }))
+    const root = document.documentElement
+    const next = { ...appearance, ...patch }
+    applyFoundationTokens(root, resolveFoundationTokens({
+      appearance: root.dataset.foundationTheme || 'light',
+      liquidGlassStyle: next.liquidGlassStyle,
+      increasedContrast: root.dataset.increasedContrast === 'true',
+      reducedTransparency: root.dataset.reducedTransparency === 'true',
+    }))
     // 2) Persist through the existing window.personalOS.v1 contract with a
     //    light trailing debounce, then 3) reconcile with the persisted value.
     clearTimeout(persistTimer.current)
