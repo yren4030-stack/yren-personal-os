@@ -1,0 +1,193 @@
+/* Personal OS — macOS 26 Tahoe / Liquid Glass override.
+ * Source of truth: uploaded macOS 26 Tahoe / Liquid Glass UI·UX design spec.
+ * Presentation only: no business, IPC, DB, runtime, or proposal semantics. */
+
+:root {
+  --m26-accent:#7849D1;
+  --m26-accent-hover:#6c3fc1;
+  --m26-accent-tint:rgba(120,73,209,.12);
+  --m26-glass-bg:rgba(246,246,246,.62);
+  --m26-glass-border:rgba(255,255,255,.45);
+  --m26-glass-highlight:rgba(255,255,255,.55);
+  --m26-glass-shadow:0 8px 28px rgba(0,0,0,.10);
+  --m26-glass-blur:22px;
+  --m26-glass-saturate:1.35;
+  --m26-content:rgba(255,255,255,.94);
+  --m26-content-strong:rgba(255,255,255,.985);
+  --m26-content-border:rgba(24,24,28,.075);
+  --m26-content-shadow:0 1px 2px rgba(0,0,0,.025),0 8px 24px rgba(0,0,0,.035);
+  --m26-floating-radius:20px;
+  --m26-surface-radius:12px;
+  --m26-control-radius:8px;
+  --m26-capsule:999px;
+}
+
+:root[data-theme='dark'] {
+  --m26-glass-bg:rgba(38,38,40,.58);
+  --m26-glass-border:rgba(255,255,255,.10);
+  --m26-glass-highlight:rgba(255,255,255,.09);
+  --m26-glass-shadow:0 10px 32px rgba(0,0,0,.30);
+  --m26-glass-blur:24px;
+  --m26-glass-saturate:1.25;
+  --m26-content:rgba(28,29,34,.94);
+  --m26-content-strong:rgba(31,32,37,.985);
+  --m26-content-border:rgba(255,255,255,.07);
+  --m26-content-shadow:0 1px 2px rgba(0,0,0,.22),0 8px 24px rgba(0,0,0,.18);
+}
+
+body {
+  font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:
+    radial-gradient(900px 600px at 6% 4%,rgba(120,73,209,.14),transparent 64%),
+    radial-gradient(860px 560px at 92% 0%,rgba(79,145,230,.10),transparent 65%),
+    radial-gradient(920px 620px at 52% 110%,rgba(224,169,93,.07),transparent 68%),
+    linear-gradient(165deg,#f8f7fb 0%,#f2f2f6 52%,#ececf2 100%);
+}
+:root[data-theme='dark'] body {
+  background:
+    radial-gradient(920px 600px at 7% 2%,rgba(120,73,209,.18),transparent 64%),
+    radial-gradient(860px 560px at 92% 0%,rgba(64,104,168,.11),transparent 65%),
+    radial-gradient(920px 620px at 52% 110%,rgba(153,107,64,.055),transparent 68%),
+    linear-gradient(165deg,#191a1f 0%,#111216 56%,#0b0c10 100%);
+}
+
+.app-shell{padding:10px;gap:10px}
+
+/* Content Layer: ordinary content is stable, not Liquid Glass. */
+.card,.glass{
+  background:var(--m26-content);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  border:1px solid var(--m26-content-border);
+  box-shadow:var(--m26-content-shadow);
+  border-radius:var(--m26-surface-radius);
+}
+.card::before,.glass::before{content:none}
+.card-hover:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--m26-accent) 20%,var(--m26-content-border));
+  box-shadow:0 1px 2px rgba(0,0,0,.03),0 12px 30px rgba(0,0,0,.065);
+}
+.main{padding:14px clamp(18px,2.2vw,30px) 30px;scroll-padding-top:16px}
+.page-header{margin:8px 0 24px}
+.page-title{font-size:clamp(24px,2.2vw,30px);font-weight:650;letter-spacing:-.45px}
+.section-title{font-size:14px;font-weight:600}
+
+/* Navigation/Control + Focus layers: top-level Liquid Glass only. */
+.sidebar,.glass-l1,.global-utility-bar,.global-panel,.segmented{
+  position:relative;
+  background:linear-gradient(145deg,var(--m26-glass-highlight),transparent 34%),var(--m26-glass-bg);
+  -webkit-backdrop-filter:blur(var(--m26-glass-blur)) saturate(var(--m26-glass-saturate));
+  backdrop-filter:blur(var(--m26-glass-blur)) saturate(var(--m26-glass-saturate));
+  border:1px solid var(--m26-glass-border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.06),var(--m26-glass-shadow);
+}
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .glass-l1,
+:root[data-theme='dark'] .global-utility-bar,
+:root[data-theme='dark'] .global-panel,
+:root[data-theme='dark'] .segmented{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.30),var(--m26-glass-shadow);
+}
+.sidebar::before,.global-utility-bar::before,.global-panel::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(130deg,rgba(255,255,255,.30),transparent 28%,transparent 70%,rgba(255,255,255,.08)),radial-gradient(160% 100% at 10% 0%,rgba(255,255,255,.22),transparent 44%);
+  mix-blend-mode:screen;opacity:.65;
+}
+:root[data-theme='dark'] .sidebar::before,
+:root[data-theme='dark'] .global-utility-bar::before,
+:root[data-theme='dark'] .global-panel::before{opacity:.35}
+.sidebar::after,.global-utility-bar::after,.global-panel::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.08)
+}
+
+/* Floating Sidebar — one glass plane. */
+.sidebar{width:300px;padding:14px 12px 12px;border-radius:var(--m26-floating-radius);overflow:hidden auto}
+.brand{border-bottom:0;margin-bottom:8px;padding:8px 8px 14px}
+.brand-mark{border-radius:10px;box-shadow:none}
+.nav-secondary{border-left:0;padding-left:10px;margin-left:10px}
+.nav-group-label,.nav-subgroup-label{text-transform:none;letter-spacing:0;opacity:.78}
+.nav-item{min-height:36px;border-radius:10px;background:transparent}
+.nav-item:hover{background:rgba(255,255,255,.16)}
+:root[data-theme='dark'] .nav-item:hover{background:rgba(255,255,255,.07)}
+.nav-item.active{color:var(--m26-accent);background:var(--m26-accent-tint);box-shadow:inset 0 0 0 1px rgba(120,73,209,.08)}
+.sidebar-foot{border-top:0;opacity:.8}
+
+/* Floating Command Layer — no full-width flat toolbar. */
+.app-main{position:relative;padding-top:58px}
+.global-utility-bar{
+  position:absolute;z-index:30;top:2px;left:14px;right:14px;width:auto;min-height:44px;
+  padding:6px;gap:4px;border-radius:18px;overflow:hidden;
+}
+.global-entry{min-height:32px;padding:0 10px;border-radius:10px;background:transparent}
+.global-entry:hover{background:rgba(255,255,255,.18)}
+:root[data-theme='dark'] .global-entry:hover{background:rgba(255,255,255,.075)}
+.global-entry.active{color:var(--m26-accent);background:var(--m26-accent-tint)}
+.global-entry .soon-chip{display:none}
+.current-context-chip{
+  min-height:30px;margin-left:auto;border-radius:var(--m26-capsule);
+  background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.20)
+}
+:root[data-theme='dark'] .current-context-chip{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.07)}
+
+/* Inspector / Focus panel. */
+.global-panel{
+  position:fixed;z-index:80;top:68px;right:14px;bottom:14px;width:min(380px,calc(100vw - 28px));
+  max-height:none;padding:14px;border-radius:var(--m26-floating-radius);overflow:auto;
+}
+.global-panel-header{
+  position:sticky;top:-14px;z-index:2;margin:-14px -14px 12px;padding:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--m26-glass-bg) 92%,transparent),transparent)
+}
+.global-panel-title{font-size:14px;font-weight:600}
+/* Explicit glass-on-glass prevention. */
+.global-panel .card,.global-panel .glass,.global-panel .global-skeleton-notice{
+  background:rgba(255,255,255,.16);-webkit-backdrop-filter:none;backdrop-filter:none;border-color:rgba(255,255,255,.12);box-shadow:none
+}
+:root[data-theme='dark'] .global-panel .card,
+:root[data-theme='dark'] .global-panel .glass,
+:root[data-theme='dark'] .global-panel .global-skeleton-notice{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.07)}
+
+.input{border-radius:var(--m26-control-radius)}
+.global-search-skeleton .input{min-height:36px}
+.btn{height:34px;border-radius:var(--m26-control-radius);padding-inline:14px;font-size:13px}
+.btn-primary{background:var(--m26-accent);box-shadow:0 5px 14px rgba(120,73,209,.22)}
+.btn-primary:hover:not(:disabled){background:var(--m26-accent-hover)}
+.btn-secondary{background:rgba(255,255,255,.62);border-color:rgba(0,0,0,.07)}
+:root[data-theme='dark'] .btn-secondary{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.09)}
+
+/* Segmented: outer glass only; child states are transparent/filled. */
+.segmented{padding:3px;border-radius:var(--m26-capsule)}
+.segmented button{border:0;background:transparent;box-shadow:none}
+.segmented button.active{color:var(--text-primary);background:rgba(255,255,255,.58);border:0;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+:root[data-theme='dark'] .segmented button.active{background:rgba(255,255,255,.12)}
+
+.stat-card,.project-card,.list-card,.settings-group,.proposal-card,.space-link-card,.feature-skeleton{border-radius:var(--m26-surface-radius)}
+.space-link-icon,.feature-skeleton-icon{border-radius:9px}
+.chip,.soon-chip{border-radius:var(--m26-capsule)}
+
+/* Compact shell keeps Sidebar as one glass plane. */
+@media (max-width:980px){
+  .sidebar{width:84px;padding-inline:10px}
+  .sidebar .brand-name,.sidebar .brand-sub,.sidebar .nav-group-label,.sidebar .nav-subgroup-label,.sidebar .nav-label,.sidebar .soon-chip,.sidebar .sidebar-foot{display:none}
+  .sidebar .brand,.sidebar .nav-item{justify-content:center}
+  .global-entry-label{display:none}
+}
+@media (max-width:720px){
+  .global-utility-bar{left:8px;right:8px}
+  .current-context-chip{display:none}
+  .global-panel{left:94px;width:auto}
+}
+
+/* Accessibility fallbacks required by the design spec. */
+@media (prefers-reduced-transparency:reduce){
+  .sidebar,.global-utility-bar,.global-panel,.segmented,.glass-l1{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--m26-content-strong)!important
+  }
+}
+@media (prefers-contrast:more){
+  .sidebar,.global-utility-bar,.global-panel,.card,.glass{border-color:color-mix(in srgb,currentColor 24%,transparent)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
