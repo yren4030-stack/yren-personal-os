@@ -1,0 +1,294 @@
+/* Personal OS — macOS 26 content-page refinement.
+ * Applies Content First layout to Home / Projects / Project Detail without
+ * changing any data flow, proposal semantics, IPC, DB, or runtime behavior. */
+
+:root {
+  --m26-content-fill: rgba(255,255,255,.76);
+  --m26-content-fill-strong: rgba(255,255,255,.90);
+  --m26-content-fill-subtle: rgba(255,255,255,.48);
+  --m26-content-separator: rgba(24,24,28,.08);
+  --m26-section-shadow: 0 1px 2px rgba(0,0,0,.025), 0 10px 28px rgba(0,0,0,.035);
+}
+
+:root[data-theme='dark'] {
+  --m26-content-fill: rgba(29,30,35,.80);
+  --m26-content-fill-strong: rgba(31,32,38,.91);
+  --m26-content-fill-subtle: rgba(32,33,39,.58);
+  --m26-content-separator: rgba(255,255,255,.075);
+  --m26-section-shadow: 0 1px 2px rgba(0,0,0,.24), 0 12px 30px rgba(0,0,0,.16);
+}
+
+/* Content is stable and readable, but visually light enough that the true
+ * Liquid Glass shell remains the obvious floating functional layer. */
+.card,
+.glass {
+  background: var(--m26-content-fill);
+  border-color: var(--m26-content-separator);
+  box-shadow: var(--m26-section-shadow);
+}
+
+.page {
+  width: min(100%, 1500px);
+  margin-inline: auto;
+}
+
+.page-header {
+  padding: 2px 2px 0;
+  margin-bottom: 26px;
+}
+
+.page-title {
+  font-size: clamp(24px, 2.1vw, 30px);
+  line-height: 1.1;
+  font-weight: 680;
+  letter-spacing: -.55px;
+}
+
+.page-subtitle {
+  margin-top: 7px;
+  max-width: 780px;
+  line-height: 1.55;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  margin-bottom: 10px;
+  padding-inline: 2px;
+  font-size: 14px;
+  letter-spacing: -.08px;
+}
+
+/* --------------------------------------------------------------------------
+ * Home — summary first, quiet content surfaces, no glass-card wall
+ * ----------------------------------------------------------------------- */
+
+.stat-grid {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 0;
+  overflow: hidden;
+  margin-bottom: 30px;
+  border: 1px solid var(--m26-content-separator);
+  border-radius: 16px;
+  background: var(--m26-content-fill-subtle);
+  box-shadow: var(--m26-section-shadow);
+}
+
+.stat-card {
+  min-height: 116px;
+  padding: 18px 20px;
+  border: 0;
+  border-right: 1px solid var(--m26-content-separator);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.stat-card:last-child {
+  border-right: 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stat-value {
+  margin-top: 5px;
+  font-size: 30px;
+  font-weight: 650;
+}
+
+.stat-value.small {
+  font-size: 19px;
+}
+
+.project-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.project-card {
+  min-height: 142px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--m26-content-fill);
+  box-shadow: var(--m26-section-shadow);
+}
+
+.project-card:hover {
+  transform: translateY(-1px);
+  background: var(--m26-content-fill-strong);
+  border-color: color-mix(in srgb, var(--m26-accent) 20%, var(--m26-content-separator));
+}
+
+.project-title {
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.open-affordance {
+  margin-top: auto;
+  color: var(--m26-accent);
+}
+
+/* Activity / list content reads as grouped content, not individual material. */
+.list-card {
+  padding: 4px 16px;
+  border-radius: 14px;
+}
+
+.list-row {
+  min-height: 44px;
+  padding: 10px 2px;
+  border-bottom-color: var(--m26-content-separator);
+}
+
+/* --------------------------------------------------------------------------
+ * Projects — bookshelf/grid density for desktop
+ * ----------------------------------------------------------------------- */
+
+.project-grid .project-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.project-grid .project-card::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--m26-accent) 45%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 140ms ease-out;
+}
+
+.project-grid .project-card:hover::after {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+ * Project Detail — workspace + contextual side column
+ * ----------------------------------------------------------------------- */
+
+.detail-header {
+  margin: 8px 0 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--m26-content-separator);
+}
+
+.detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+
+.detail-grid > * {
+  border-radius: 14px;
+}
+
+/* Proposal remains important but does not become a second Liquid Glass plane. */
+.proposal-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--m26-accent) 7%, transparent), transparent 56%),
+    var(--m26-content-fill);
+  border-color: color-mix(in srgb, var(--m26-accent) 22%, var(--m26-content-separator));
+  box-shadow: var(--m26-section-shadow);
+}
+
+.proposal-actions {
+  padding-top: 4px;
+}
+
+/* --------------------------------------------------------------------------
+ * Space landing / skeleton — consistent macOS 26 content treatment
+ * ----------------------------------------------------------------------- */
+
+.space-link-grid {
+  gap: 12px;
+}
+
+.space-link-card {
+  min-height: 150px;
+  border-radius: 14px;
+  background: var(--m26-content-fill);
+}
+
+.space-link-card:hover {
+  background: var(--m26-content-fill-strong);
+}
+
+.feature-skeleton {
+  max-width: 620px;
+  border-radius: 14px;
+  background: var(--m26-content-fill);
+}
+
+/* --------------------------------------------------------------------------
+ * Settings — grouped form content, dense desktop controls
+ * ----------------------------------------------------------------------- */
+
+.settings-groups {
+  gap: 12px;
+}
+
+.settings-group {
+  border-radius: 14px;
+  background: var(--m26-content-fill);
+}
+
+select,
+.input {
+  min-height: 34px;
+  background: color-mix(in srgb, var(--m26-content-fill-strong) 88%, transparent);
+  border-color: var(--m26-content-separator);
+}
+
+/* --------------------------------------------------------------------------
+ * Responsive content behavior
+ * ----------------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+  .stat-card:nth-child(2) {
+    border-right: 0;
+  }
+  .stat-card:nth-child(-n+2) {
+    border-bottom: 1px solid var(--m26-content-separator);
+  }
+}
+
+@media (max-width: 860px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .stat-card,
+  .stat-card:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--m26-content-separator);
+  }
+  .stat-card:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .stat-grid,
+  .project-card,
+  .list-card,
+  .proposal-card,
+  .settings-group,
+  .space-link-card {
+    border-color: color-mix(in srgb, currentColor 22%, transparent);
+  }
+}
