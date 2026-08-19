@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 
 import { computeGlassTokens } from '../apps/desktop/renderer/src/glass-tokens.mjs'
 import { resolveTheme, prefersDark } from '../apps/desktop/renderer/src/theme.mjs'
+import { FOUNDATION_TOKENS } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
 const mainSrc = readFileSync(new URL('../apps/desktop/electron/main.mjs', import.meta.url), 'utf8')
@@ -30,7 +31,7 @@ test('dark theme tokens exist and use graphite smoked glass', () => {
   assert.match(dark.glassBorder, /^1px solid rgba\(255, 255, 255, /, 'dark glass has a brighter perimeter border')
   assert.ok(dark.glassHighlight.startsWith('rgba(255, 255, 255, '), 'dark glass keeps a white edge highlight')
   assert.ok(css.includes(':root[data-theme=\'dark\']') || css.includes(':root[data-theme="dark"]'))
-  assert.ok(css.includes('--text-primary: #f2f2f6'), 'dark text tokens exist')
+  assert.equal(FOUNDATION_TOKENS.colors.dark['text-primary'], '#f2f2f6', 'dark text token is Foundation-owned')
 })
 
 test('light and dark tokens differ at identical appearance settings', () => {
@@ -112,7 +113,7 @@ test('component responsiveness uses container queries on the main content', () =
 })
 
 test('responsive CSS: sidebar has full (232px) and compact (76px) states with a breakpoint', () => {
-  assert.ok(css.includes('--sidebar-width: 232px'), 'full sidebar width token 232px must exist')
+  assert.equal(FOUNDATION_TOKENS.layout['sidebar-width'], '232px', 'full sidebar width token is Foundation-owned')
   const media = css.match(/@media \(max-width: 1179px\) \{([\s\S]*?)\n\}/)
   assert.ok(media, 'compact sidebar media query must exist')
   assert.ok(media[1].includes('width: 76px'), 'compact sidebar width 76px')
