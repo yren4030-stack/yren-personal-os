@@ -34,19 +34,41 @@ export const FOUNDATION_TOKENS = Object.freeze({
   }),
   interaction: Object.freeze({
     light: Object.freeze({
-      'button-primary-text': '#ffffff', 'button-primary-hover': '#6a3fbd', 'button-primary-pressed': '#5b35a3', 'button-primary-selected': '#643bb0',
+      'button-primary': '#7849d1', 'button-primary-text': '#ffffff', 'button-primary-hover': '#6a3fbd', 'button-primary-pressed': '#5b35a3', 'button-primary-selected': '#643bb0',
       'button-critical-hover': '#d9362e', 'button-critical-pressed': '#c62828', 'button-critical-selected': '#b92121',
       'button-neutral-hover': 'rgba(0, 0, 0, 0.07)', 'button-neutral-pressed': 'rgba(0, 0, 0, 0.12)',
+      'selection-background': 'rgba(120, 73, 209, 0.16)', 'selection-text': '#643bb0', 'selection-boundary': 'rgba(120, 73, 209, 0.34)',
+      'button-primary-boundary': '1px solid transparent', 'button-primary-shadow': '0 4px 14px rgba(120, 73, 209, 0.24)', 'button-primary-hover-shadow': '0 6px 18px rgba(120, 73, 209, 0.3)',
     }),
     dark: Object.freeze({
-      'button-primary-text': '#15161a', 'button-primary-hover': '#b99cff', 'button-primary-pressed': '#c7afff', 'button-primary-selected': '#af8fff',
+      'button-primary': '#a984ff', 'button-primary-text': '#15161a', 'button-primary-hover': '#b99cff', 'button-primary-pressed': '#c7afff', 'button-primary-selected': '#af8fff',
       'button-critical-hover': '#ff756b', 'button-critical-pressed': '#ff8a80', 'button-critical-selected': '#ff6d63',
       'button-neutral-hover': 'rgba(255, 255, 255, 0.07)', 'button-neutral-pressed': 'rgba(255, 255, 255, 0.12)',
+      'selection-background': 'rgba(169, 132, 255, 0.28)', 'selection-text': '#d0bfff', 'selection-boundary': 'rgba(208, 191, 255, 0.58)',
+      'button-primary-boundary': '1px solid transparent', 'button-primary-shadow': '0 4px 14px rgba(169, 132, 255, 0.28)', 'button-primary-hover-shadow': '0 6px 18px rgba(169, 132, 255, 0.34)',
     }),
   }),
   contrast: Object.freeze({
-    light: Object.freeze({ separator: 'rgba(0, 0, 0, 0.3)', focus: '#4f22a8', 'text-primary': '#111116', 'text-secondary': '#4f4f58', selection: 'rgba(120, 73, 209, 0.28)' }),
-    dark: Object.freeze({ separator: 'rgba(255, 255, 255, 0.34)', focus: '#d0bfff', 'text-primary': '#ffffff', 'text-secondary': '#e5e5eb', selection: 'rgba(169, 132, 255, 0.42)' }),
+    light: Object.freeze({
+      separator: 'rgba(0, 0, 0, 0.3)', focus: '#4f22a8', 'text-primary': '#111116', 'text-secondary': '#4f4f58', selection: 'rgba(120, 73, 209, 0.28)',
+      'button-primary': '#6638bd', 'button-primary-hover': '#52279f', 'button-primary-pressed': '#431d87', 'button-primary-selected': '#4d2497',
+      'button-primary-text': '#ffffff', 'button-primary-boundary': '1px solid rgba(49, 23, 111, 0.72)', 'button-primary-shadow': '0 4px 14px rgba(49, 23, 111, 0.38)', 'button-primary-hover-shadow': '0 6px 18px rgba(49, 23, 111, 0.46)',
+      'selection-background': 'rgba(120, 73, 209, 0.28)', 'selection-text': '#4f22a8', 'selection-boundary': 'rgba(79, 34, 168, 0.7)',
+      glass: Object.freeze({
+        regular: Object.freeze({ background: 'rgba(255, 255, 255, 0.24)', border: '1px solid rgba(0, 0, 0, 0.3)', shadow: '0 1px 2px rgba(0, 0, 0, 0.18), 0 18px 50px -20px rgba(0, 0, 0, 0.22)' }),
+        clear: Object.freeze({ background: 'rgba(255, 255, 255, 0.16)', border: '1px solid rgba(0, 0, 0, 0.3)', shadow: '0 1px 2px rgba(0, 0, 0, 0.16), 0 12px 36px -18px rgba(0, 0, 0, 0.2)' }),
+      }),
+    }),
+    dark: Object.freeze({
+      separator: 'rgba(255, 255, 255, 0.34)', focus: '#d0bfff', 'text-primary': '#ffffff', 'text-secondary': '#e5e5eb', selection: 'rgba(169, 132, 255, 0.42)',
+      'button-primary': '#b99cff', 'button-primary-hover': '#c7afff', 'button-primary-pressed': '#d4c2ff', 'button-primary-selected': '#c0a7ff',
+      'button-primary-text': '#15161a', 'button-primary-boundary': '1px solid rgba(235, 226, 255, 0.76)', 'button-primary-shadow': '0 4px 14px rgba(0, 0, 0, 0.38)', 'button-primary-hover-shadow': '0 6px 18px rgba(0, 0, 0, 0.48)',
+      'selection-background': 'rgba(169, 132, 255, 0.42)', 'selection-text': '#ffffff', 'selection-boundary': 'rgba(208, 191, 255, 0.78)',
+      glass: Object.freeze({
+        regular: Object.freeze({ background: 'rgba(52, 55, 64, 0.86)', border: '1px solid rgba(255, 255, 255, 0.34)', shadow: '0 1px 2px rgba(0, 0, 0, 0.34), 0 18px 50px -20px rgba(0, 0, 0, 0.42)' }),
+        clear: Object.freeze({ background: 'rgba(48, 51, 60, 0.78)', border: '1px solid rgba(255, 255, 255, 0.34)', shadow: '0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 36px -18px rgba(0, 0, 0, 0.38)' }),
+      }),
+    }),
   }),
   glass: Object.freeze({
     profiles: Object.freeze({
@@ -82,7 +104,7 @@ function resolveTheme(theme) { return theme === 'dark' ? 'dark' : 'light' }
 function resolveRoot(root) { if (root && root.style && root.dataset) return root; if (typeof document !== 'undefined') return document.documentElement; return null }
 function rgba(rgb, alpha) { return `rgba(${rgb}, ${alpha.toFixed(3)})` }
 
-function resolveMaterial(model, palette, colors, theme, styleName, variant, role, size, reducedTransparency) {
+function resolveMaterial(model, palette, colors, theme, styleName, variant, role, size, reducedTransparency, contrastGlass) {
   if (variant === 'content') return Object.freeze({ variant, fillAlpha: 1, blurPx: 0, brightness: 1, contrast: 1, saturation: 1, borderAlpha: 0, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: colors.surface, border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
   const style = model.profiles[variant][styleName]
   const roleSpec = model.roles[role] || model.roles.panel
@@ -107,7 +129,7 @@ function resolveMaterial(model, palette, colors, theme, styleName, variant, role
   const rimLight = rgba(palette.highlightRgb, material.rimLightAlpha)
   const rimShade = rgba(palette.shadeRgb, material.rimShadeAlpha)
   const shadow = `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px ${rgba(palette.shadeRgb, material.contactAlpha)}, 0 18px 50px -20px ${rgba(palette.shadeRgb, material.ambientAlpha)}`
-  return Object.freeze({ ...material, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: rgba(palette.fillRgb, material.fillAlpha), border: `1px solid ${rgba(palette.borderRgb, material.borderAlpha)}`, shadow, blur: `${material.blurPx.toFixed(1)}px`, highlight, rimLight, rimShade, specular: `linear-gradient(135deg, ${highlight}, transparent 46%)`, reflection: `linear-gradient(180deg, transparent 42%, ${highlight} 100%)`, spill: `linear-gradient(160deg, ${rgba(palette.spillRgb, material.spillAlpha)}, transparent 52%)` })
+  return Object.freeze({ ...material, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: contrastGlass?.background || rgba(palette.fillRgb, material.fillAlpha), border: contrastGlass?.border || `1px solid ${rgba(palette.borderRgb, material.borderAlpha)}`, shadow: contrastGlass?.shadow || shadow, blur: `${material.blurPx.toFixed(1)}px`, highlight, rimLight, rimShade, specular: `linear-gradient(135deg, ${highlight}, transparent 46%)`, reflection: `linear-gradient(180deg, transparent 42%, ${highlight} 100%)`, spill: `linear-gradient(160deg, ${rgba(palette.spillRgb, material.spillAlpha)}, transparent 52%)` })
 }
 
 /** Pure, deterministic resolver for the complete renderer foundation. */
@@ -122,12 +144,14 @@ export function resolveFoundationTokens(options = {}) {
   const colors = Object.freeze(increasedContrast ? { ...base, separator: contrast.separator, focus: contrast.focus, selection: contrast.selection, 'text-primary': contrast['text-primary'], 'text-secondary': contrast['text-secondary'] } : { ...base })
   const model = FOUNDATION_TOKENS.glass
   const palette = model.palette[theme]
+  const contrastGlass = increasedContrast ? contrast.glass : null
   const glass = Object.freeze({
-    regular: resolveMaterial(model, palette, colors, theme, userStyle, 'regular', options.glassRole || 'navigation', options.glassSize, reducedTransparency),
-    clear: resolveMaterial(model, palette, colors, theme, userStyle, 'clear', options.glassRole || 'control', options.glassSize, reducedTransparency),
-    content: resolveMaterial(model, palette, colors, theme, userStyle, 'content', 'panel', options.glassSize, reducedTransparency),
+    regular: resolveMaterial(model, palette, colors, theme, userStyle, 'regular', options.glassRole || 'navigation', options.glassSize, reducedTransparency, contrastGlass?.regular),
+    clear: resolveMaterial(model, palette, colors, theme, userStyle, 'clear', options.glassRole || 'control', options.glassSize, reducedTransparency, contrastGlass?.clear),
+    content: resolveMaterial(model, palette, colors, theme, userStyle, 'content', 'panel', options.glassSize, reducedTransparency, null),
   })
-  return Object.freeze({ theme, userStyle, increasedContrast, reducedTransparency, colors, interaction: FOUNDATION_TOKENS.interaction[theme], contrast, spacing: FOUNDATION_TOKENS.spacing, radius: FOUNDATION_TOKENS.radius, typography: FOUNDATION_TOKENS.typography, motion: FOUNDATION_TOKENS.motion, geometry: FOUNDATION_TOKENS.geometry, layout: FOUNDATION_TOKENS.layout, glass })
+  const interaction = Object.freeze(increasedContrast ? { ...FOUNDATION_TOKENS.interaction[theme], ...Object.fromEntries(Object.entries(contrast).filter(([name]) => name.startsWith('button-') || name.startsWith('selection-'))) } : FOUNDATION_TOKENS.interaction[theme])
+  return Object.freeze({ theme, userStyle, increasedContrast, reducedTransparency, colors, interaction, contrast, spacing: FOUNDATION_TOKENS.spacing, radius: FOUNDATION_TOKENS.radius, typography: FOUNDATION_TOKENS.typography, motion: FOUNDATION_TOKENS.motion, geometry: FOUNDATION_TOKENS.geometry, layout: FOUNDATION_TOKENS.layout, glass })
 }
 
 /** Legacy names remain aliases only; no legacy value table is maintained. */
@@ -139,7 +163,7 @@ export function buildLegacyAliases(resolved) {
     return `var(--ui-glass-${variant}-${name})`
   }
   return {
-    '--accent': colorAlias('accent'), '--accent-hover': 'var(--ui-interaction-button-primary-hover)', '--accent-soft': colorAlias('selection'), '--accent-tint': 'color-mix(in srgb, var(--ui-color-accent) 8%, transparent)', '--accent-focus': colorAlias('focus'),
+    '--accent': 'var(--ui-interaction-button-primary)', '--accent-hover': 'var(--ui-interaction-button-primary-hover)', '--accent-soft': colorAlias('selection'), '--accent-tint': 'var(--ui-interaction-selection-background)', '--accent-focus': colorAlias('focus'),
     '--bg-base': 'var(--ui-color-background)', '--bg-depth-1': 'var(--ui-color-surface)', '--bg-depth-2': 'var(--ui-color-background)', '--text-primary': 'var(--ui-color-text-primary)', '--text-secondary': 'var(--ui-color-text-secondary)', '--text-tertiary': 'var(--ui-color-text-tertiary)',
     '--control-bg': 'color-mix(in srgb, var(--ui-color-text-primary) 6%, transparent)', '--control-bg-active': 'var(--ui-color-surface-elevated)', '--control-solid': 'var(--ui-color-surface-elevated)', '--control-border': 'var(--ui-geometry-border-width) solid var(--ui-color-separator)', '--btn-secondary-bg': 'var(--ui-color-surface-elevated)', '--btn-secondary-bg-hover': 'var(--ui-interaction-button-neutral-hover)', '--hover-bg': 'var(--ui-interaction-button-neutral-hover)', '--interact-hover': 'color-mix(in srgb, var(--ui-glass-regular-highlight) 35%, transparent)', '--interact-active': 'color-mix(in srgb, var(--ui-glass-regular-highlight) 55%, transparent)', '--chip-bg': 'var(--ui-color-selection)', '--track-bg': 'var(--ui-color-separator)', '--empty-bg': 'var(--ui-color-surface)', '--divider': 'var(--ui-color-separator)', '--scrollbar-thumb': 'var(--ui-color-separator)', '--glass-edge-top': 'var(--ui-glass-regular-highlight)',
     '--status-success': 'var(--ui-color-success)', '--status-warning': 'var(--ui-color-warning)', '--status-danger': 'var(--ui-color-critical)', '--error-bg': 'color-mix(in srgb, var(--ui-color-critical) 7%, transparent)', '--error-border': 'color-mix(in srgb, var(--ui-color-critical) 18%, transparent)', '--error-text': 'var(--ui-color-critical)',
@@ -195,8 +219,10 @@ export function resolveButtonTokens({ variant = 'secondary', state = 'default', 
   const destructive = variant === 'destructive'
   let background = variant === 'secondary' ? resolved.colors['surface-elevated'] : 'transparent'
   let color = resolved.colors['text-primary']
+  let border = `var(--ui-geometry-border-width) solid ${resolved.colors.separator}`
   if (primary) {
-    color = resolved.interaction['button-primary-text']; background = resolved.colors.accent
+    color = resolved.interaction['button-primary-text']; background = resolved.interaction['button-primary']
+    border = resolved.interaction['button-primary-boundary']
     if (normalizedState === 'hover') background = resolved.interaction['button-primary-hover']
     if (normalizedState === 'pressed' || normalizedState === 'active') background = resolved.interaction['button-primary-pressed']
     if (normalizedState === 'selected') background = resolved.interaction['button-primary-selected']
@@ -207,7 +233,7 @@ export function resolveButtonTokens({ variant = 'secondary', state = 'default', 
     if (normalizedState === 'selected') { background = resolved.interaction['button-critical-selected']; color = resolved.interaction['button-primary-text'] }
   } else if (normalizedState === 'hover') background = resolved.interaction['button-neutral-hover']
   else if (normalizedState === 'pressed' || normalizedState === 'active') background = resolved.interaction['button-neutral-pressed']
-  return Object.freeze({ variant, state: normalizedState, background, color, border: `var(--ui-geometry-border-width) solid ${resolved.colors.separator}`, focus: resolved.colors.focus, disabledOpacity: resolved.geometry['disabled-opacity'] })
+  return Object.freeze({ variant, state: normalizedState, background, color, border, focus: resolved.colors.focus, disabledOpacity: resolved.geometry['disabled-opacity'] })
 }
 
 export function resolveFoundationPreferences(preferences = {}) { return Object.freeze({ reducedMotion: preferences.reducedMotion === true, reducedTransparency: preferences.reducedTransparency === true, increasedContrast: preferences.increasedContrast === true }) }
@@ -249,4 +275,27 @@ export function initializeFoundation() {
   const dispose = () => { stopPreferences(); observer?.disconnect(); if (activeFoundationDispose === dispose) activeFoundationDispose = null }
   activeFoundationDispose = dispose
   return dispose
+}
+
+export function registerFoundationLifecycle({ dispose, windowObject, hot } = {}) {
+  const cleanupFoundation = typeof dispose === 'function' ? dispose : initializeFoundation()
+  const target = windowObject || (typeof window !== 'undefined' ? window : null)
+  let active = true
+  const handleUnload = () => {
+    if (!active) return
+    active = false
+    cleanupFoundation()
+    target?.removeEventListener?.('unload', handleUnload)
+  }
+  target?.addEventListener?.('unload', handleUnload, { once: true })
+  hot?.dispose?.(() => {
+    active = false
+    cleanupFoundation()
+    target?.removeEventListener?.('unload', handleUnload)
+  })
+  return () => {
+    active = false
+    cleanupFoundation()
+    target?.removeEventListener?.('unload', handleUnload)
+  }
 }

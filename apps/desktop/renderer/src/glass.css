@@ -584,13 +584,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--ui-color-accent);
+  background: var(--ui-interaction-button-primary);
   color: var(--ui-interaction-button-primary-text);
-  box-shadow: 0 4px 14px rgba(120, 73, 209, 0.24);
+  border: var(--ui-interaction-button-primary-boundary);
+  box-shadow: var(--ui-interaction-button-primary-shadow);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--ui-interaction-button-primary-hover);
-  box-shadow: 0 6px 18px rgba(120, 73, 209, 0.3);
+  box-shadow: var(--ui-interaction-button-primary-hover-shadow);
 }
 .btn-primary:active:not(:disabled),
 .btn-primary[data-state='pressed'],
@@ -1022,9 +1023,9 @@ select:focus-visible {
 .segmented button.active {
   background:
     linear-gradient(180deg, var(--glass-clear-specular), transparent 55%),
-    var(--glass-clear-bg);
-  border-color: var(--glass-clear-border);
-  color: var(--accent);
+    var(--ui-interaction-selection-background);
+  border-color: var(--ui-interaction-selection-boundary);
+  color: var(--ui-interaction-selection-text);
   font-weight: 600;
   box-shadow: var(--glass-clear-shadow), inset 0 1px 0 var(--glass-clear-highlight), inset 0 0 0 1px var(--glass-clear-rim-light);
 }

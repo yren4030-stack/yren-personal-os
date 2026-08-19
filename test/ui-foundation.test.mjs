@@ -10,12 +10,14 @@ import {
   applyFoundationTokens,
   buildLegacyAliases,
   initializeFoundation,
+  registerFoundationLifecycle,
   resolveButtonTokens,
   resolveFoundationTokens,
   resolveFoundationPreferences,
 } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/ui-foundation.css', import.meta.url), 'utf8')
+const rendererCss = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
 const main = readFileSync(new URL('../apps/desktop/renderer/src/main.jsx', import.meta.url), 'utf8')
 
 function createRoot() {
@@ -81,9 +83,9 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
   } finally {
     globalThis.document = previousDocument
   }
-  assert.match(main, /import \{ initializeFoundation \} from ['"]\.\/ui-foundation\.mjs['"]/)
+  assert.match(main, /import \{ initializeFoundation, registerFoundationLifecycle \} from ['"]\.\/ui-foundation\.mjs['"]/)
   assert.match(main, /const disposeFoundation = initializeFoundation\(\)/)
-  assert.match(main, /addEventListener\(['"]unload['"], disposeFoundation/)
+  assert.match(main, /registerFoundationLifecycle\(/)
 })
 
 test('foundation exposes explicit interaction states and button/search primitives', () => {
@@ -117,7 +119,7 @@ test('resolveFoundationTokens is deterministic and resolves accessibility inputs
   assert.notEqual(normal.colors.separator, contrast.colors.separator)
   assert.equal(reduced.glass.regular.blur, '0px')
   assert.equal(reduced.glass.regular.shadow, 'none')
-  assert.equal(buildLegacyAliases(contrast)['--accent'], 'var(--ui-color-accent)')
+  assert.equal(buildLegacyAliases(contrast)['--accent'], 'var(--ui-interaction-button-primary)')
 })
 
 test('applyFoundationTokens applies resolved contrast and transparency maps', () => {
@@ -130,6 +132,9 @@ test('applyFoundationTokens applies resolved contrast and transparency maps', ()
   assert.equal(normalRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.colors.light['text-primary'])
   assert.equal(contrastRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.contrast.light['text-primary'])
   assert.equal(contrastRoot.values['--ui-color-separator'], FOUNDATION_TOKENS.contrast.light.separator)
+  assert.equal(contrastRoot.values['--ui-interaction-button-primary'], FOUNDATION_TOKENS.contrast.light['button-primary'])
+  assert.equal(contrastRoot.values['--ui-interaction-selection-background'], FOUNDATION_TOKENS.contrast.light['selection-background'])
+  assert.equal(contrastRoot.values['--ui-glass-regular-background'], FOUNDATION_TOKENS.contrast.light.glass.regular.background)
   assert.equal(reducedRoot.values['--ui-glass-regular-blur'], '0px')
   assert.equal(reducedRoot.values['--ui-glass-regular-shadow'], 'none')
   assert.equal(reducedRoot.values['--glass-bg'], 'var(--ui-glass-regular-background)')
@@ -150,6 +155,28 @@ test('resolveButtonTokens keeps primary and destructive semantic identity', () =
   }
 })
 
+test('increased contrast reaches real primary, segmented and sidebar semantic tokens', () => {
+  const normal = resolveFoundationTokens({ appearance: 'light' })
+  const contrast = resolveFoundationTokens({ appearance: 'light', increasedContrast: true })
+  const normalPrimary = resolveButtonTokens({ variant: 'primary' })
+  const contrastPrimary = resolveButtonTokens({ variant: 'primary', increasedContrast: true })
+  assert.notEqual(normalPrimary.background, contrastPrimary.background)
+  assert.notEqual(normalPrimary.border, contrastPrimary.border)
+  assert.notEqual(normal.interaction['button-primary'], contrast.interaction['button-primary'])
+  assert.notEqual(normal.interaction['button-primary-hover'], contrast.interaction['button-primary-hover'])
+  assert.notEqual(normal.interaction['button-primary-selected'], contrast.interaction['button-primary-selected'])
+  assert.notEqual(normal.interaction['selection-background'], contrast.interaction['selection-background'])
+  assert.notEqual(normal.interaction['selection-text'], contrast.interaction['selection-text'])
+  assert.notEqual(normal.interaction['selection-boundary'], contrast.interaction['selection-boundary'])
+  assert.notEqual(normal.glass.regular.background, contrast.glass.regular.background)
+  assert.notEqual(normal.glass.regular.border, contrast.glass.regular.border)
+  assert.notEqual(normal.glass.clear.background, contrast.glass.clear.background)
+  assert.match(main, /registerFoundationLifecycle\(/)
+  assert.match(rendererCss, /\.btn-primary[\s\S]*background: var\(--ui-interaction-button-primary\)/)
+  assert.match(rendererCss, /\.segmented button\.active[\s\S]*var\(--ui-interaction-selection-background\)/)
+  assert.match(rendererCss, /\.glass-l1,[\s\S]*background: var\(--glass-bg\)/)
+})
+
 test('initializeFoundation is idempotent and removes listeners on dispose', () => {
   const previousDocument = globalThis.document
   const previousWindow = globalThis.window
@@ -157,7 +184,12 @@ test('initializeFoundation is idempotent and removes listeners on dispose', () =
   const root = createRoot()
   const queries = new Map()
   const makeQuery = (name) => ({ matches: false, listeners: new Set(), addEventListener(_type, fn) { this.listeners.add(fn) }, removeEventListener(_type, fn) { this.listeners.delete(fn) } })
-  globalThis.window = { matchMedia(name) { if (!queries.has(name)) queries.set(name, makeQuery(name)); return queries.get(name) } }
+  const unloadHandlers = new Set()
+  globalThis.window = {
+    matchMedia(name) { if (!queries.has(name)) queries.set(name, makeQuery(name)); return queries.get(name) },
+    addEventListener(type, handler) { if (type === 'unload') unloadHandlers.add(handler) },
+    removeEventListener(type, handler) { if (type === 'unload') unloadHandlers.delete(handler) },
+  }
   class FakeObserver { constructor() { this.disconnected = false; FakeObserver.instances.push(this) } observe() {} disconnect() { this.disconnected = true } }
   FakeObserver.instances = []
   globalThis.MutationObserver = FakeObserver
@@ -171,6 +203,17 @@ test('initializeFoundation is idempotent and removes listeners on dispose', () =
     first()
     second()
     assert.deepEqual([...queries.values()].map((query) => query.listeners.size), [0, 0, 0])
+    const hot = { dispose(handler) { this.handler = handler } }
+    const third = initializeFoundation()
+    const stopLifecycle = registerFoundationLifecycle({ dispose: third, windowObject: globalThis.window, hot })
+    assert.equal(unloadHandlers.size, 1)
+    stopLifecycle()
+    assert.equal(unloadHandlers.size, 0)
+    const fourth = initializeFoundation()
+    registerFoundationLifecycle({ dispose: fourth, windowObject: globalThis.window, hot })
+    assert.equal(unloadHandlers.size, 1)
+    hot.handler()
+    assert.equal(unloadHandlers.size, 0)
   } finally {
     globalThis.document = previousDocument
     globalThis.window = previousWindow
