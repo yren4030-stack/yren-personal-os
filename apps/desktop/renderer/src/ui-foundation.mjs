@@ -71,6 +71,7 @@ export const FOUNDATION_TOKENS = Object.freeze({
     }),
   }),
   glass: Object.freeze({
+    strength: Object.freeze({ min: 0, max: 100, default: 60 }),
     profiles: Object.freeze({
       regular: Object.freeze({
         clear: Object.freeze({ fill: 0.14, blur: 12, brightness: 1.05, contrast: 1.03, saturation: 1.25, border: 0.16, rimLight: 0.55, rimShade: 0.07, specular: 0.5, contact: 0.04, ambient: 0.1, spill: 0.12 }),
@@ -79,6 +80,42 @@ export const FOUNDATION_TOKENS = Object.freeze({
       clear: Object.freeze({
         clear: Object.freeze({ fill: 0.08, blur: 7, brightness: 1.06, contrast: 1.04, saturation: 1.3, border: 0.18, rimLight: 0.6, rimShade: 0.08, specular: 0.55, contact: 0.03, ambient: 0.06, spill: 0.14 }),
         tinted: Object.freeze({ fill: 0.2, blur: 12, brightness: 1.03, contrast: 1.05, saturation: 1.45, border: 0.2, rimLight: 0.45, rimShade: 0.1, specular: 0.4, contact: 0.04, ambient: 0.09, spill: 0.18 }),
+      }),
+    }),
+    darkRegular: Object.freeze({
+      fill: 0.58,
+      blur: 24,
+      brightness: 1,
+      contrast: 1,
+      saturation: 1.25,
+      border: 0.10,
+      rimLight: 0.09,
+      rimShade: 0.08,
+      specular: 0.09,
+      contact: 0.30,
+      ambient: 0.30,
+      spill: 0,
+      fillRgb: '38, 38, 40',
+      background: 'rgba(38, 38, 40, 0.58)',
+      borderValue: '1px solid rgba(255, 255, 255, 0.10)',
+      shadow: '0 10px 32px rgba(0, 0, 0, 0.30)',
+      specularValue: 'linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 22%)',
+      spillValue: 'none',
+    }),
+    edge: Object.freeze({
+      light: Object.freeze({ top: 0.10, side: 0.048, bottom: 0.036, lensing: 0.06, softening: 0.035 }),
+      dark: Object.freeze({ top: 0.09, side: 0.045, bottom: 0.032, lensing: 0.05, softening: 0.03 }),
+    }),
+    contentBearing: Object.freeze({
+      light: Object.freeze({
+        fill: 'rgba(248, 247, 245, 0.88)', blur: '44px', saturation: '120%', brightness: '1.02',
+        border: '1px solid rgba(0, 0, 0, 0.16)', shadow: '0 1px 2px rgba(0, 0, 0, 0.14), 0 18px 50px -20px rgba(0, 0, 0, 0.22)',
+        specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 22%)', spill: 'none',
+      }),
+      dark: Object.freeze({
+        fill: 'rgba(24, 24, 28, 0.85)', blur: '44px', saturation: '120%', brightness: '1.02',
+        border: '1px solid rgba(255, 255, 255, 0.20)', shadow: '0 1px 2px rgba(0, 0, 0, 0.34), 0 18px 50px -20px rgba(0, 0, 0, 0.46)',
+        specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 22%)', spill: 'none',
       }),
     }),
     sizes: Object.freeze({
@@ -104,11 +141,103 @@ function resolveTheme(theme) { return theme === 'dark' ? 'dark' : 'light' }
 function resolveRoot(root) { if (root && root.style && root.dataset) return root; if (typeof document !== 'undefined') return document.documentElement; return null }
 function rgba(rgb, alpha) { return `rgba(${rgb}, ${alpha.toFixed(3)})` }
 
-function resolveMaterial(model, palette, colors, theme, styleName, variant, role, size, reducedTransparency, contrastGlass) {
+export function normalizeGlassStrength(value) {
+  const { min, max, default: fallback } = FOUNDATION_TOKENS.glass.strength
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+function easedStrengthProgress(strength) {
+  const progress = strength <= 60 ? strength / 60 : (strength - 60) / 40
+  return progress * progress * (3 - 2 * progress)
+}
+
+/**
+ * One bounded optical mapping shared by every Foundation material. The
+ * neutral point is 60, preserving the established baseline while keeping the
+ * ends useful: lower values reveal more environment; higher values stabilize
+ * the frosted body. Reduced Transparency bypasses this mapping entirely.
+ */
+export function resolveGlassStrengthProfile(value = FOUNDATION_TOKENS.glass.strength.default) {
+  const strength = normalizeGlassStrength(value)
+  const progress = easedStrengthProgress(strength)
+  const delta = strength <= FOUNDATION_TOKENS.glass.strength.default ? progress - 1 : progress
+  return Object.freeze({
+    value: strength,
+    delta,
+    progress,
+    fill: delta * 0.10,
+    blur: delta * 8,
+    saturation: delta * 0.10,
+    brightness: delta * 0.012,
+    border: delta * 0.018,
+    rimLight: delta * 0.015,
+    rimShade: delta * 0.008,
+    specular: delta * 0.018,
+    edgeTop: delta * 0.010,
+    edgeSide: delta * 0.007,
+    edgeBottom: delta * 0.005,
+    lensing: delta * 0.008,
+    softening: delta * 0.006,
+    contact: delta * 0.035,
+    ambient: delta * 0.04,
+    shadow: delta * 0.05,
+  })
+}
+
+function clamp(value, min, max) { return Math.min(max, Math.max(min, value)) }
+
+function adjustRgbaAlphas(value, delta, min, max) {
+  return value.replace(/rgba\(\s*(\d+\s*,\s*\d+\s*,\s*\d+)\s*,\s*([\d.]+)\s*\)/g, (_match, rgb, alpha) => rgba(rgb, clamp(Number(alpha) + delta, min, max)))
+}
+
+function applyGlassStrength(material, glassStrength) {
+  const profile = resolveGlassStrengthProfile(glassStrength)
+  return {
+    ...material,
+    glassStrength: profile.value,
+    fillAlpha: clamp(material.fillAlpha + profile.fill, 0.04, 0.92),
+    blurPx: clamp(material.blurPx + profile.blur, 4, 48),
+    brightness: clamp(material.brightness + profile.brightness, 0.96, 1.08),
+    saturation: clamp(material.saturation + profile.saturation, 1, 1.6),
+    borderAlpha: clamp(material.borderAlpha + profile.border, 0.04, 0.24),
+    rimLightAlpha: clamp(Math.min(material.rimLightAlpha, 0.18) + profile.rimLight, 0.02, 0.24),
+    rimShadeAlpha: clamp(material.rimShadeAlpha + profile.rimShade, 0.02, 0.16),
+    specularAlpha: clamp(Math.min(material.specularAlpha, 0.16) + profile.specular, 0.02, 0.24),
+    contactAlpha: clamp(material.contactAlpha + profile.contact, 0.02, 0.45),
+    ambientAlpha: clamp(material.ambientAlpha + profile.ambient, 0.02, 0.45),
+    shadowAlpha: clamp((material.shadowAlpha ?? material.ambientAlpha) + profile.shadow, 0.12, 0.46),
+  }
+}
+
+function resolveEdgeOptics(theme, palette, sizeSpec, profile) {
+  const base = FOUNDATION_TOKENS.glass.edge[theme]
+  const scale = sizeSpec?.edge || 1
+  const top = clamp(base.top * scale + profile.edgeTop, 0.02, 0.16)
+  const side = clamp(base.side * scale + profile.edgeSide, 0.015, 0.10)
+  const bottom = clamp(base.bottom * scale + profile.edgeBottom, 0.012, 0.08)
+  const lensing = clamp(base.lensing * scale + profile.lensing, 0.018, 0.10)
+  const softening = clamp(base.softening * scale + profile.softening, 0.012, 0.08)
+  return {
+    edgeTop: rgba(palette.highlightRgb, top),
+    edgeSide: rgba(palette.highlightRgb, side),
+    edgeBottom: rgba(palette.shadeRgb, bottom),
+    edgeLensing: `radial-gradient(ellipse 26% 78% at 0% 50%, ${rgba(palette.highlightRgb, lensing)}, transparent 72%), radial-gradient(ellipse 26% 78% at 100% 50%, ${rgba(palette.highlightRgb, lensing)}, transparent 72%)`,
+    edgeSoftening: rgba(palette.shadeRgb, softening),
+  }
+}
+
+const NO_EDGE_OPTICS = Object.freeze({ edgeTop: 'none', edgeSide: 'none', edgeBottom: 'none', edgeLensing: 'none', edgeSoftening: 'transparent' })
+
+function resolveMaterial(model, palette, colors, theme, styleName, variant, role, size, reducedTransparency, contrastGlass, glassStrength) {
   if (variant === 'content') return Object.freeze({ variant, fillAlpha: 1, blurPx: 0, brightness: 1, contrast: 1, saturation: 1, borderAlpha: 0, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: colors.surface, border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
-  const style = model.profiles[variant][styleName]
+  const darkRegular = theme === 'dark' && variant === 'regular'
+  const style = darkRegular ? model.darkRegular : model.profiles[variant][styleName]
   const roleSpec = model.roles[role] || model.roles.panel
   const sizeSpec = model.sizes[size || roleSpec.size] || model.sizes.medium
+  const profile = resolveGlassStrengthProfile(glassStrength)
+  const edge = resolveEdgeOptics(theme, palette, sizeSpec, profile)
   const material = {
     variant,
     fillAlpha: style.fill * sizeSpec.fill,
@@ -122,14 +251,97 @@ function resolveMaterial(model, palette, colors, theme, styleName, variant, role
     specularAlpha: Math.min(0.65, style.specular * sizeSpec.specular * (roleSpec.specular || 1) * (theme === 'dark' ? 0.85 : 1)),
     contactAlpha: style.contact * sizeSpec.contact,
     ambientAlpha: style.ambient * sizeSpec.ambient,
+    shadowAlpha: style.ambient * sizeSpec.ambient,
     spillAlpha: style.spill * (roleSpec.spill || 1),
   }
-  if (reducedTransparency) return Object.freeze({ ...material, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, fillAlpha: 1, blurPx: 0, background: colors['surface-elevated'], border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
-  const highlight = rgba(palette.highlightRgb, Math.min(0.6, material.specularAlpha + 0.15))
-  const rimLight = rgba(palette.highlightRgb, material.rimLightAlpha)
-  const rimShade = rgba(palette.shadeRgb, material.rimShadeAlpha)
-  const shadow = `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px ${rgba(palette.shadeRgb, material.contactAlpha)}, 0 18px 50px -20px ${rgba(palette.shadeRgb, material.ambientAlpha)}`
-  return Object.freeze({ ...material, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: contrastGlass?.background || rgba(palette.fillRgb, material.fillAlpha), border: contrastGlass?.border || `1px solid ${rgba(palette.borderRgb, material.borderAlpha)}`, shadow: contrastGlass?.shadow || shadow, blur: `${material.blurPx.toFixed(1)}px`, highlight, rimLight, rimShade, specular: `linear-gradient(135deg, ${highlight}, transparent 46%)`, reflection: `linear-gradient(180deg, transparent 42%, ${highlight} 100%)`, spill: `linear-gradient(160deg, ${rgba(palette.spillRgb, material.spillAlpha)}, transparent 52%)` })
+  if (reducedTransparency) return Object.freeze({ ...material, ...NO_EDGE_OPTICS, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, fillAlpha: 1, blurPx: 0, background: colors['surface-elevated'], border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
+  if (darkRegular) {
+    const optical = applyGlassStrength({
+      ...material,
+      fillAlpha: style.fill,
+      blurPx: style.blur,
+      brightness: style.brightness,
+      contrast: style.contrast,
+      saturation: style.saturation,
+      borderAlpha: style.border,
+      rimLightAlpha: style.rimLight,
+      rimShadeAlpha: style.rimShade,
+      specularAlpha: style.specular,
+      contactAlpha: style.contact,
+      ambientAlpha: style.ambient,
+      shadowAlpha: style.ambient,
+      spillAlpha: style.spill,
+    }, glassStrength)
+    const baseline = optical.glassStrength === FOUNDATION_TOKENS.glass.strength.default
+    const highlight = baseline ? 'rgba(255, 255, 255, 0.09)' : rgba('255, 255, 255', optical.specularAlpha)
+    const rimLight = baseline ? 'rgba(255, 255, 255, 0.09)' : rgba('255, 255, 255', optical.rimLightAlpha)
+    const rimShade = baseline ? 'rgba(0, 0, 0, 0.08)' : rgba('0, 0, 0', optical.rimShadeAlpha)
+    return Object.freeze({
+      ...optical,
+      ...edge,
+      fillRgb: style.fillRgb,
+      background: contrastGlass?.background || (baseline ? style.background : rgba(style.fillRgb, optical.fillAlpha)),
+      border: contrastGlass?.border || (baseline ? style.borderValue : `1px solid ${rgba('255, 255, 255', optical.borderAlpha)}`),
+      shadow: contrastGlass?.shadow || (baseline ? style.shadow : `0 10px 32px ${rgba('0, 0, 0', optical.shadowAlpha)}`),
+      blur: `${optical.blurPx}px`,
+      highlight,
+      rimLight,
+      rimShade,
+      specular: baseline ? style.specularValue : `linear-gradient(180deg, ${highlight}, transparent 22%)`,
+      reflection: 'none',
+      spill: 'none',
+    })
+  }
+  const optical = applyGlassStrength(material, glassStrength)
+  const highlight = rgba(palette.highlightRgb, clamp(optical.specularAlpha * 0.22 + 0.015, 0.015, 0.14))
+  const rimLight = rgba(palette.highlightRgb, clamp(optical.rimLightAlpha * 0.25, 0.015, 0.16))
+  const rimShade = rgba(palette.shadeRgb, optical.rimShadeAlpha)
+  const shadow = `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px ${rgba(palette.shadeRgb, optical.contactAlpha)}, 0 18px 50px -20px ${rgba(palette.shadeRgb, optical.shadowAlpha)}`
+  return Object.freeze({ ...optical, ...edge, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: contrastGlass?.background || rgba(palette.fillRgb, optical.fillAlpha), border: contrastGlass?.border || `1px solid ${rgba(palette.borderRgb, optical.borderAlpha)}`, shadow: contrastGlass?.shadow || shadow, blur: `${optical.blurPx.toFixed(1)}px`, highlight, rimLight, rimShade, specular: `linear-gradient(180deg, ${highlight}, transparent 22%)`, reflection: 'none', spill: 'none' })
+}
+
+function resolveContentBearingMaterial(theme, colors, reducedTransparency, glassStrength) {
+  const material = FOUNDATION_TOKENS.glass.contentBearing[theme]
+  if (!reducedTransparency) {
+    const profile = resolveGlassStrengthProfile(glassStrength)
+    const palette = FOUNDATION_TOKENS.glass.palette[theme]
+    const edge = resolveEdgeOptics(theme, palette, FOUNDATION_TOKENS.glass.sizes.medium, profile)
+    const fillAtZero = theme === 'dark' ? 0.56 : 0.52
+    const fillAtBaseline = theme === 'dark' ? 0.85 : 0.88
+    const fillProgress = profile.progress
+    const fillAlpha = profile.value <= 60
+      ? fillAtZero + (fillAtBaseline - fillAtZero) * fillProgress
+      : fillAtBaseline + (0.94 - fillAtBaseline) * fillProgress
+    const bodyRgb = theme === 'dark' ? '24, 24, 28' : '248, 247, 245'
+    const mappedFill = rgba(bodyRgb, clamp(fillAlpha, 0.50, 0.94))
+    const mappedBlur = `${profile.value <= 60 ? 16 + (44 - 16) * fillProgress : 44 + (48 - 44) * fillProgress}px`
+    const mappedSaturation = `${Math.round(profile.value <= 60 ? 108 + (120 - 108) * fillProgress : 120 + (128 - 120) * fillProgress)}%`
+    return Object.freeze({
+      ...material,
+      ...edge,
+      fill: mappedFill,
+      fillAlpha,
+      blur: mappedBlur,
+      saturation: mappedSaturation,
+      brightness: String(clamp(profile.value <= 60 ? 1.005 + (1.02 - 1.005) * fillProgress : 1.02 + (1.032 - 1.02) * fillProgress, 1, 1.05)),
+      border: adjustRgbaAlphas(material.border, profile.border, 0.08, 0.28),
+      shadow: adjustRgbaAlphas(material.shadow, profile.shadow, 0.10, 0.52),
+      specular: adjustRgbaAlphas(material.specular, profile.specular * 0.35, 0.04, 0.16),
+    })
+  }
+  return Object.freeze({
+    ...material,
+    ...NO_EDGE_OPTICS,
+    fillAlpha: 1,
+    fill: colors['surface-elevated'],
+    blur: '0px',
+    saturation: '100%',
+    brightness: '1',
+    border: `1px solid ${colors.separator}`,
+    shadow: 'none',
+    specular: 'none',
+    spill: 'none',
+  })
 }
 
 /** Pure, deterministic resolver for the complete renderer foundation. */
@@ -139,6 +351,7 @@ export function resolveFoundationTokens(options = {}) {
   const userStyle = (options.liquidGlassStyle || appearance.liquidGlassStyle) === 'tinted' ? 'tinted' : 'clear'
   const increasedContrast = options.increasedContrast === true
   const reducedTransparency = options.reducedTransparency === true
+  const glassStrength = normalizeGlassStrength(options.glassStrength ?? appearance.glassStrength)
   const base = FOUNDATION_TOKENS.colors[theme]
   const contrast = FOUNDATION_TOKENS.contrast[theme]
   const colors = Object.freeze(increasedContrast ? { ...base, separator: contrast.separator, focus: contrast.focus, selection: contrast.selection, 'text-primary': contrast['text-primary'], 'text-secondary': contrast['text-secondary'] } : { ...base })
@@ -146,12 +359,13 @@ export function resolveFoundationTokens(options = {}) {
   const palette = model.palette[theme]
   const contrastGlass = increasedContrast ? contrast.glass : null
   const glass = Object.freeze({
-    regular: resolveMaterial(model, palette, colors, theme, userStyle, 'regular', options.glassRole || 'navigation', options.glassSize, reducedTransparency, contrastGlass?.regular),
-    clear: resolveMaterial(model, palette, colors, theme, userStyle, 'clear', options.glassRole || 'control', options.glassSize, reducedTransparency, contrastGlass?.clear),
-    content: resolveMaterial(model, palette, colors, theme, userStyle, 'content', 'panel', options.glassSize, reducedTransparency, null),
+    regular: resolveMaterial(model, palette, colors, theme, userStyle, 'regular', options.glassRole || 'navigation', options.glassSize, reducedTransparency, contrastGlass?.regular, glassStrength),
+    clear: resolveMaterial(model, palette, colors, theme, userStyle, 'clear', options.glassRole || 'control', options.glassSize, reducedTransparency, contrastGlass?.clear, glassStrength),
+    content: resolveMaterial(model, palette, colors, theme, userStyle, 'content', 'panel', options.glassSize, reducedTransparency, null, glassStrength),
   })
+  const contentBearing = resolveContentBearingMaterial(theme, colors, reducedTransparency, glassStrength)
   const interaction = Object.freeze(increasedContrast ? { ...FOUNDATION_TOKENS.interaction[theme], ...Object.fromEntries(Object.entries(contrast).filter(([name]) => name.startsWith('button-') || name.startsWith('selection-'))) } : FOUNDATION_TOKENS.interaction[theme])
-  return Object.freeze({ theme, userStyle, increasedContrast, reducedTransparency, colors, interaction, contrast, spacing: FOUNDATION_TOKENS.spacing, radius: FOUNDATION_TOKENS.radius, typography: FOUNDATION_TOKENS.typography, motion: FOUNDATION_TOKENS.motion, geometry: FOUNDATION_TOKENS.geometry, layout: FOUNDATION_TOKENS.layout, glass })
+  return Object.freeze({ theme, userStyle, glassStrength, increasedContrast, reducedTransparency, colors, interaction, contrast, spacing: FOUNDATION_TOKENS.spacing, radius: FOUNDATION_TOKENS.radius, typography: FOUNDATION_TOKENS.typography, motion: FOUNDATION_TOKENS.motion, geometry: FOUNDATION_TOKENS.geometry, layout: FOUNDATION_TOKENS.layout, glass, contentBearing })
 }
 
 /** Legacy names remain aliases only; no legacy value table is maintained. */
@@ -168,8 +382,8 @@ export function buildLegacyAliases(resolved) {
     '--control-bg': 'color-mix(in srgb, var(--ui-color-text-primary) 6%, transparent)', '--control-bg-active': 'var(--ui-color-surface-elevated)', '--control-solid': 'var(--ui-color-surface-elevated)', '--control-border': 'var(--ui-geometry-border-width) solid var(--ui-color-separator)', '--btn-secondary-bg': 'var(--ui-color-surface-elevated)', '--btn-secondary-bg-hover': 'var(--ui-interaction-button-neutral-hover)', '--hover-bg': 'var(--ui-interaction-button-neutral-hover)', '--interact-hover': 'color-mix(in srgb, var(--ui-glass-regular-highlight) 35%, transparent)', '--interact-active': 'color-mix(in srgb, var(--ui-glass-regular-highlight) 55%, transparent)', '--chip-bg': 'var(--ui-color-selection)', '--track-bg': 'var(--ui-color-separator)', '--empty-bg': 'var(--ui-color-surface)', '--divider': 'var(--ui-color-separator)', '--scrollbar-thumb': 'var(--ui-color-separator)', '--glass-edge-top': 'var(--ui-glass-regular-highlight)',
     '--status-success': 'var(--ui-color-success)', '--status-warning': 'var(--ui-color-warning)', '--status-danger': 'var(--ui-color-critical)', '--error-bg': 'color-mix(in srgb, var(--ui-color-critical) 7%, transparent)', '--error-border': 'color-mix(in srgb, var(--ui-color-critical) 18%, transparent)', '--error-text': 'var(--ui-color-critical)',
     '--radius-window': 'var(--ui-radius-floating)', '--radius-glass-large': 'var(--ui-radius-floating)', '--radius-glass-medium': 'var(--ui-radius-surface-lg)', '--radius-control': 'var(--ui-radius-surface-sm)', '--radius-capsule': 'var(--ui-radius-capsule)', '--shell-padding': 'var(--ui-layout-shell-padding)', '--shell-gap': 'var(--ui-layout-shell-gap)', '--page-padding-x': 'var(--ui-layout-page-padding-x)', '--page-padding-bottom': 'var(--ui-layout-page-padding-bottom)', '--section-gap': 'var(--ui-layout-section-gap)', '--grid-gap': 'var(--ui-layout-grid-gap)', '--sidebar-width': 'var(--ui-layout-sidebar-width)', '--control-height': 'var(--ui-layout-control-height)', '--page-title-size': 'var(--ui-layout-page-title-size)',
-    '--glass-bg': glassAlias('regular', 'background'), '--glass-blur': glassAlias('regular', 'blur'), '--glass-border': glassAlias('regular', 'border'), '--glass-shadow': glassAlias('regular', 'shadow'), '--glass-saturation': glassAlias('regular', 'saturation'), '--glass-brightness': glassAlias('regular', 'brightness'), '--glass-contrast': glassAlias('regular', 'contrast'), '--glass-highlight': glassAlias('regular', 'highlight'), '--glass-rim-light': glassAlias('regular', 'rim-light'), '--glass-rim-shade': glassAlias('regular', 'rim-shade'), '--glass-specular': glassAlias('regular', 'specular'), '--glass-reflection': glassAlias('regular', 'reflection'), '--glass-spill': glassAlias('regular', 'spill'),
-    '--glass-clear-bg': glassAlias('clear', 'background'), '--glass-clear-blur': glassAlias('clear', 'blur'), '--glass-clear-border': glassAlias('clear', 'border'), '--glass-clear-shadow': glassAlias('clear', 'shadow'), '--glass-clear-saturation': glassAlias('clear', 'saturation'), '--glass-clear-brightness': glassAlias('clear', 'brightness'), '--glass-clear-contrast': glassAlias('clear', 'contrast'), '--glass-clear-highlight': glassAlias('clear', 'highlight'), '--glass-clear-rim-light': glassAlias('clear', 'rim-light'), '--glass-clear-specular': glassAlias('clear', 'specular'), '--glass-content-bg': glassAlias('content', 'background'), '--glass-content-blur': glassAlias('content', 'blur'), '--glass-content-border': glassAlias('content', 'border'), '--glass-content-shadow': glassAlias('content', 'shadow'), '--glass-content-saturation': glassAlias('content', 'saturation'), '--glass-content-brightness': glassAlias('content', 'brightness'), '--glass-content-contrast': glassAlias('content', 'contrast'), '--glass-bg-content': glassAlias('content', 'background'),
+    '--glass-bg': glassAlias('regular', 'background'), '--glass-blur': glassAlias('regular', 'blur'), '--glass-border': glassAlias('regular', 'border'), '--glass-shadow': glassAlias('regular', 'shadow'), '--glass-saturation': glassAlias('regular', 'saturation'), '--glass-brightness': glassAlias('regular', 'brightness'), '--glass-contrast': glassAlias('regular', 'contrast'), '--glass-highlight': glassAlias('regular', 'highlight'), '--glass-rim-light': glassAlias('regular', 'rim-light'), '--glass-rim-shade': glassAlias('regular', 'rim-shade'), '--glass-specular': glassAlias('regular', 'specular'), '--glass-reflection': glassAlias('regular', 'reflection'), '--glass-spill': glassAlias('regular', 'spill'), '--glass-edge-top': glassAlias('regular', 'edge-top'), '--glass-edge-side': glassAlias('regular', 'edge-side'), '--glass-edge-bottom': glassAlias('regular', 'edge-bottom'), '--glass-edge-lensing': glassAlias('regular', 'edge-lensing'), '--glass-edge-softening': glassAlias('regular', 'edge-softening'),
+    '--glass-clear-bg': glassAlias('clear', 'background'), '--glass-clear-blur': glassAlias('clear', 'blur'), '--glass-clear-border': glassAlias('clear', 'border'), '--glass-clear-shadow': glassAlias('clear', 'shadow'), '--glass-clear-saturation': glassAlias('clear', 'saturation'), '--glass-clear-brightness': glassAlias('clear', 'brightness'), '--glass-clear-contrast': glassAlias('clear', 'contrast'), '--glass-clear-highlight': glassAlias('clear', 'highlight'), '--glass-clear-rim-light': glassAlias('clear', 'rim-light'), '--glass-clear-specular': glassAlias('clear', 'specular'), '--glass-content-bg': glassAlias('content', 'background'), '--glass-content-fill': 'var(--ui-glass-content-bearing-fill)', '--glass-content-blur': 'var(--ui-glass-content-bearing-blur)', '--glass-content-border': glassAlias('content', 'border'), '--glass-content-shadow': glassAlias('content', 'shadow'), '--glass-content-saturation': glassAlias('content', 'saturation'), '--glass-content-brightness': glassAlias('content', 'brightness'), '--glass-content-contrast': glassAlias('content', 'contrast'), '--glass-bg-content': glassAlias('content', 'background'),
   }
 }
 
@@ -177,11 +391,19 @@ function writeGroup(root, prefix, values, transform = (value) => value) { for (c
 
 function writeGlass(root, resolved) {
   for (const [variant, material] of Object.entries(resolved.glass)) {
-    for (const key of ['background', 'border', 'shadow', 'blur', 'saturation', 'brightness', 'contrast', 'highlight', 'rimLight', 'rimShade', 'specular', 'reflection', 'spill']) {
+    for (const key of ['background', 'border', 'shadow', 'blur', 'saturation', 'brightness', 'contrast', 'highlight', 'rimLight', 'rimShade', 'specular', 'reflection', 'spill', 'edgeTop', 'edgeSide', 'edgeBottom', 'edgeLensing', 'edgeSoftening']) {
       const cssName = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
-      root.style.setProperty(`--ui-glass-${variant}-${cssName}`, material[key])
+      const value = key === 'saturation' && typeof material[key] === 'number' ? `${Math.round(material[key] * 100)}%` : material[key]
+      root.style.setProperty(`--ui-glass-${variant}-${cssName}`, value)
     }
     root.style.setProperty(`--ui-glass-${variant}-fill-alpha`, String(material.fillAlpha))
+  }
+}
+
+function writeContentBearing(root, resolved) {
+  for (const [key, value] of Object.entries(resolved.contentBearing)) {
+    const cssName = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+    root.style.setProperty(`--ui-glass-content-bearing-${cssName}`, value)
   }
 }
 
@@ -204,11 +426,14 @@ export function applyFoundationTokens(root, resolvedOrTheme = 'light', options =
     else { target.style.setProperty(`--ui-type-${name}-size`, `${token.size}px`); target.style.setProperty(`--ui-type-${name}-weight`, String(token.weight)) }
   }
   writeGlass(target, resolved)
+  writeContentBearing(target, resolved)
+  target.style.setProperty('--ui-glass-strength', String(resolved.glassStrength))
   for (const [name, value] of Object.entries(buildLegacyAliases(resolved))) target.style.setProperty(name, value)
   target.dataset.foundationTheme = resolved.theme
   target.dataset.foundationAppearance = resolved.userStyle
   target.dataset.foundationIncreasedContrast = String(resolved.increasedContrast)
   target.dataset.foundationReducedTransparency = String(resolved.reducedTransparency)
+  target.dataset.foundationGlassStrength = String(resolved.glassStrength)
   return resolved
 }
 
@@ -267,7 +492,7 @@ export function initializeFoundation() {
   if (typeof document === 'undefined') return () => {}
   const root = document.documentElement
   let preferences = readFoundationPreferences()
-  const applyResolved = () => { const resolved = resolveFoundationTokens({ appearance: root.dataset.theme, ...preferences }); applyFoundationTokens(root, resolved); applyFoundationPreferences(root, preferences) }
+  const applyResolved = () => { const resolved = resolveFoundationTokens({ appearance: root.dataset.theme, glassStrength: root.dataset.foundationGlassStrength, ...preferences }); applyFoundationTokens(root, resolved); applyFoundationPreferences(root, preferences) }
   applyResolved()
   const stopPreferences = watchFoundationPreferences((next) => { preferences = next; applyResolved() })
   const observer = typeof MutationObserver === 'function' ? new MutationObserver(applyResolved) : null

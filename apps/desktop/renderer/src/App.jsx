@@ -3,7 +3,7 @@ import { t } from './i18n/index.mjs'
 import { applyFoundationTokens, resolveFoundationTokens } from './ui-foundation.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
-import { GLOBAL_ENTRIES, GLOBAL_PANEL_IDS, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
+import { GLOBAL_ENTRIES, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
 import { isFeatureSkeletonRoute } from './feature-skeleton.mjs'
 
 const api = () => window.personalOS?.v1
@@ -142,6 +142,7 @@ function applyAppearance(appearance, theme) {
   applyFoundationTokens(root, resolveFoundationTokens({
     appearance: theme,
     liquidGlassStyle: appearance.liquidGlassStyle,
+    glassStrength: appearance.glassStrength,
     increasedContrast: root.dataset.increasedContrast === 'true',
     reducedTransparency: root.dataset.reducedTransparency === 'true',
   }))
@@ -269,7 +270,7 @@ function Empty({ text }) {
 function PageLoading() {
   return (
     <div className="page">
-      <div className="card boot" style={{ minHeight: 240 }}>
+      <div className="card ui-liquid-glass page-glass-surface boot" data-material="regular" style={{ minHeight: 240 }}>
         <div className="spinner" />
         {t('common.loading')}
       </div>
@@ -290,7 +291,7 @@ function PageError({ error }) {
 
 function ProjectCard({ project, onOpen }) {
   return (
-    <button type="button" className="card card-hover project-card" onClick={onOpen}>
+    <button type="button" className="card card-hover project-card ui-liquid-glass page-glass-surface" data-material="regular" onClick={onOpen}>
       <span className="project-title">{displayTitle(project)}</span>
       <span className="project-meta">{t('common.tasksCount', { n: project.taskCount })}</span>
       <span className="open-affordance">{t('projects.openProject')} →</span>
@@ -363,7 +364,7 @@ function SpaceLandingPage({ space, onNavigate }) {
       <Section title={t('nav.secondary')}>
         <div className="space-link-grid">
           {space.children.map((item) => (
-            <button type="button" key={item.id} className="card card-hover space-link-card" onClick={() => onNavigate(item.id)}>
+            <button type="button" key={item.id} className="card card-hover space-link-card ui-liquid-glass page-glass-surface" data-material="regular" onClick={() => onNavigate(item.id)}>
               <span className="space-link-icon"><Icon name={item.icon} size={20} /></span>
               <span className="space-link-heading">
                 <span className="space-link-title">{item.label}</span>
@@ -386,50 +387,86 @@ function SpaceLandingPage({ space, onNavigate }) {
 
 const GLOBAL_ICONS = { 'main-ai': 'sparkles', search: 'search', notifications: 'bell', proposals: 'repeat', 'quick-create': 'plus' }
 
-function GlobalUtilityBar({ activePanel, onToggle, context }) {
+function GlobalUtilityBar({ activePanel, onToggle, onNavigate }) {
+  const entries = Object.fromEntries(GLOBAL_ENTRIES.map((entry) => [entry.id, entry]))
+  const renderEntry = (id, className = '') => {
+    const entry = entries[id]
+    if (!entry) return null
+    const active = activePanel === entry.id
+    return (
+      <button
+        key={entry.id}
+        type="button"
+        className={`global-entry ui-button${className ? ` ${className}` : ''}${active ? ' active' : ''}`}
+        data-variant="tertiary"
+        data-state={active ? 'open' : 'default'}
+        title={entry.description}
+        aria-label={entry.label}
+        aria-expanded={active}
+        aria-controls="global-panel"
+        onClick={() => onToggle(entry.id)}
+      >
+        <Icon name={GLOBAL_ICONS[entry.id]} size={17} />
+        <span className="global-entry-label">{entry.label}</span>
+        <span className="soon-chip">{t('global.skeleton')}</span>
+      </button>
+    )
+  }
+  const renderPanel = (id, presentation = 'popover') => activePanel === id ? (
+    <GlobalPanel
+      id={id}
+      presentation={presentation}
+      onClose={() => onToggle(null)}
+      onNavigate={onNavigate}
+    />
+  ) : null
+
   return (
-    <div className="global-utility-bar" role="toolbar" aria-label={t('global.label')}>
-      {GLOBAL_ENTRIES.map((entry) => {
-        const active = activePanel === entry.id
-        return (
-          <button
-            key={entry.id}
-            type="button"
-            className={`global-entry${active ? ' active' : ''}`}
-            title={entry.description}
-            aria-label={entry.label}
-            aria-expanded={active}
-            aria-controls="global-panel"
-            onClick={() => onToggle(entry.id)}
-          >
-            <Icon name={GLOBAL_ICONS[entry.id]} size={17} />
-            <span className="global-entry-label">{entry.label}</span>
-            <span className="soon-chip">{t('global.skeleton')}</span>
-          </button>
-        )
-      })}
-      <CurrentContextChip context={context} />
+    <div className="global-utility-bar ui-liquid-glass" data-material="regular" role="toolbar" aria-label={t('global.label')}>
+      <div className="command-item-slot toolbar-search-slot" aria-label={entries.search.label}>
+        {renderEntry('search')}
+        {renderPanel('search')}
+      </div>
+
+      <div className="command-item-slot toolbar-notifications-slot" aria-label={entries.notifications.label}>
+        {renderEntry('notifications')}
+        {renderPanel('notifications')}
+      </div>
+
+      <div className="command-item-slot toolbar-proposals-slot" aria-label={entries.proposals.label}>
+        {renderEntry('proposals')}
+        {renderPanel('proposals')}
+      </div>
+
+      <div className="command-item-slot toolbar-create-slot" aria-label={entries['quick-create'].label}>
+        {renderEntry('quick-create', 'global-entry-create')}
+        {renderPanel('quick-create')}
+      </div>
+
+      <div className="command-item-slot toolbar-ai-slot" aria-label={entries['main-ai'].label}>
+        {renderEntry('main-ai')}
+      </div>
     </div>
   )
 }
 
 function CurrentContextChip({ context }) {
-  if (!context) return null
-  const parts = [context.space]
-  if (context.projectId) parts.push(` / ${context.projectTitle || t('nav.projects')}`)
+  if (!context || (!context.projectId && !context.projectTitle)) return null
+  const objectLabel = context.projectTitle || `Project ${context.projectId}`
   return (
-    <div className="current-context-chip" aria-label={t('global.currentContext')}>
+    <div className="current-context" aria-label={t('global.currentContext')}>
       <Icon name="info" size={14} />
-      <span className="grow">{parts.join('')}</span>
+      <span className="current-context-label">{t('global.currentContext')}</span>
+      <span className="current-context-value grow">{objectLabel}</span>
     </div>
   )
 }
 
-function GlobalPanel({ id, onClose, onNavigate }) {
+function GlobalPanel({ id, presentation = 'popover', context, onClose, onNavigate }) {
   const entry = getGlobalEntry(id)
   if (!entry) return null
   return (
-    <div className="global-panel" id="global-panel" role="dialog" aria-label={entry.label}>
+    <div className={`global-panel global-panel-${id} global-panel-${presentation} ui-liquid-glass content-bearing-glass`} data-material="regular" id="global-panel" role="dialog" aria-label={entry.label}>
       <div className="global-panel-header">
         <span className="global-panel-title">{entry.label}</span>
         <button type="button" className="btn btn-ghost global-panel-close" onClick={onClose} aria-label={t('global.close')}>
@@ -437,15 +474,20 @@ function GlobalPanel({ id, onClose, onNavigate }) {
         </button>
       </div>
       <div className="global-panel-body">
-        <GlobalPanelBody id={id} onNavigate={onNavigate} />
+        <GlobalPanelBody id={id} context={context} onNavigate={onNavigate} />
       </div>
     </div>
   )
 }
 
-function GlobalPanelBody({ id, onNavigate }) {
+function GlobalPanelBody({ id, context, onNavigate }) {
   if (id === 'main-ai') {
-    return <SkeletonNotice text={t('global.mainAiStatus')} />
+    return (
+      <>
+        {context?.projectId && <CurrentContextChip context={context} />}
+        <SkeletonNotice text={t('global.mainAiStatus')} />
+      </>
+    )
   }
   if (id === 'search') {
     return (
@@ -506,7 +548,7 @@ function FeatureSkeleton({ item, space, onNavigate }) {
   return (
     <div className="page">
       <PageHeader title={item.label} subtitle={t('featureSkeleton.status')} />
-      <div className="card feature-skeleton">
+      <div className="card ui-liquid-glass page-glass-surface feature-skeleton" data-material="regular">
         <div className="feature-skeleton-icon">
           <Icon name="sparkles" size={22} />
         </div>
@@ -570,6 +612,15 @@ export default function App() {
     return watchSystemTheme(setSystemDark)
   }, [followsSystem])
 
+  useEffect(() => {
+    if (!activeGlobalPanel) return undefined
+    const handleGlobalPanelKeyDown = (event) => {
+      if (event.key === 'Escape') setActiveGlobalPanel(null)
+    }
+    window.addEventListener('keydown', handleGlobalPanelKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalPanelKeyDown)
+  }, [activeGlobalPanel])
+
   // Development-only layout diagnostic: enable in DevTools with
   // `window.__LAYOUT_DEBUG__ = true`, then resize the window. Warns whenever
   // horizontal overflow appears. Never shown in the UI.
@@ -599,6 +650,7 @@ export default function App() {
   const toggleGlobalPanel = (id) => {
     setActiveGlobalPanel((current) => (current === id ? null : id))
   }
+  const closeGlobalPanel = () => setActiveGlobalPanel(null)
 
   if (!appearance) {
     return (
@@ -618,11 +670,11 @@ export default function App() {
     selectedProject,
     projectTitle: null, // derived from existing renderer state only; Step 2 does not read/store titles
   })
-  const panelOpen = GLOBAL_PANEL_IDS.includes(activeGlobalPanel)
-
   return (
-    <div className="app-shell">
-      <aside className="sidebar card">
+    <>
+      <div className="app-window-background" data-layer="window-environment" aria-hidden="true" />
+      <div className="app-shell" data-layer="window">
+        <aside className="sidebar ui-liquid-glass" data-material="regular" data-layer="navigation">
         <div className="brand">
           <div className="brand-mark">
             <Icon name="sparkles" size={16} />
@@ -638,11 +690,10 @@ export default function App() {
         <div className="sidebar-foot">
           {t('app.name')} · {t('app.version')}
         </div>
-      </aside>
+        </aside>
 
-      <div className="app-main">
-        <GlobalUtilityBar activePanel={activeGlobalPanel} onToggle={toggleGlobalPanel} context={currentContext} />
-        <main className="main">
+        <div className="app-main" data-layer="workspace">
+        <main className="main content-workspace" data-layer="content">
           {route === 'home' && <HomePage navigate={openProject} />}
           {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
           {route === 'projects' && <ProjectsPage openProject={openProject} />}
@@ -654,10 +705,22 @@ export default function App() {
             <ComingSoon label={routeNav ? routeNav.label : route} />
           ))}
         </main>
-      </div>
+        </div>
 
-      {panelOpen && <GlobalPanel id={activeGlobalPanel} onClose={() => setActiveGlobalPanel(null)} onNavigate={navigate} />}
-    </div>
+        <div className="command-layer" data-layer="controls">
+          <GlobalUtilityBar activePanel={activeGlobalPanel} onToggle={toggleGlobalPanel} onNavigate={navigate} />
+          {activeGlobalPanel === 'main-ai' && (
+            <GlobalPanel
+              id="main-ai"
+              presentation="focus"
+              context={currentContext}
+              onClose={closeGlobalPanel}
+              onNavigate={navigate}
+            />
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -690,19 +753,19 @@ function HomePage({ navigate }) {
       <PageHeader title={t('home.title')} subtitle={t('home.subtitle')} />
 
       <div className="stat-grid">
-        <div className="card stat-card">
+          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
           <span className="stat-label">{t('home.projects')}</span>
           <span className="stat-value">{projects.length}</span>
         </div>
-        <div className="card stat-card">
+          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
           <span className="stat-label">{t('home.tasks')}</span>
           <span className="stat-value">{totalTasks}</span>
         </div>
-        <div className="card stat-card">
+          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
           <span className="stat-label">{t('home.pendingProposals')}</span>
           <span className="stat-value">{pending}</span>
         </div>
-        <div className="card stat-card">
+          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
           <span className="stat-label">{t('home.localAI')}</span>
           <span className="stat-value small ai-stat">
             <span className={`status-dot ${rt.stateKey}`} />
@@ -730,7 +793,7 @@ function HomePage({ navigate }) {
         {activity.length === 0 ? (
           <Empty text={t('home.noActivity')} />
         ) : (
-          <div className="card list-card">
+          <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
             {activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
@@ -807,7 +870,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
   return (
     <div className="page">
-      <button type="button" className="btn btn-ghost" style={{ margin: '4px 0 8px -10px' }} onClick={onBack}>
+      <button type="button" className="btn btn-ghost detail-page-back" onClick={onBack}>
         <Icon name="chevronLeft" size={16} />
         {t('common.back')}
       </button>
@@ -838,7 +901,7 @@ function ProjectDetailPage({ projectId, onBack }) {
             {data.tasks.length === 0 ? (
               <Empty text={t('projectDetail.noTasks')} />
             ) : (
-              <div className="card list-card">
+                <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
                 {data.tasks.map((task) => (
                   <div key={task.id} className="list-row">
                     <span className="grow">{task.title}</span>
@@ -853,7 +916,9 @@ function ProjectDetailPage({ projectId, onBack }) {
         <div>
           <Section title={t('projectDetail.pendingProposals')}>
             {pending.length === 0 ? (
-              <Empty text={t('projectDetail.noPendingProposals')} />
+              <div className="card proposal-card proposal-empty-card ui-liquid-glass page-glass-surface" data-material="regular">
+                <div className="proposal-empty-state">{t('projectDetail.noPendingProposals')}</div>
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {pending.map((p) => (
@@ -869,7 +934,7 @@ function ProjectDetailPage({ projectId, onBack }) {
         {data.activity.length === 0 ? (
           <Empty text={t('projectDetail.noActivity')} />
         ) : (
-          <div className="card list-card">
+          <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
             {data.activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
@@ -882,7 +947,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <div className="card proposal-card">
+    <div className="card proposal-card ui-liquid-glass page-glass-surface" data-material="regular">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -915,11 +980,13 @@ function SettingsPage({ appearance, setAppearance }) {
     applyFoundationTokens(root, resolveFoundationTokens({
       appearance: root.dataset.foundationTheme || 'light',
       liquidGlassStyle: next.liquidGlassStyle,
+      glassStrength: next.glassStrength,
       increasedContrast: root.dataset.increasedContrast === 'true',
       reducedTransparency: root.dataset.reducedTransparency === 'true',
     }))
     // 2) Persist through the existing window.personalOS.v1 contract with a
     //    light trailing debounce, then 3) reconcile with the persisted value.
+    setAppearance(next)
     clearTimeout(persistTimer.current)
     persistTimer.current = setTimeout(async () => {
       const r = await api().appearance.update(patch)
@@ -935,30 +1002,55 @@ function SettingsPage({ appearance, setAppearance }) {
 
       <Section title={t('settings.appearance')}>
         <div className="settings-groups">
-          <div className="card settings-group">
-            <span className="field-label">{t('settings.appearanceMode')}</span>
-            <div className="segmented">
-              <button type="button" className={appearance.theme === 'light' ? 'active' : ''} onClick={() => update({ theme: 'light' })}>
-                {t('settings.themeLight')}
-              </button>
-              <button type="button" className={appearance.theme === 'dark' ? 'active' : ''} onClick={() => update({ theme: 'dark' })}>
-                {t('settings.themeDark')}
-              </button>
-              <button type="button" className={appearance.theme === 'system' ? 'active' : ''} onClick={() => update({ theme: 'system' })}>
-                {t('settings.themeSystem')}
-              </button>
+          <div className="card ui-liquid-glass page-glass-surface settings-appearance-module" data-material="regular">
+            <div className="settings-row settings-mode-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.appearanceMode')}</span>
+                <span className="settings-row-description">{t('settings.appearanceModeDescription')}</span>
+              </div>
+              <div className="segmented" role="group" aria-label={t('settings.appearanceMode')}>
+                <button type="button" className={appearance.theme === 'light' ? 'active' : ''} aria-pressed={appearance.theme === 'light'} onClick={() => update({ theme: 'light' })}>
+                  {t('settings.themeLight')}
+                </button>
+                <button type="button" className={appearance.theme === 'dark' ? 'active' : ''} aria-pressed={appearance.theme === 'dark'} onClick={() => update({ theme: 'dark' })}>
+                  {t('settings.themeDark')}
+                </button>
+                <button type="button" className={appearance.theme === 'system' ? 'active' : ''} aria-pressed={appearance.theme === 'system'} onClick={() => update({ theme: 'system' })}>
+                  {t('settings.themeSystem')}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="card settings-group">
-            <span className="field-label">{t('settings.glassStyle')}</span>
-            <div className="segmented">
-              <button type="button" className={(appearance.liquidGlassStyle || 'clear') === 'clear' ? 'active' : ''} onClick={() => update({ liquidGlassStyle: 'clear' })}>
-                {t('settings.clearOption')}
-              </button>
-              <button type="button" className={(appearance.liquidGlassStyle || 'clear') === 'tinted' ? 'active' : ''} onClick={() => update({ liquidGlassStyle: 'tinted' })}>
-                {t('settings.tintedOption')}
-              </button>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.liquidGlass')}</span>
+                <span className="settings-row-description">{t('settings.liquidGlassDescription')}</span>
+              </div>
+              <div className="settings-strength-control">
+                <output className="settings-strength-value" htmlFor="glass-strength-slider">{t('settings.glassStrengthValue', { n: appearance.glassStrength ?? 60 })}</output>
+                <input
+                  id="glass-strength-slider"
+                  className="settings-strength-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={appearance.glassStrength ?? 60}
+                  aria-label={t('settings.glassStrength')}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={appearance.glassStrength ?? 60}
+                  onChange={(event) => update({ glassStrength: Number(event.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.desktopBackground')}</span>
+                <span className="settings-row-description">{t('settings.desktopBackgroundDescription')}</span>
+              </div>
+              <span className="settings-status">{t('settings.desktopBackgroundCurrent')}</span>
             </div>
           </div>
         </div>
@@ -975,7 +1067,7 @@ function ComingSoon({ label }) {
   return (
     <div className="page">
       <PageHeader title={label} subtitle={t('nav.comingSoon')} />
-      <div className="card coming-soon">
+        <div className="card ui-liquid-glass page-glass-surface coming-soon" data-material="regular">
         <div className="coming-soon-icon">
           <Icon name="sparkles" size={22} />
         </div>

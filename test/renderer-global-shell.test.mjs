@@ -44,6 +44,36 @@ test('every global entry is rendered by the global utility bar', () => {
   assert.match(appSource, /role="toolbar"/)
 })
 
+test('the shared command bar has one stable order and no Current Context slot', () => {
+  const utilityBar = appSource.match(/function GlobalUtilityBar[\s\S]*?(?=\n}\n\nfunction CurrentContextChip)/)
+  assert.ok(utilityBar, 'App.jsx must keep one shared GlobalUtilityBar implementation')
+  const source = utilityBar[0]
+  const slots = [
+    'toolbar-search-slot',
+    'toolbar-notifications-slot',
+    'toolbar-proposals-slot',
+    'toolbar-create-slot',
+    'toolbar-ai-slot',
+  ]
+  let previous = -1
+  for (const slot of slots) {
+    const index = source.indexOf(slot)
+    assert.ok(index > previous, `${slot} must remain in the shared command order`)
+    previous = index
+  }
+  assert.doesNotMatch(source, /CurrentContextChip|current-context/)
+  assert.equal((appSource.match(/className="global-utility-bar[^\"]*"/g) || []).length, 1)
+})
+
+test('Current Context is presented only inside the Main AI focus layer', () => {
+  assert.match(appSource, /if \(id === 'main-ai'\)/)
+  assert.match(appSource, /context\?\.projectId && <CurrentContextChip context=\{context\} \/>/)
+  const utilityBar = appSource.match(/function GlobalUtilityBar[\s\S]*?(?=\n}\n\nfunction CurrentContextChip)/)
+  assert.ok(utilityBar)
+  assert.doesNotMatch(utilityBar[0], /CurrentContextChip|current-context/)
+  assert.match(appSource, /presentation="focus"[\s\S]*context=\{currentContext\}/)
+})
+
 test('global entries are buttons with aria-expanded and no fake success', () => {
   assert.match(appSource, /aria-expanded=\{active\}/)
   assert.match(appSource, /aria-controls="global-panel"/)

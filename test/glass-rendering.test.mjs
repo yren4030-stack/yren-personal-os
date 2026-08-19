@@ -12,6 +12,7 @@ import { computeGlassTokens } from '../apps/desktop/renderer/src/glass-tokens.mj
 import { buildLegacyAliases, resolveFoundationTokens } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
+const foundationCss = readFileSync(new URL('../apps/desktop/renderer/src/ui-foundation.css', import.meta.url), 'utf8')
 const tokensSrc = readFileSync(new URL('../apps/desktop/renderer/src/glass-tokens.mjs', import.meta.url), 'utf8')
 const foundationSrc = readFileSync(new URL('../apps/desktop/renderer/src/ui-foundation.mjs', import.meta.url), 'utf8')
 const appSrc = readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8')
@@ -31,31 +32,35 @@ function ruleChunks() {
 const rules = ruleChunks()
 
 const findRule = (selector) => rules.find((r) => r.selector === selector)
-const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-group', '.proposal-card', '.list-card']
+const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-appearance-module', '.proposal-card', '.list-card']
 
-test('shared glass surface rule consumes the centralized CONTENT tokens (standard content material)', () => {
+test('formal renderer surfaces consume the single Foundation regular material', () => {
+  assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*background: var\(--ui-glass-background\)/)
+  assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*backdrop-filter: blur\(var\(--ui-glass-blur\)/)
+  for (const marker of [
+    'sidebar ui-liquid-glass',
+    'global-utility-bar ui-liquid-glass',
+    'global-panel-${id}',
+    'stat-card" data-material="regular"',
+    'project-card ui-liquid-glass',
+    'list-card" data-material="regular"',
+    'proposal-card ui-liquid-glass',
+    'settings-appearance-module" data-material="regular"',
+  ]) {
+    assert.ok(appSrc.includes(marker), `renderer must mount ${marker} on the shared material`)
+  }
   const shared = findRule('.card, .glass')
-  assert.ok(shared, 'shared .card/.glass rule must exist')
-  assert.ok(shared.body.includes('background: var(--glass-content-bg)'))
-  assert.equal(shared.body.includes('backdrop-filter'), false, 'content surfaces must not blur the content layer')
-  assert.equal(shared.body.includes('-webkit-backdrop-filter'), false, 'content surfaces must not blur the content layer')
-  assert.ok(shared.body.includes('border: var(--glass-content-border)'))
-  assert.ok(shared.body.includes('box-shadow: var(--glass-content-shadow)'))
+  assert.ok(shared, 'shared card hook must exist')
+  assert.equal(/\bbackground\s*:/.test(shared.body), false, 'card hook must not own material')
+  assert.equal(shared.body.includes('backdrop-filter'), false, 'card hook must not own material')
 })
 
-test('REGULAR and CLEAR surface rules consume their engine token sets', () => {
-  const l1 = findRule('.glass-l1, .sidebar')
-  assert.ok(l1)
-  assert.ok(l1.body.includes('var(--glass-bg)'), 'regular uses the regular fill')
-  assert.ok(l1.body.includes('var(--glass-blur)'), 'regular uses the regular scattering')
-  assert.ok(l1.body.includes('brightness(var(--glass-brightness))'), 'regular carries luminosity')
-  assert.ok(l1.body.includes('contrast(var(--glass-contrast))'), 'regular carries contrast')
-  assert.ok(l1.body.includes('box-shadow: var(--glass-shadow)'), 'regular shadow carries rim/contact/ambient')
-  const float = findRule('.glass-float')
-  assert.ok(float)
-  assert.ok(float.body.includes('var(--glass-clear-bg)'), 'clear uses the clear fill')
-  assert.ok(float.body.includes('var(--glass-clear-blur)'), 'clear uses the clear scattering')
-  assert.ok(float.body.includes('var(--glass-clear-shadow)'), 'clear carries its optical shadow')
+test('Foundation materials are mounted through one regular surface and one shared content-bearing profile', () => {
+  assert.match(foundationCss, /\.ui-liquid-glass\[data-material='clear'\]/)
+  assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*var\(--ui-glass-regular-/)
+  assert.match(appSrc, /global-panel-\$\{id\}[\s\S]*ui-liquid-glass content-bearing-glass/)
+  assert.match(foundationCss, /\.ui-liquid-glass\.content-bearing-glass\s*\{[\s\S]*var\(--ui-glass-content-bearing-fill\)/)
+  assert.doesNotMatch(appSrc, /data-material="clear"/)
 })
 
 test('no later CSS rule overrides background/backdrop-filter/opacity on glass surfaces', () => {
@@ -101,76 +106,31 @@ test('no opaque parent blocks the body depth layer (GLASS_BACKDROP_SOURCE_LAYER 
 })
 
 test('glass tokens are runtime aliases owned by FOUNDATION_TOKENS', () => {
-  const l1 = findRule('.glass-l1, .sidebar')
-  assert.ok(l1)
-  const shared = findRule('.card, .glass')
-  assert.ok(shared)
-  const float = findRule('.glass-float')
-  assert.ok(float)
-
   const aliases = buildLegacyAliases(resolveFoundationTokens({ appearance: 'light' }))
   assert.equal(aliases['--glass-bg'], 'var(--ui-glass-regular-background)')
   assert.equal(aliases['--glass-blur'], 'var(--ui-glass-regular-blur)')
   assert.equal(/--glass-(?:bg|blur|border|shadow)\s*:\s*(?:#|rgba|linear-gradient|[0-9])/i.test(css), false)
-  assert.ok(l1.body.includes('var(--glass-bg)'), 'regular consumes the regular fill')
-  assert.ok(l1.body.includes('var(--glass-blur)'), 'regular consumes the regular scattering')
-  assert.ok(shared.body.includes('var(--glass-content-bg)'), 'content consumes the content fill')
-  assert.equal(shared.body.includes('var(--glass-content-blur)'), false, 'content does not consume a blur token')
-  assert.ok(float.body.includes('var(--glass-clear-bg)'), 'clear consumes the clear fill')
-
-  // Legacy names may only be consumed by material rules; their values are
-  // aliases installed by the Foundation runtime.
-  for (const rule of rules) {
-    if (
-      rule.selector === '.card, .glass' ||
-      rule.selector === '.glass-l1, .sidebar' ||
-      rule.selector === '.glass-l1' ||
-      rule.selector === '.glass-float' ||
-      rule.selector === '.segmented button.active' ||
-      rule.selector.startsWith('@media (prefers-reduced-transparency')
-    ) continue
-    for (const token of ['--glass-bg', '--glass-blur', '--glass-saturation']) {
-      // Boundary match: --glass-bg-content / --glass-blur-content etc. are
-      // distinct tokens owned by the content surface, not violations.
-      const boundary = new RegExp(token + '(?!-)')
-      assert.equal(boundary.test(rule.body), false, `${rule.selector} must not reference ${token}`)
-    }
-    if (/--glass-shadow(?!-)/.test(rule.body)) {
-      assert.ok(
-        rule.body.includes('box-shadow: var(--glass-shadow),'),
-        `${rule.selector} must layer --glass-shadow, not replace it`,
-      )
-    }
-  }
+  assert.match(foundationCss, /background: var\(--ui-glass-background\)/)
+  assert.match(foundationCss, /backdrop-filter: blur\(var\(--ui-glass-blur\)/)
+  assert.match(appSrc, /className="sidebar ui-liquid-glass" data-material="regular"/)
+  assert.match(appSrc, /className="global-utility-bar ui-liquid-glass" data-material="regular"/)
+  assert.match(appSrc, /ui-liquid-glass content-bearing-glass`\}\s*data-material="regular"/)
   assert.ok(foundationSrc.includes('--glass-highlight'))
+  assert.ok(foundationSrc.includes('--glass-edge-lensing'))
 })
 
-test('semantic material hierarchy: REGULAR functional differs from STANDARD content', () => {
-  const l1 = findRule('.glass-l1, .sidebar')
-  assert.ok(l1, 'regular glass rule must exist')
-  assert.ok(l1.body.includes('var(--glass-bg)'))
-  assert.ok(l1.body.includes('var(--glass-blur)'))
-
+test('formal surfaces do not split into component-local material hierarchies', () => {
   const shared = findRule('.card, .glass')
   assert.ok(shared)
-  assert.equal(shared.body.includes('var(--glass-bg)'), false, 'content must NOT use the regular fill')
-  assert.equal(shared.body.includes('var(--glass-specular)'), false, 'content must not carry the specular layer')
-  assert.equal(shared.body.includes('var(--glass-reflection)'), false, 'content must not carry the reflection layer')
-
-  // Pseudo layers: regular specular + internal reflection + rim shade;
-  // content keeps only the top light.
-  const l1Before = findRule('.glass-l1::before, .sidebar::before')
-  const l1After = findRule('.glass-l1::after, .sidebar::after')
-  assert.ok(l1Before && l1Before.body.includes('var(--glass-specular)'), 'regular specular layer exists')
-  assert.ok(l1Before.body.includes('var(--glass-spill)'), 'regular environmental spill exists')
-  assert.ok(l1After && l1After.body.includes('var(--glass-reflection)'), 'regular internal reflection exists')
-  assert.ok(l1After.body.includes('var(--glass-rim-shade)'), 'regular opposite-edge shade exists')
-  assert.ok(l1Before.body.includes('pointer-events: none'), 'overlay layers never capture input')
-  assert.ok(l1After.body.includes('pointer-events: none'))
+  assert.equal(/\bbackground\s*:/.test(shared.body), false)
+  assert.equal(shared.body.includes('backdrop-filter'), false)
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /\.glass-l1|\.glass-float/)
+  assert.match(foundationCss, /content-bearing-glass/)
+  assert.doesNotMatch(appSrc, /global-panel-\$\{id\}[^\n]*ui-liquid-glass[^\n]*ui-liquid-glass/)
 })
 
 test('edge/specular/reflection construction tokens exist in both theme scopes', () => {
-  for (const token of ['--glass-specular', '--glass-reflection', '--glass-spill', '--glass-rim-light', '--glass-rim-shade', '--glass-clear-rim-light']) {
+  for (const token of ['--glass-specular', '--glass-reflection', '--glass-spill', '--glass-rim-light', '--glass-rim-shade', '--glass-edge-top', '--glass-edge-side', '--glass-edge-bottom', '--glass-edge-lensing', '--glass-edge-softening', '--glass-clear-rim-light']) {
     assert.ok(foundationSrc.includes(token), `${token} alias must exist`)
   }
   const dark = resolveFoundationTokens({ appearance: 'dark' }).glass.regular
@@ -187,17 +147,16 @@ test('shared content rows do not receive independent backdrop-filter (glass only
   }
 })
 
-test('segmented control is a CLEAR glass capsule; selected state is not a flat fill-only rule', () => {
+test('segmented control stays a semantic control without nested Glass', () => {
   const group = findRule('.segmented')
   assert.ok(group)
-  assert.ok(group.body.includes('var(--glass-clear-bg)'), 'outer group uses clear glass')
-  assert.ok(group.body.includes('var(--glass-clear-blur)'), 'outer group carries clear scattering')
+  assert.equal(group.body.includes('background'), false)
+  assert.equal(group.body.includes('backdrop-filter'), false)
+  assert.doesNotMatch(readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8'), /className="segmented ui-liquid-glass"/)
   const active = findRule('.segmented button.active')
   assert.ok(active)
-  assert.ok(active.body.includes('linear-gradient'), 'selected segment has an optical gradient (not flat fill)')
-  assert.ok(active.body.includes('var(--glass-clear-specular)'), 'selected segment carries a specular layer')
-  assert.ok(active.body.includes('inset 0 1px 0 var(--glass-clear-highlight)'), 'selected segment has internal reflection')
-  assert.ok(active.body.includes('inset 0 0 0 1px var(--glass-clear-rim-light)'), 'selected segment has a thin refractive rim')
+  assert.ok(active.body.includes('var(--ui-interaction-selection-background)'))
+  assert.equal(active.body.includes('var(--glass-clear-specular)'), false)
 })
 
 test('no WebGL / canvas material renderer is introduced', () => {
@@ -231,9 +190,8 @@ test('coherent concentric radius system exists', () => {
     assert.ok(foundationSrc.includes(token), `${token} alias must exist`)
   }
   const card = findRule('.card, .glass')
-  assert.ok(card.body.includes('var(--radius-glass-medium)'), 'cards use the medium glass radius')
-  const sidebar = findRule('.sidebar')
-  assert.ok(sidebar.body.includes('var(--radius-glass-large)'), 'sidebar uses the large glass radius')
+  assert.ok(card.body.includes('var(--ui-radius-surface-md)'), 'card hook uses the foundation surface radius')
+  assert.match(foundationCss, /\.ui-liquid-glass\.sidebar,[\s\S]*border-radius: var\(--ui-radius-floating\)/)
 })
 
 test('real renderer accessibility and Content First boundary are wired', () => {
@@ -244,8 +202,20 @@ test('real renderer accessibility and Content First boundary are wired', () => {
   assert.match(css, /\.btn-destructive\[data-state='selected'\]/)
   assert.doesNotMatch(css, /prefers-contrast|data-increased-contrast/)
   assert.equal(appSrc.includes('card glass-l1 proposal-card'), false, 'proposal content is not a glass surface')
-  assert.match(appSrc, /className="card proposal-card"/)
+  assert.match(appSrc, /className="card proposal-card[^"]*ui-liquid-glass/)
   assert.equal(findRule('.card, .glass').body.includes('backdrop-filter'), false)
+})
+
+test('pending proposal empty state uses the shared proposal glass surface', () => {
+  const pendingSection = appSrc.match(/projectDetail\.pendingProposals[\s\S]*?<\/Section>/)
+  assert.ok(pendingSection, 'Project Detail must render the pending proposal section')
+  assert.match(pendingSection[0], /proposal-empty-card ui-liquid-glass page-glass-surface/)
+  assert.match(pendingSection[0], /proposal-empty-state/)
+  assert.doesNotMatch(pendingSection[0], /<Empty text=\{t\('projectDetail\.noPendingProposals'\)\} \/>/)
+
+  const proposalRule = findRule('.proposal-card')
+  assert.ok(proposalRule, 'proposal module layout rule must exist')
+  assert.doesNotMatch(proposalRule.body, /background|border|box-shadow|backdrop-filter/)
 })
 
 test('clear vs tinted produces different computed token values (selection → token link)', () => {

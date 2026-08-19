@@ -17,8 +17,8 @@ body {
   font-size: var(--ui-type-body-size);
 }
 
-/* One material surface. Content remains stable and should not receive this
-   class by default; use it only for navigation/control/floating layers. */
+/* One Foundation material surface. Formal renderer surfaces use this class;
+   inner rows and controls remain transparent or semantic surfaces. */
 .ui-liquid-glass {
   position: relative;
   isolation: isolate;
@@ -34,10 +34,33 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   border-radius: inherit;
-  background: var(--ui-glass-specular), var(--ui-glass-spill);
+  background: var(--ui-glass-specular), var(--ui-glass-edge-lensing, none), var(--ui-glass-spill);
   pointer-events: none;
+}
+
+/* Foundation optical layer: one surface, with restrained multi-edge response.
+   This is an Electron approximation of edge illumination/lensing, not a claim
+   of native macOS compositor refraction. */
+.ui-liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 var(--ui-glass-edge-top, transparent),
+    inset 1px 0 0 var(--ui-glass-edge-side, transparent),
+    inset -1px 0 0 var(--ui-glass-edge-side, transparent),
+    inset 0 -1px 0 var(--ui-glass-edge-bottom, transparent),
+    inset 0 0 18px -12px var(--ui-glass-edge-softening, transparent);
+}
+
+.ui-liquid-glass > * {
+  position: relative;
+  z-index: 1;
 }
 
 .ui-liquid-glass[data-material='clear'] {
@@ -51,8 +74,37 @@ body {
   border-radius: var(--ui-radius-floating);
 }
 
+/* Content-bearing surfaces share one runtime profile across Main AI and every
+   anchored panel. Geometry remains component-specific; optical values do not. */
+.ui-liquid-glass.content-bearing-glass {
+  --ui-glass-background: var(--ui-glass-content-bearing-fill);
+  --ui-glass-border: var(--ui-glass-content-bearing-border);
+  --ui-glass-shadow: var(--ui-glass-content-bearing-shadow);
+  --ui-glass-blur: var(--ui-glass-content-bearing-blur);
+  --ui-glass-saturation: var(--ui-glass-content-bearing-saturation);
+  --ui-glass-brightness: var(--ui-glass-content-bearing-brightness);
+  --ui-glass-specular: var(--ui-glass-content-bearing-specular);
+  --ui-glass-spill: var(--ui-glass-content-bearing-spill, none);
+  --ui-glass-edge-top: var(--ui-glass-content-bearing-edge-top);
+  --ui-glass-edge-side: var(--ui-glass-content-bearing-edge-side);
+  --ui-glass-edge-bottom: var(--ui-glass-content-bearing-edge-bottom);
+  --ui-glass-edge-lensing: var(--ui-glass-content-bearing-edge-lensing);
+  --ui-glass-edge-softening: var(--ui-glass-content-bearing-edge-softening);
+}
+
+/* Surface geometry is component-specific; material values remain shared. */
+.ui-liquid-glass.sidebar,
+.ui-liquid-glass.global-panel {
+  border-radius: var(--ui-radius-floating);
+}
+
+.ui-liquid-glass.global-utility-bar,
+.ui-liquid-glass.segmented {
+  border-radius: var(--ui-radius-capsule);
+}
+
 /* Prevent accidental nested material stacking (glass-on-glass). */
-.ui-liquid-glass .ui-liquid-glass {
+.ui-liquid-glass .ui-liquid-glass:not(.content-bearing-glass) {
   background: transparent;
   border-color: transparent;
   box-shadow: none;

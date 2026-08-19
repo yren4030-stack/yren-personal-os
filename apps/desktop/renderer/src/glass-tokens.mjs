@@ -9,8 +9,8 @@ import { resolveFoundationTokens } from './ui-foundation.mjs'
 export const LIQUID_GLASS_STYLES = Object.freeze({ CLEAR: 'clear', TINTED: 'tinted' })
 export const MATERIAL_VARIANTS = Object.freeze({ REGULAR: 'regular', CLEAR: 'clear', CONTENT: 'content' })
 
-export function resolveLiquidGlass({ theme = 'light', userStyle = 'clear', variant = 'regular', role, size } = {}) {
-  const resolved = resolveFoundationTokens({ appearance: theme, liquidGlassStyle: userStyle, glassRole: role, glassSize: size })
+export function resolveLiquidGlass({ theme = 'light', userStyle = 'clear', variant = 'regular', role, size, glassStrength } = {}) {
+  const resolved = resolveFoundationTokens({ appearance: theme, liquidGlassStyle: userStyle, glassRole: role, glassSize: size, glassStrength })
   return resolved.glass[variant === 'clear' ? 'clear' : variant === 'content' ? 'content' : 'regular']
 }
 
@@ -21,10 +21,12 @@ export function computeGlassTokens(appearance = {}) {
     liquidGlassStyle: appearance.liquidGlassStyle,
     increasedContrast: appearance.increasedContrast === true,
     reducedTransparency: appearance.reducedTransparency === true,
+    glassStrength: appearance.glassStrength,
   })
   const regular = resolved.glass.regular
   const clear = resolved.glass.clear
   const content = resolved.glass.content
+  const contentBearing = resolved.contentBearing
   return {
     glassBg: regular.background,
     glassBlur: regular.blur,
@@ -39,6 +41,11 @@ export function computeGlassTokens(appearance = {}) {
     glassSpecular: regular.specular,
     glassReflection: regular.reflection,
     glassSpill: regular.spill,
+    glassEdgeTop: regular.edgeTop,
+    glassEdgeSide: regular.edgeSide,
+    glassEdgeBottom: regular.edgeBottom,
+    glassEdgeLensing: regular.edgeLensing,
+    glassEdgeSoftening: regular.edgeSoftening,
     glassClearBg: clear.background,
     glassClearBlur: clear.blur,
     glassClearBorder: clear.border,
@@ -49,6 +56,11 @@ export function computeGlassTokens(appearance = {}) {
     glassClearHighlight: clear.highlight,
     glassClearRimLight: clear.rimLight,
     glassClearSpecular: clear.specular,
+    glassClearEdgeTop: clear.edgeTop,
+    glassClearEdgeSide: clear.edgeSide,
+    glassClearEdgeBottom: clear.edgeBottom,
+    glassClearEdgeLensing: clear.edgeLensing,
+    glassClearEdgeSoftening: clear.edgeSoftening,
     glassContentBg: content.background,
     glassContentBlur: content.blur,
     glassContentBorder: content.border,
@@ -56,12 +68,26 @@ export function computeGlassTokens(appearance = {}) {
     glassContentSaturation: content.saturation.toFixed(2),
     glassContentBrightness: content.brightness.toFixed(2),
     glassContentContrast: content.contrast.toFixed(2),
+    glassContentBearingFill: contentBearing.fill,
+    glassContentBearingFillAlpha: contentBearing.fillAlpha,
+    glassContentBearingBlur: contentBearing.blur,
+    glassContentBearingBorder: contentBearing.border,
+    glassContentBearingShadow: contentBearing.shadow,
+    glassContentBearingSaturation: contentBearing.saturation,
+    glassContentBearingBrightness: contentBearing.brightness,
+    glassContentBearingSpecular: contentBearing.specular,
+    glassContentBearingEdgeTop: contentBearing.edgeTop,
+    glassContentBearingEdgeSide: contentBearing.edgeSide,
+    glassContentBearingEdgeBottom: contentBearing.edgeBottom,
+    glassContentBearingEdgeLensing: contentBearing.edgeLensing,
+    glassContentBearingEdgeSoftening: contentBearing.edgeSoftening,
     regularFillAlpha: regular.fillAlpha,
     regularBlurPx: regular.blurPx,
     clearFillAlpha: clear.fillAlpha,
     contentFillAlpha: content.fillAlpha,
     blurPx: regular.blurPx,
     alpha: regular.fillAlpha,
+    glassStrength: resolved.glassStrength,
   }
 }
 
@@ -83,6 +109,11 @@ export function applyGlassTokens(tokens) {
     '--ui-glass-regular-specular': tokens.glassSpecular,
     '--ui-glass-regular-reflection': tokens.glassReflection,
     '--ui-glass-regular-spill': tokens.glassSpill,
+    '--ui-glass-regular-edge-top': tokens.glassEdgeTop,
+    '--ui-glass-regular-edge-side': tokens.glassEdgeSide,
+    '--ui-glass-regular-edge-bottom': tokens.glassEdgeBottom,
+    '--ui-glass-regular-edge-lensing': tokens.glassEdgeLensing,
+    '--ui-glass-regular-edge-softening': tokens.glassEdgeSoftening,
     '--ui-glass-clear-background': tokens.glassClearBg,
     '--ui-glass-clear-blur': tokens.glassClearBlur,
     '--ui-glass-clear-border': tokens.glassClearBorder,
@@ -93,6 +124,11 @@ export function applyGlassTokens(tokens) {
     '--ui-glass-clear-highlight': tokens.glassClearHighlight,
     '--ui-glass-clear-rim-light': tokens.glassClearRimLight,
     '--ui-glass-clear-specular': tokens.glassClearSpecular,
+    '--ui-glass-clear-edge-top': tokens.glassClearEdgeTop,
+    '--ui-glass-clear-edge-side': tokens.glassClearEdgeSide,
+    '--ui-glass-clear-edge-bottom': tokens.glassClearEdgeBottom,
+    '--ui-glass-clear-edge-lensing': tokens.glassClearEdgeLensing,
+    '--ui-glass-clear-edge-softening': tokens.glassClearEdgeSoftening,
     '--ui-glass-content-background': tokens.glassContentBg,
     '--ui-glass-content-blur': tokens.glassContentBlur,
     '--ui-glass-content-border': tokens.glassContentBorder,
@@ -100,6 +136,19 @@ export function applyGlassTokens(tokens) {
     '--ui-glass-content-saturation': tokens.glassContentSaturation,
     '--ui-glass-content-brightness': tokens.glassContentBrightness,
     '--ui-glass-content-contrast': tokens.glassContentContrast,
+    '--ui-glass-content-bearing-fill': tokens.glassContentBearingFill,
+    '--ui-glass-content-bearing-blur': tokens.glassContentBearingBlur,
+    '--ui-glass-content-bearing-border': tokens.glassContentBearingBorder,
+    '--ui-glass-content-bearing-shadow': tokens.glassContentBearingShadow,
+    '--ui-glass-content-bearing-saturation': tokens.glassContentBearingSaturation,
+    '--ui-glass-content-bearing-brightness': tokens.glassContentBearingBrightness,
+    '--ui-glass-content-bearing-specular': tokens.glassContentBearingSpecular,
+    '--ui-glass-content-bearing-edge-top': tokens.glassContentBearingEdgeTop,
+    '--ui-glass-content-bearing-edge-side': tokens.glassContentBearingEdgeSide,
+    '--ui-glass-content-bearing-edge-bottom': tokens.glassContentBearingEdgeBottom,
+    '--ui-glass-content-bearing-edge-lensing': tokens.glassContentBearingEdgeLensing,
+    '--ui-glass-content-bearing-edge-softening': tokens.glassContentBearingEdgeSoftening,
   }
   for (const [name, value] of Object.entries(values)) root.style.setProperty(name, value)
+  if (tokens.glassStrength !== undefined) root.style.setProperty('--ui-glass-strength', String(tokens.glassStrength))
 }

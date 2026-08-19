@@ -71,7 +71,7 @@ export function normalizeAppearancePatch(patch) {
   if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
     return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'appearance patch must be an object' } }
   }
-  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme', 'liquidGlassStyle'])
+  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme', 'liquidGlassStyle', 'glassStrength'])
   for (const key of Object.keys(patch)) {
     if (!allowed.has(key)) {
       return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: `unexpected appearance field: ${key}` } }
@@ -102,5 +102,6 @@ export function normalizeAppearancePatch(patch) {
     }
     normalized.liquidGlassStyle = patch.liquidGlassStyle
   }
+  if ('glassStrength' in patch) normalized.glassStrength = clampInt(patch.glassStrength, 0, 100, NaN)
   return { ok: true, patch: normalized }
 }

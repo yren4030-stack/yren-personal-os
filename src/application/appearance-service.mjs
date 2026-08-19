@@ -17,6 +17,7 @@ export const DEFAULT_APPEARANCE = Object.freeze({
   transparencyLevel: 40,
   theme: 'light',
   liquidGlassStyle: 'clear',
+  glassStrength: 60,
 })
 
 export class AppearanceService {
@@ -38,6 +39,7 @@ export class AppearanceService {
           frostIntensity: this._clamp(stored.frostIntensity, 60),
           transparencyLevel: this._clamp(stored.transparencyLevel, 40),
           theme: stored.theme === 'dark' || stored.theme === 'system' ? stored.theme : 'light',
+          glassStrength: this._clamp(stored.glassStrength, 60),
           // New optical profile; legacy states without it map from their old
           // opacity preference (low transparencyLevel = previously preferred a
           // substantially more opaque surface → tinted; otherwise clear).
@@ -67,7 +69,13 @@ export class AppearanceService {
   }
 
   update(patch) {
-    this.state = { ...this.state, ...patch }
+    this.state = {
+      ...this.state,
+      ...patch,
+      ...(Object.prototype.hasOwnProperty.call(patch, 'glassStrength')
+        ? { glassStrength: this._clamp(patch.glassStrength, 60) }
+        : {}),
+    }
     this.storage.save(this.state)
     return this.get()
   }

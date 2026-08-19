@@ -27,9 +27,9 @@ test('light theme tokens exist', () => {
 
 test('dark theme tokens exist and use graphite smoked glass', () => {
   const dark = computeGlassTokens(DARK)
-  assert.match(dark.glassBg, /^rgba\(34, 36, 42, /, 'dark fill is graphite')
-  assert.match(dark.glassBorder, /^1px solid rgba\(255, 255, 255, /, 'dark glass has a brighter perimeter border')
-  assert.ok(dark.glassHighlight.startsWith('rgba(255, 255, 255, '), 'dark glass keeps a white edge highlight')
+  assert.equal(dark.glassBg, 'rgba(38, 38, 40, 0.58)', 'dark fill is the fixed graphite baseline')
+  assert.equal(dark.glassBorder, '1px solid rgba(255, 255, 255, 0.10)', 'dark glass uses a restrained perimeter border')
+  assert.equal(dark.glassHighlight, 'rgba(255, 255, 255, 0.09)', 'dark glass keeps a restrained edge highlight')
   assert.ok(css.includes(':root[data-theme=\'dark\']') || css.includes(':root[data-theme="dark"]'))
   assert.equal(FOUNDATION_TOKENS.colors.dark['text-primary'], '#f2f2f6', 'dark text token is Foundation-owned')
 })
@@ -54,38 +54,44 @@ test('theme preference resolution: light/dark force, system follows abstraction'
   assert.ok(['light', 'dark'].includes(resolveTheme('system')), 'system always resolves to a concrete theme')
 })
 
-test('clear vs tinted changes global blur AND fill in BOTH themes', () => {
-  for (const theme of ['light', 'dark']) {
-    const clear = computeGlassTokens({ theme, liquidGlassStyle: 'clear' })
-    const tinted = computeGlassTokens({ theme, liquidGlassStyle: 'tinted' })
-    assert.notEqual(clear.glassBlur, tinted.glassBlur, `${theme}: blur differs between profiles`)
-    assert.notEqual(clear.glassBg, tinted.glassBg, `${theme}: fill differs between profiles`)
-    assert.ok(clear.alpha < tinted.alpha, `${theme}: clear transmits more than tinted`)
-  }
+test('clear vs tinted changes light optics while dark regular stays on the fixed baseline', () => {
+  const lightClear = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
+  const lightTinted = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'tinted' })
+  assert.notEqual(lightClear.glassBlur, lightTinted.glassBlur, 'light: blur differs between profiles')
+  assert.notEqual(lightClear.glassBg, lightTinted.glassBg, 'light: fill differs between profiles')
+  assert.ok(lightClear.alpha < lightTinted.alpha, 'light: clear transmits more than tinted')
+
+  const darkClear = computeGlassTokens({ theme: 'dark', liquidGlassStyle: 'clear' })
+  const darkTinted = computeGlassTokens({ theme: 'dark', liquidGlassStyle: 'tinted' })
+  assert.equal(darkClear.glassBlur, darkTinted.glassBlur, 'dark: regular blur is fixed')
+  assert.equal(darkClear.glassBg, darkTinted.glassBg, 'dark: regular fill is fixed')
+  assert.equal(darkClear.alpha, darkTinted.alpha, 'dark: regular fill alpha is fixed')
 })
 
-test('no technical sliders and no material selector are exposed (macOS 26 appearance model)', () => {
+test('Global Glass Strength is the only exposed optical control', () => {
   const src = readFileSync(new URL('../apps/desktop/renderer/src/App.jsx', import.meta.url), 'utf8')
   assert.equal(src.includes('settings.glassMaterial'), false)
   assert.equal(src.includes('settings.frosted'), false)
   assert.equal(src.includes('settings.glassEffect'), false)
   assert.equal(src.includes('settings.frostIntensity'), false)
   assert.equal(src.includes('settings.transparencyLevel'), false)
-  assert.equal(src.includes('type="range"'), false, 'no technical sliders in the Appearance UI')
-  // The segmented control is now the glass-capsule selector for the two
-  // user-facing axes.
+  assert.equal(src.includes('type="range"'), true, 'the global strength control is exposed')
+  assert.ok(src.includes('min="0"') && src.includes('max="100"'), 'strength uses the bounded 0-100 range')
+  assert.ok(src.includes('glassStrength'), 'strength is wired to Appearance state')
   assert.ok(src.includes('settings.appearanceMode'), 'appearance mode control exists')
-  assert.ok(src.includes('settings.clearOption'), 'Liquid Glass clear option exists')
-  assert.ok(src.includes('settings.tintedOption'), 'Liquid Glass tinted option exists')
+  assert.ok(src.includes('settings.glassStrength'), 'Glass Strength control exists')
+  assert.ok(src.includes('settings.desktopBackgroundCurrent'), 'background placeholder exists')
+  assert.equal(src.includes('settings.clearOption'), false, 'clear material selector is not exposed in Step 2.6')
+  assert.equal(src.includes('settings.tintedOption'), false, 'tinted material selector is not exposed in Step 2.6')
 })
 
-test('Appearance UI labels: 浅色 / 深色 / 自动 and 透明 / 色调', () => {
+test('Appearance UI labels: 浅色 / 深色 / 自动 and truthful placeholders', () => {
   const i18n = readFileSync(new URL('../apps/desktop/renderer/src/i18n/zh-CN.mjs', import.meta.url), 'utf8')
   assert.ok(i18n.includes("themeLight: '浅色'"))
   assert.ok(i18n.includes("themeDark: '深色'"))
   assert.ok(i18n.includes("themeSystem: '自动'"))
-  assert.ok(i18n.includes("clearOption: '透明'"))
-  assert.ok(i18n.includes("tintedOption: '色调'"))
+  assert.ok(i18n.includes("liquidGlassCurrent: '当前：默认'"))
+  assert.ok(i18n.includes("desktopBackgroundCurrent: '正在使用默认背景。'"))
   assert.ok(i18n.includes("appearanceMode: '外观模式'"))
 })
 
@@ -139,15 +145,12 @@ test('responsive CSS: Home stat grid is fluid across 4/3/2 column configurations
   assert.equal(columns(620), 2, 'minimum-window content resolves 2 columns')
 })
 
-test('responsive CSS: settings width is container-driven across compact/standard/spacious', () => {
+test('responsive CSS: settings width is bounded and left-aligned across compact', () => {
   const compact = css.match(/@container \(max-width: 760px\) \{([\s\S]*?)\n\}/)
   assert.ok(compact && compact[1].includes('.settings-groups'), 'compact tier targets settings groups')
   assert.ok(compact[1].includes('width: 100%'), 'compact settings fills available width')
-  const standard = css.match(/@container \(min-width: 761px\) and \(max-width: 1100px\) \{([\s\S]*?)\n\}/)
-  assert.ok(standard && standard[1].includes('width: min(100%, 660px)'), 'standard tier is a balanced column')
-  const spacious = css.match(/@container \(min-width: 1101px\) \{([\s\S]*?)\n\}/)
-  assert.ok(spacious && spacious[1].includes('width: min(100%, 780px)'), 'spacious tier grows moderately')
-  assert.ok(css.includes('margin-inline: auto'), 'settings column is optically balanced')
+  assert.match(css, /\.settings-groups\s*\{[\s\S]*?width: min\(100%, 780px\);[\s\S]*?margin-inline: 0;/, 'settings stays left-aligned with a bounded reading width')
+  assert.match(compact[1], /\.settings-row\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/, 'compact settings rows stack vertically')
 })
 
 test('no one global page max-width artificially constrains every module', () => {

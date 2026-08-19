@@ -65,7 +65,7 @@ test('page dictionaries cover the keys the UI renders', () => {
     assert.equal(typeof detail[key], 'string', `projectDetail.${key}`)
   }
   const settings = messages.settings
-  for (const key of ['title', 'subtitle', 'appearance', 'appearanceMode', 'themeLight', 'themeDark', 'themeSystem', 'glassStyle', 'clearOption', 'tintedOption']) {
+  for (const key of ['title', 'subtitle', 'appearance', 'appearanceMode', 'appearanceModeDescription', 'themeLight', 'themeDark', 'themeSystem', 'liquidGlass', 'liquidGlassDescription', 'liquidGlassCurrent', 'glassStrength', 'glassStrengthValue', 'desktopBackground', 'desktopBackgroundDescription', 'desktopBackgroundCurrent']) {
     assert.equal(typeof settings[key], 'string', `settings.${key}`)
   }
   // macOS 26 appearance model: two user-facing axes, no technical controls.
@@ -73,9 +73,9 @@ test('page dictionaries cover the keys the UI renders', () => {
   assert.equal(settings.themeLight, '浅色')
   assert.equal(settings.themeDark, '深色')
   assert.equal(settings.themeSystem, '自动')
-  assert.equal(settings.glassStyle, 'Liquid Glass')
-  assert.equal(settings.clearOption, '透明')
-  assert.equal(settings.tintedOption, '色调')
+  assert.equal(settings.liquidGlass, 'Liquid Glass')
+  assert.equal(settings.liquidGlassCurrent, '当前：默认')
+  assert.equal(settings.desktopBackground, '桌面背景')
   assert.equal('frostIntensity' in settings, false)
   assert.equal('transparencyLevel' in settings, false)
   assert.equal('glassEffect' in settings, false)

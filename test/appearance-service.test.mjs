@@ -17,6 +17,7 @@ function memoryStorage(initial = null) {
 test('DEFAULT_APPEARANCE carries the new optical profile with legacy fields intact', () => {
   assert.equal(DEFAULT_APPEARANCE.liquidGlassStyle, 'clear')
   assert.equal(DEFAULT_APPEARANCE.theme, 'light')
+  assert.equal(DEFAULT_APPEARANCE.glassStrength, 60)
   assert.ok('frostIntensity' in DEFAULT_APPEARANCE)
   assert.ok('transparencyLevel' in DEFAULT_APPEARANCE)
   assert.ok('material' in DEFAULT_APPEARANCE)
@@ -53,10 +54,23 @@ test('update persists liquidGlassStyle through the existing path', () => {
   assert.equal(service.get().liquidGlassStyle, 'tinted')
 })
 
+test('glassStrength is clamped, defaults to 60, and persists through Appearance', () => {
+  const low = new AppearanceService(memoryStorage({ glassStrength: -20 }))
+  assert.equal(low.get().glassStrength, 0)
+  const high = new AppearanceService(memoryStorage({ glassStrength: 120 }))
+  assert.equal(high.get().glassStrength, 100)
+  const storage = memoryStorage()
+  const service = new AppearanceService(storage)
+  assert.equal(service.update({ glassStrength: 85 }).glassStrength, 85)
+  assert.equal(storage.load().glassStrength, 85)
+})
+
 test('normalizeAppearancePatch accepts the new field and keeps legacy fields working', () => {
   assert.deepEqual(normalizeAppearancePatch({ liquidGlassStyle: 'tinted' }), { ok: true, patch: { liquidGlassStyle: 'tinted' } })
   assert.deepEqual(normalizeAppearancePatch({ liquidGlassStyle: 'clear' }), { ok: true, patch: { liquidGlassStyle: 'clear' } })
   assert.equal(normalizeAppearancePatch({ liquidGlassStyle: 'neon' }).ok, false)
   assert.deepEqual(normalizeAppearancePatch({ theme: 'dark', frostIntensity: 42 }), { ok: true, patch: { theme: 'dark', frostIntensity: 42 } })
+  assert.deepEqual(normalizeAppearancePatch({ glassStrength: 85 }), { ok: true, patch: { glassStrength: 85 } })
+  assert.equal(normalizeAppearancePatch({ glassStrength: 101 }).patch.glassStrength, 100)
   assert.equal(normalizeAppearancePatch({ unexpected: 1 }).ok, false)
 })

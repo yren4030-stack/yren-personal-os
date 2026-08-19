@@ -56,6 +56,11 @@ body,
   margin: 0;
 }
 
+#root {
+  position: relative;
+  background: transparent;
+}
+
 body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
@@ -92,100 +97,28 @@ body {
 .card,
 .glass {
   position: relative;
-  background: var(--glass-content-bg);
-  border: var(--glass-content-border);
-  box-shadow: var(--glass-content-shadow);
-  border-radius: var(--radius-glass-medium);
+  border-radius: var(--ui-radius-surface-md);
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
 /* Soft inner top light on content surfaces (static, no blur cost). */
-.card::before,
-.glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, var(--glass-edge-top), transparent 38%);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 /* REGULAR Liquid Glass — text-heavy functional surfaces (sidebar, proposal
    panel, control regions, inspectors). Perimeter-driven optical model:
    coordinated backdrop stack, refractive rim light + opposite-edge shade,
    specular, internal reflection, environmental spill, contact + ambient
    shadows. The center stays relatively clear; the EDGE carries the material. */
-.glass-l1,
-.sidebar {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
-  border: var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-.glass-l1::before,
-.sidebar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--glass-specular), var(--glass-spill);
-  opacity: 0.5;
-  pointer-events: none;
-}
-.glass-l1::after,
-.sidebar::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--glass-reflection);
-  opacity: 0.5;
-  box-shadow: var(--glass-rim-shade) inset 0 -1px 0;
-  pointer-events: none;
-}
-
 /* Content First guard: a content card must stay a stable surface even if a
    legacy material class is accidentally combined with it. */
-.card.glass-l1:not(.sidebar),
-.card.glass-float:not(.sidebar) {
-  background: var(--glass-content-bg);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: var(--glass-content-border);
-  box-shadow: var(--glass-content-shadow);
-}
-
 /* CLEAR Liquid Glass — small/lightweight floating controls (segmented
    capsules, compact action capsules). Thinner, higher transmission,
    sharper perimeter, stronger optical edge. */
-.glass-float {
-  position: relative;
-  background: var(--glass-clear-bg);
-  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
-  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
-  border: var(--glass-clear-border);
-  box-shadow: var(--glass-clear-shadow);
-  border-radius: var(--radius-glass-medium);
-}
-.glass-float::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--glass-clear-specular);
-  opacity: 0.4;
-  pointer-events: none;
-}
-
 .card-hover {
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  border-color: rgba(120, 73, 209, 0.25);
-  box-shadow: var(--glass-content-shadow), 0 14px 34px rgba(0, 0, 0, 0.1);
+  border-color: var(--ui-color-selection-boundary);
+  box-shadow: var(--ui-glass-regular-shadow);
 }
 
 /* --- App shell ----------------------------------------------------------- */
@@ -428,24 +361,6 @@ body {
 .global-entry-label {
   min-width: 0;
 }
-.current-context-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  padding: 6px 10px;
-  border-radius: var(--radius-control);
-  color: var(--text-secondary);
-  font-size: 12px;
-  background: var(--glass-content-bg);
-  min-width: 0;
-}
-.current-context-chip .grow {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .global-panel {
   position: fixed;
   top: 56px;
@@ -455,10 +370,7 @@ body {
   overflow: auto;
   z-index: 40;
   padding: 14px;
-  border: 1px solid var(--glass-content-border);
-  border-radius: var(--radius-glass-medium);
-  background: var(--glass-content-bg);
-  box-shadow: var(--glass-content-shadow);
+  border-radius: var(--ui-radius-floating);
 }
 .global-panel-header {
   display: flex;
@@ -853,11 +765,16 @@ select:focus-visible {
 
 .proposal-card {
   padding: 18px 20px;
-  border: 1px solid rgba(120, 73, 209, 0.22);
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+}
+.proposal-empty-state {
+  padding: 8px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 .proposal-title {
   font-size: 15px;
@@ -926,37 +843,85 @@ select:focus-visible {
 
 /* --- Settings ------------------------------------------------------------ */
 
-/* Settings lives naturally in the STANDARD content layer — no giant glass
-   panel. Grouped control regions (standard cards), width driven by the
-   main-content container: nearly full on compact, balanced column on
-   standard, moderately wider on spacious displays. */
+/* Settings stays in the shared content flow. One bounded Glass module carries
+   the Appearance rows; the inner rows and controls remain semantic surfaces. */
 .settings-groups {
   display: grid;
   gap: 14px;
-  max-width: 100%;
-  margin-inline: auto;
+  width: min(100%, 780px);
+  margin-inline: 0;
   min-width: 0;
 }
 @container (max-width: 760px) {
   .settings-groups {
     width: 100%;
   }
-}
-@container (min-width: 761px) and (max-width: 1100px) {
-  .settings-groups {
-    width: min(100%, 660px);
+  .settings-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .settings-strength-control {
+    width: min(100%, 360px);
+  }
+  .settings-status {
+    text-align: left;
+    white-space: normal;
   }
 }
-@container (min-width: 1101px) {
-  .settings-groups {
-    width: min(100%, 780px);
-  }
+.settings-appearance-module {
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
 }
-.settings-group {
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
   padding: 18px 20px;
+}
+.settings-row + .settings-row {
+  border-top: 1px solid var(--ui-color-separator);
+}
+.settings-row-copy {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.settings-row-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-color-text-primary);
+}
+.settings-row-description {
+  color: var(--ui-color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.settings-status {
+  color: var(--ui-color-text-secondary);
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+.settings-strength-control {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 240px);
+  align-items: center;
   gap: 12px;
+  width: min(32vw, 280px);
+  min-width: 0;
+}
+.settings-strength-value {
+  min-width: 38px;
+  color: var(--accent);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.settings-strength-slider {
   min-width: 0;
 }
 .field {
@@ -984,19 +949,11 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* macOS-style CLEAR Liquid Glass segmented control: the outer group is a
-   lightweight clear glass capsule; the selected segment is a SECOND optical
-   glass layer (internal reflection, thin refractive rim, subtle elevation)
-   — never a flat filled rectangle. */
+/* Semantic segmented control inside the single Settings Glass module. */
 .segmented {
   display: inline-flex;
   padding: 3px;
   gap: 3px;
-  background: var(--glass-clear-bg);
-  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
-  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation)) brightness(var(--glass-clear-brightness)) contrast(var(--glass-clear-contrast));
-  border: var(--glass-clear-border);
-  box-shadow: var(--glass-clear-shadow);
   border-radius: var(--radius-capsule);
   align-self: flex-start;
   max-width: 100%;
@@ -1021,13 +978,11 @@ select:focus-visible {
   background: var(--interact-active);
 }
 .segmented button.active {
-  background:
-    linear-gradient(180deg, var(--glass-clear-specular), transparent 55%),
-    var(--ui-interaction-selection-background);
+  background: var(--ui-interaction-selection-background);
   border-color: var(--ui-interaction-selection-boundary);
   color: var(--ui-interaction-selection-text);
   font-weight: 600;
-  box-shadow: var(--glass-clear-shadow), inset 0 1px 0 var(--glass-clear-highlight), inset 0 0 0 1px var(--glass-clear-rim-light);
+  box-shadow: none;
 }
 .segmented button:focus-visible {
   outline: 2px solid var(--accent-focus);
@@ -1240,8 +1195,6 @@ html[data-reduced-motion='true'] *::after {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .glass-l1,
-  .glass-float,
   .sidebar,
   .segmented {
     background: var(--ui-color-surface-elevated);
@@ -1251,8 +1204,6 @@ html[data-reduced-motion='true'] *::after {
   }
 }
 
-html[data-reduced-transparency='true'] .glass-l1,
-html[data-reduced-transparency='true'] .glass-float,
 html[data-reduced-transparency='true'] .sidebar,
 html[data-reduced-transparency='true'] .segmented {
   background: var(--ui-color-surface-elevated);
@@ -1276,4 +1227,1370 @@ html[data-reduced-transparency='true'] .glass {
   background: var(--ui-color-surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* ========================================================================== *
+ * Step 2 — App Shell visual refoundation
+ *
+ * The workspace is the stable content layer. Only navigation, command groups
+ * and temporary focus surfaces float above it. Content never inherits the
+ * navigation material and remains suitable for long desktop work sessions.
+ * ========================================================================== */
+
+.app-shell {
+  position: relative;
+  gap: clamp(14px, 1.8vw, 24px);
+  padding: clamp(14px, 2vw, 28px);
+  isolation: isolate;
+  z-index: 1;
+  background: transparent;
+}
+
+.sidebar {
+  position: relative;
+  z-index: 3;
+  width: clamp(216px, 18vw, 252px);
+  height: 100%;
+  padding: 16px 12px 12px;
+  border-radius: var(--ui-radius-floating);
+  box-shadow: var(--ui-glass-regular-shadow), 0 16px 34px color-mix(in srgb, var(--ui-color-text-primary) 9%, transparent);
+}
+
+.sidebar .brand {
+  padding: 4px 8px 16px;
+  margin-bottom: 12px;
+  border-bottom-color: color-mix(in srgb, var(--ui-color-separator) 72%, transparent);
+}
+
+.sidebar .brand-mark {
+  border-radius: var(--ui-radius-surface-sm);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--ui-color-accent) 28%, transparent);
+}
+
+.app-main {
+  position: relative;
+  min-height: 0;
+  gap: 0;
+}
+
+.shell-toolbar {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 18px;
+  padding: 0 2px 12px 6px;
+}
+
+.toolbar-context {
+  display: flex;
+  min-width: 132px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbar-context-kicker {
+  overflow: hidden;
+  color: var(--ui-color-text-tertiary);
+  font-size: var(--ui-type-caption-size);
+  font-weight: var(--ui-type-caption-weight);
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.toolbar-context-title {
+  overflow: hidden;
+  color: var(--ui-color-text-primary);
+  font-size: var(--ui-type-title3-size);
+  font-weight: var(--ui-type-title3-weight);
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-utility-bar {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--ui-radius-capsule);
+}
+
+.toolbar-global-group {
+  max-width: min(56vw, 620px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.toolbar-global-group::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbar-context-group {
+  flex: 0 0 auto;
+}
+
+.global-entry {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--ui-radius-control-sm);
+  color: var(--ui-color-text-secondary);
+  font-size: var(--ui-type-caption-size);
+  font-weight: var(--ui-type-body-weight);
+  transition: background-color var(--ui-motion-hover) ease-out, color var(--ui-motion-hover) ease-out, box-shadow var(--ui-motion-press) ease-out, transform var(--ui-motion-press) ease-out;
+}
+
+.global-entry .soon-chip {
+  display: none;
+}
+
+.global-entry:hover:not(:disabled) {
+  color: var(--ui-color-text-primary);
+  background: var(--ui-interaction-button-neutral-hover);
+}
+
+.global-entry:active:not(:disabled) {
+  transform: translateY(1px);
+  background: var(--ui-interaction-button-neutral-pressed);
+}
+
+.global-entry.active,
+.global-entry[data-state='selected'] {
+  color: var(--ui-color-accent);
+  background: var(--ui-color-selection);
+  box-shadow: inset 0 0 0 var(--ui-geometry-border-width) color-mix(in srgb, var(--ui-color-accent) 24%, transparent);
+}
+
+.global-entry:focus-visible,
+.toolbar-group:focus-within {
+  outline: var(--ui-geometry-focus-width) solid var(--ui-color-focus);
+  outline-offset: var(--ui-geometry-focus-offset);
+}
+
+.current-context-chip {
+  min-height: 32px;
+  max-width: 210px;
+  margin-left: 0;
+  padding: 0 10px;
+  border-radius: var(--ui-radius-control-sm);
+  color: var(--ui-color-text-secondary);
+  background: transparent;
+  font-size: var(--ui-type-caption-size);
+}
+
+.content-workspace {
+  position: relative;
+  min-height: 0;
+  padding: 18px clamp(8px, 1.6vw, 22px) 28px;
+  border-top: var(--ui-geometry-border-width) solid color-mix(in srgb, var(--ui-color-separator) 64%, transparent);
+  box-shadow: inset 0 14px 22px -24px color-mix(in srgb, var(--ui-color-text-primary) 40%, transparent);
+}
+
+.content-workspace .page-header {
+  margin-top: 2px;
+}
+
+.content-workspace .page-title {
+  font-size: clamp(26px, 2.2vw, 32px);
+  letter-spacing: -0.035em;
+}
+
+.global-panel {
+  top: 70px;
+  right: clamp(14px, 2vw, 28px);
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(68vh, 560px);
+  padding: 14px;
+  border-radius: var(--ui-radius-floating);
+}
+
+.global-panel .card {
+  border-radius: var(--ui-radius-surface-md);
+}
+
+/* Global panels keep one glass shell. Skeleton/empty content stays a light
+   content layer instead of becoming a second rounded card inside it. */
+.global-panel .global-skeleton-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-2) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.global-panel .global-skeleton-notice::before {
+  display: none;
+}
+
+.global-panel .global-skeleton-notice .coming-soon-icon {
+  flex: 0 0 auto;
+  width: var(--ui-geometry-control-height);
+  height: var(--ui-geometry-control-height);
+  border-radius: var(--ui-radius-control-sm);
+  background: color-mix(in srgb, var(--ui-color-accent) 10%, transparent);
+  box-shadow: none;
+}
+
+.global-panel .global-skeleton-notice p {
+  padding-top: 2px;
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    padding: clamp(22px, 2.5vw, 36px);
+  }
+
+  .content-workspace {
+    padding-inline: clamp(14px, 2.2vw, 38px);
+  }
+}
+
+@media (max-width: 1179px) {
+  .shell-toolbar {
+    gap: 12px;
+    padding-left: 0;
+  }
+
+  .toolbar-context {
+    min-width: 92px;
+  }
+
+  .toolbar-context-kicker {
+    display: none;
+  }
+
+  .toolbar-global-group {
+    max-width: 64vw;
+  }
+
+  .sidebar {
+    width: 76px;
+    padding: 14px 8px 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .shell-toolbar {
+    min-height: 42px;
+    padding-bottom: 10px;
+  }
+
+  .toolbar-context-title {
+    font-size: var(--ui-type-body-size);
+  }
+
+  .toolbar-global-group {
+    max-width: 58vw;
+  }
+
+  .global-entry {
+    width: 32px;
+    padding: 0;
+  }
+
+  .global-entry-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .toolbar-context-group {
+    display: none;
+  }
+
+  .content-workspace {
+    padding: 14px 4px 22px;
+  }
+}
+
+/* Final cascade for Step 2.8: these shell relationships intentionally come
+   after the frozen Step 2.1–2.4 rules so geometry is deterministic. */
+.app-shell {
+  --ui-shell-window-gutter: clamp(var(--ui-space-4), 1.5vw, var(--ui-space-6));
+  --ui-shell-sidebar-width: var(--ui-layout-sidebar-width);
+  --ui-shell-sidebar-content-gap: var(--ui-space-3);
+  --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-4));
+  --ui-shell-content-right-inset: var(--ui-space-4);
+  --ui-shell-content-bottom-inset: var(--ui-space-6);
+  --ui-shell-min-content-width: 520px;
+}
+
+.app-shell .content-workspace {
+  padding: var(--ui-shell-content-top-inset)
+    calc(var(--ui-shell-content-right-inset) + var(--ui-shell-inspector-reserved))
+    var(--ui-shell-content-bottom-inset)
+    var(--ui-shell-content-right-inset);
+}
+
+.app-shell .sidebar {
+  width: auto;
+  padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-3);
+  border-radius: var(--ui-radius-floating);
+}
+
+.content-workspace .page-header {
+  margin: 0 0 var(--ui-space-6);
+}
+
+.content-workspace .page-title {
+  font-size: var(--ui-layout-page-title-size);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--ui-space-1);
+}
+
+.content-workspace .section-title {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--ui-type-section-size);
+  line-height: 1.3;
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    --ui-shell-window-gutter: clamp(var(--ui-space-5), 1.8vw, var(--ui-space-8));
+    --ui-shell-content-right-inset: var(--ui-space-6);
+  }
+}
+
+@media (max-width: 1179px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-3);
+    --ui-shell-sidebar-width: var(--ui-shell-sidebar-width-compact);
+    --ui-shell-sidebar-content-gap: var(--ui-space-3);
+    --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-2));
+    --ui-shell-content-right-inset: var(--ui-space-3);
+    --ui-shell-content-bottom-inset: var(--ui-space-4);
+    --ui-shell-min-content-width: 420px;
+  }
+
+  .app-shell .sidebar {
+    padding: var(--ui-space-4) var(--ui-space-2) var(--ui-space-3);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-2);
+    --ui-shell-sidebar-content-gap: var(--ui-space-2);
+    --ui-shell-content-top-inset: var(--ui-space-12);
+    --ui-shell-content-right-inset: var(--ui-space-2);
+    --ui-shell-content-bottom-inset: var(--ui-space-3);
+    --ui-shell-min-content-width: 0px;
+  }
+
+  .app-shell .content-workspace {
+    padding-inline: var(--ui-space-2);
+  }
+}
+
+/* --- Step 2.8: Geometry / visual final polish ----------------------------
+   Geometry-only consolidation. Material values stay in the Foundation
+   resolver; this layer only establishes the shared shell grid, concentric
+   radii, spacing rhythm, and desktop density. */
+.app-shell {
+  --ui-shell-window-gutter: clamp(var(--ui-space-4), 1.5vw, var(--ui-space-6));
+  --ui-shell-sidebar-width: var(--ui-layout-sidebar-width);
+  --ui-shell-sidebar-content-gap: var(--ui-space-3);
+  --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-4));
+  --ui-shell-content-right-inset: var(--ui-space-4);
+  --ui-shell-content-bottom-inset: var(--ui-space-6);
+  --ui-shell-min-content-width: 520px;
+}
+
+.app-shell .sidebar {
+  border-radius: var(--ui-radius-floating);
+  padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-3);
+}
+
+.app-shell .content-workspace {
+  padding: var(--ui-shell-content-top-inset)
+    calc(var(--ui-shell-content-right-inset) + var(--ui-shell-inspector-reserved))
+    var(--ui-shell-content-bottom-inset)
+    var(--ui-shell-content-right-inset);
+}
+
+.content-workspace .page-header {
+  margin: 0 0 var(--ui-space-6);
+}
+
+.content-workspace .page-title {
+  font-size: var(--ui-layout-page-title-size);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--ui-space-1);
+}
+
+.content-workspace .page-subtitle {
+  font-size: var(--ui-type-body-size);
+  line-height: 1.4;
+}
+
+.content-workspace .section {
+  margin-bottom: var(--ui-layout-section-gap);
+}
+
+.content-workspace .section-title {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--ui-type-section-size);
+  line-height: 1.3;
+}
+
+.detail-page-back {
+  margin: 0 0 var(--ui-space-4) calc(var(--ui-space-2) * -1);
+}
+
+.detail-header {
+  gap: var(--ui-space-4);
+  margin: 0 0 var(--ui-space-5);
+}
+
+.detail-grid {
+  gap: var(--ui-layout-grid-gap);
+  margin-bottom: var(--ui-layout-section-gap);
+}
+
+.space-link-card,
+.project-card {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+}
+
+.stat-card {
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-4);
+}
+
+.list-card {
+  padding: var(--ui-space-1) var(--ui-space-4);
+}
+
+.list-row {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-1);
+}
+
+.proposal-card {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+}
+
+.proposal-actions {
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-1);
+}
+
+.settings-row {
+  gap: var(--ui-space-6);
+  padding: var(--ui-space-4);
+}
+
+.settings-row-copy {
+  gap: var(--ui-space-1);
+}
+
+.btn {
+  gap: var(--ui-space-2);
+  padding-inline: var(--ui-space-4);
+  border-radius: var(--ui-radius-control-md);
+}
+
+.input,
+select {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-control-md);
+}
+
+.chip,
+.soon-chip,
+.real-chip {
+  border-radius: var(--ui-radius-capsule);
+}
+
+.global-panel {
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-floating);
+}
+
+.global-panel-header {
+  gap: var(--ui-space-2);
+  margin-bottom: var(--ui-space-3);
+}
+
+.global-panel-body {
+  gap: var(--ui-space-3);
+}
+
+.command-layer .global-utility-bar {
+  gap: var(--ui-space-1);
+  min-height: calc(var(--ui-geometry-control-height) + var(--ui-space-2));
+  padding: var(--ui-space-1);
+  border-radius: var(--ui-radius-capsule);
+}
+
+.command-layer .command-item-slot > .global-entry {
+  min-height: var(--ui-geometry-control-height);
+  gap: var(--ui-space-2);
+  padding-inline: var(--ui-space-2);
+  border-radius: var(--ui-radius-capsule);
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    --ui-shell-window-gutter: clamp(var(--ui-space-5), 1.8vw, var(--ui-space-8));
+    --ui-shell-content-right-inset: var(--ui-space-6);
+    --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-4));
+  }
+}
+
+@media (max-width: 1179px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-3);
+    --ui-shell-sidebar-width: var(--ui-shell-sidebar-width-compact);
+    --ui-shell-sidebar-content-gap: var(--ui-space-3);
+    --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-2));
+    --ui-shell-content-right-inset: var(--ui-space-3);
+    --ui-shell-content-bottom-inset: var(--ui-space-4);
+    --ui-shell-min-content-width: 420px;
+  }
+
+  .app-shell .sidebar {
+    padding: var(--ui-space-4) var(--ui-space-2) var(--ui-space-3);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-2);
+    --ui-shell-sidebar-content-gap: var(--ui-space-2);
+    --ui-shell-content-top-inset: var(--ui-space-12);
+    --ui-shell-content-right-inset: var(--ui-space-2);
+    --ui-shell-content-bottom-inset: var(--ui-space-3);
+    --ui-shell-min-content-width: 0px;
+  }
+
+  .app-shell .content-workspace {
+    padding-inline: var(--ui-space-2);
+  }
+
+  .settings-row {
+    gap: var(--ui-space-3);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .toolbar-group,
+  .global-panel {
+    background: var(--ui-color-surface-elevated);
+    border-color: var(--ui-color-separator);
+    box-shadow: var(--ui-content-shadow);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+html[data-reduced-transparency='true'] .toolbar-group,
+html[data-reduced-transparency='true'] .global-panel {
+  background: var(--ui-color-surface-elevated);
+  border-color: var(--ui-color-separator);
+  box-shadow: var(--ui-content-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* --- Step 2.1: Window background foundation ----------------------------
+   The woven asset belongs to the window environment only. Content surfaces
+   remain semantic, stable, and non-glass; floating layers can still sample
+   this background through their existing Liquid Glass material. */
+:root:not([data-theme='dark']) body {
+  background-color: var(--bg-base);
+  background-image: none;
+}
+
+.app-window-background {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+}
+
+:root:not([data-theme='dark']) .app-window-background {
+  background-image: var(--ui-window-background-light);
+}
+
+:root[data-theme='dark'] .app-window-background {
+  background-image: var(--ui-window-background-dark);
+}
+
+/* --- Step 2.2: Shared window geometry ----------------------------------
+   Geometry variables consume Step 1 layout/radius tokens. They describe the
+   shell relationship only; page content and material values remain owned by
+   their existing systems. */
+.app-shell {
+  --ui-shell-window-gutter: clamp(14px, 1.8vw, 24px);
+  --ui-shell-sidebar-width: clamp(216px, 18vw, 252px);
+  --ui-shell-sidebar-width-compact: 76px;
+  --ui-shell-sidebar-content-gap: var(--shell-gap);
+  --ui-shell-sidebar-inset-block: 0px;
+  --ui-shell-content-top-inset: 72px;
+  --ui-shell-content-right-inset: clamp(12px, 1.8vw, 28px);
+  --ui-shell-content-bottom-inset: clamp(18px, 2vw, 28px);
+  --ui-shell-command-top-inset: var(--ui-shell-window-gutter);
+  --ui-shell-command-right-inset: var(--ui-shell-window-gutter);
+  --ui-shell-command-safe-area: 0px;
+  --ui-shell-inspector-reserved: 0px;
+  --ui-shell-min-content-width: 520px;
+  display: grid;
+  grid-template-columns: var(--ui-shell-sidebar-width) minmax(var(--ui-shell-min-content-width), 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--ui-shell-sidebar-content-gap);
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+  padding: var(--ui-shell-window-gutter);
+}
+
+.app-shell .sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin-block: var(--ui-shell-sidebar-inset-block);
+  align-self: stretch;
+}
+
+.app-shell .app-main {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.app-shell .main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+
+/* The page title now starts inside the continuous content flow. */
+.content-workspace {
+  min-height: 100%;
+  padding: var(--ui-shell-content-top-inset)
+    calc(var(--ui-shell-content-right-inset) + var(--ui-shell-inspector-reserved))
+    var(--ui-shell-content-bottom-inset)
+    var(--ui-shell-content-right-inset);
+  border-top: 0;
+  box-shadow: none;
+}
+
+/* Global controls are a floating command region, independent of content flow. */
+.shell-toolbar {
+  display: none;
+}
+
+.command-layer {
+  position: absolute;
+  z-index: 4;
+  top: var(--ui-shell-command-top-inset);
+  right: var(--ui-shell-command-right-inset);
+  left: calc(
+    var(--ui-shell-window-gutter) +
+    var(--ui-shell-sidebar-width) +
+    var(--ui-shell-sidebar-content-gap)
+  );
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.command-layer .global-utility-bar {
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.global-panel {
+  top: calc(var(--ui-shell-command-top-inset) + 50px);
+  right: var(--ui-shell-command-right-inset);
+}
+
+/* COMPACT: narrower navigation geometry, no page-level redesign. */
+@media (max-width: 1179px) {
+  .app-shell {
+    --ui-shell-window-gutter: 14px;
+    --ui-shell-sidebar-width: var(--ui-shell-sidebar-width-compact);
+    --ui-shell-sidebar-content-gap: 12px;
+    --ui-shell-content-top-inset: 64px;
+    --ui-shell-content-right-inset: 12px;
+    --ui-shell-min-content-width: 420px;
+  }
+}
+
+/* WIDE: preserve a usable content column and leave a future inspector reserve. */
+@media (min-width: 1440px) {
+  .app-shell {
+    --ui-shell-window-gutter: clamp(22px, 2.5vw, 36px);
+    --ui-shell-content-top-inset: 78px;
+    --ui-shell-content-right-inset: clamp(14px, 2.2vw, 38px);
+    --ui-shell-inspector-reserved: 0px;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    --ui-shell-window-gutter: 10px;
+    --ui-shell-sidebar-content-gap: 10px;
+    --ui-shell-content-top-inset: 60px;
+    --ui-shell-content-right-inset: 4px;
+    --ui-shell-min-content-width: 0px;
+  }
+
+  .command-layer {
+    left: calc(var(--ui-shell-window-gutter) + var(--ui-shell-sidebar-width) + var(--ui-shell-sidebar-content-gap));
+  }
+
+  .command-layer .toolbar-global-group {
+    max-width: 100%;
+  }
+}
+
+/* --- Step 2.3: Floating Sidebar ----------------------------------------
+   The sidebar is the single navigation material surface. Its children stay
+   transparent and express hierarchy through semantic state, typography, and
+   alignment rather than nested glass. */
+.app-shell .sidebar {
+  box-shadow: var(--ui-glass-regular-shadow), 0 16px 34px color-mix(in srgb, var(--ui-color-text-primary) 8%, transparent);
+}
+
+/* Let the woven window environment remain perceptible through the pane. */
+
+.app-shell .sidebar .brand {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-1) var(--ui-space-2) var(--ui-space-4);
+  margin-bottom: var(--ui-space-3);
+  border-bottom: 0;
+}
+
+.app-shell .sidebar .brand-mark {
+  width: var(--ui-geometry-icon-only-size);
+  height: var(--ui-geometry-icon-only-size);
+  border-radius: var(--ui-radius-surface-sm);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ui-color-accent) 22%, transparent);
+}
+
+.app-shell .sidebar .sidebar-foot {
+  padding: var(--ui-space-3) var(--ui-space-2) var(--ui-space-1);
+  border-top: 0;
+}
+
+.app-shell .sidebar .nav-group-label,
+.app-shell .sidebar .nav-subgroup-label {
+  color: var(--ui-color-text-tertiary);
+}
+
+.app-shell .sidebar .nav-group-label {
+  padding: var(--ui-space-3) var(--ui-space-2) var(--ui-space-2);
+}
+
+.app-shell .sidebar .nav-subgroup-label {
+  padding: var(--ui-space-2) var(--ui-space-2) var(--ui-space-1);
+}
+
+.app-shell .sidebar .nav-secondary {
+  margin: var(--ui-space-1) 0 var(--ui-space-2) var(--ui-space-3);
+  padding-left: var(--ui-space-2);
+  border-left-color: color-mix(in srgb, var(--ui-color-separator) 52%, transparent);
+}
+
+.app-shell .nav-item {
+  min-height: var(--ui-geometry-control-height);
+  height: var(--ui-geometry-control-height);
+  gap: var(--ui-space-2);
+  padding-inline: var(--ui-space-2);
+  border-radius: var(--ui-radius-control-sm);
+  box-shadow: none;
+  color: var(--ui-color-text-secondary);
+  font-size: var(--ui-type-body-size);
+  font-weight: var(--ui-type-body-weight);
+  transition: background-color var(--ui-motion-hover) ease-out, color var(--ui-motion-hover) ease-out, box-shadow var(--ui-motion-selection) ease-out;
+}
+
+.app-shell .nav-item > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.app-shell .nav-item:hover:not(:disabled) {
+  background: var(--ui-interaction-button-neutral-hover);
+  color: var(--ui-color-text-primary);
+}
+
+.app-shell .nav-item:active:not(:disabled),
+.app-shell .nav-item.active:active:not(:disabled) {
+  background: var(--ui-interaction-button-neutral-pressed);
+}
+
+.app-shell .nav-item.active,
+.app-shell .nav-item.active:hover:not(:disabled) {
+  background: var(--ui-interaction-selection-background);
+  color: var(--ui-interaction-selection-text);
+  font-weight: var(--ui-type-body-strong-weight);
+  box-shadow: inset 0 0 0 var(--ui-geometry-border-width) color-mix(in srgb, var(--ui-color-accent) 16%, transparent);
+}
+
+.app-shell .nav-item.active:active:not(:disabled) {
+  background: var(--ui-interaction-selection-background);
+  color: var(--ui-interaction-selection-text);
+}
+
+.app-shell .nav-item.active > svg {
+  color: var(--ui-color-accent);
+}
+
+.app-shell .nav-item:focus-visible {
+  outline: var(--ui-geometry-focus-width) solid var(--ui-color-focus);
+  outline-offset: var(--ui-geometry-focus-offset);
+}
+
+.app-shell .nav-item:disabled {
+  color: var(--ui-color-text-tertiary);
+  opacity: var(--ui-geometry-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* Compact mode keeps the same semantic targets while labels collapse. */
+@media (max-width: 1179px) {
+  .app-shell .nav-item {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .app-shell .sidebar .nav-secondary {
+    margin-inline: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Accessibility fallback remains an opaque elevated surface, as defined by
+   Step 1, while navigation children remain non-glass. */
+@media (prefers-reduced-transparency: reduce) {
+  .app-shell .sidebar {
+    background: var(--ui-color-surface-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--ui-content-shadow);
+  }
+}
+
+html[data-reduced-transparency='true'] .app-shell .sidebar {
+  background: var(--ui-color-surface-elevated);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--ui-content-shadow);
+}
+
+/* --- Step 2.4: Floating command groups -------------------------------
+   Each group owns one clear glass surface. Its buttons and context content
+   remain transparent controls; the command layer never becomes one long
+   capsule and never duplicates the page title. */
+.command-layer .global-utility-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ui-space-2);
+  max-width: min(78vw, 760px);
+}
+
+.command-layer .toolbar-command-group {
+  min-height: calc(var(--ui-geometry-control-height) + var(--ui-space-2));
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1);
+  border-radius: var(--ui-radius-surface-sm);
+}
+
+.command-layer .toolbar-search-group,
+.command-layer .toolbar-create-group {
+  flex: 0 0 auto;
+}
+
+.command-layer .toolbar-ai-context-group,
+.command-layer .toolbar-attention-group {
+  flex: 0 1 auto;
+}
+
+.command-layer .toolbar-attention-group .global-entry {
+  padding-inline: var(--ui-space-2);
+}
+
+.command-layer .global-entry-create {
+  color: var(--ui-color-accent);
+  font-weight: var(--ui-type-body-strong-weight);
+}
+
+.command-layer .global-entry-create:hover:not(:disabled),
+.command-layer .global-entry-create:active:not(:disabled) {
+  color: var(--ui-color-accent);
+}
+
+.command-layer .current-context {
+  min-height: var(--ui-geometry-control-height);
+  max-width: 230px;
+  margin: 0;
+  padding-inline: var(--ui-space-2);
+  border: 0;
+  border-radius: var(--ui-radius-control-sm);
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--ui-type-caption-size);
+}
+
+.command-layer .current-context-label {
+  color: var(--ui-color-text-tertiary);
+  white-space: nowrap;
+}
+
+.command-layer .current-context-value {
+  min-width: 0;
+  color: var(--ui-color-text-secondary);
+}
+
+@media (max-width: 1179px) {
+  .command-layer .global-utility-bar {
+    max-width: calc(100vw - var(--ui-shell-window-gutter) * 2);
+    gap: var(--ui-space-1);
+  }
+
+  .command-layer .toolbar-command-group {
+    padding: 2px;
+  }
+
+  .command-layer .global-entry-label {
+    display: none;
+  }
+
+  .command-layer .current-context-label {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .command-layer .global-utility-bar {
+    max-width: calc(100vw - 20px);
+  }
+
+  .command-layer .current-context-value {
+    display: none;
+  }
+
+.command-layer .current-context {
+    padding-inline: var(--ui-space-1);
+  }
+}
+
+/* --- Step 2.4B: Command layer and focus routing ----------------------
+   Command groups are compact capsules. Popovers live with their trigger
+   group; Main AI is the one right-side focus surface. */
+.command-layer .toolbar-command-group {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--ui-radius-capsule);
+  white-space: nowrap;
+}
+
+.command-layer .toolbar-command-group > .global-panel-popover {
+  position: absolute;
+  top: calc(100% + var(--ui-space-2));
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(64vh, 520px);
+  margin: 0;
+  transform: none;
+  z-index: 40;
+}
+
+.command-layer .toolbar-search-group > .global-panel-search {
+  right: auto;
+  left: 0;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.command-layer .toolbar-attention-group > .global-panel-notifications {
+  right: calc(50% + var(--ui-space-1));
+}
+
+.command-layer .toolbar-create-group > .global-panel-quick-create {
+  right: 0;
+}
+
+.command-layer > .global-panel-focus.global-panel-main-ai {
+  position: fixed;
+  top: calc(var(--ui-shell-command-top-inset) + var(--ui-space-12));
+  right: var(--ui-shell-command-right-inset);
+  bottom: var(--ui-shell-command-right-inset);
+  left: auto;
+  width: min(460px, 40vw);
+  max-height: none;
+  margin: 0;
+  transform: none;
+  z-index: 45;
+}
+
+/* The command layer is click-through by default so it cannot block content;
+   the independent focus surface must opt back into pointer hit testing. */
+.command-layer > .global-panel {
+  pointer-events: auto;
+}
+
+.command-layer .global-panel-popover .global-panel-body {
+  min-width: 0;
+}
+
+.global-panel-focus .current-context {
+  display: flex;
+  min-height: var(--ui-geometry-control-height);
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: 0;
+  color: var(--ui-color-text-secondary);
+  font-size: var(--ui-type-caption-size);
+}
+
+.global-panel-focus .current-context-label {
+  color: var(--ui-color-text-tertiary);
+  white-space: nowrap;
+}
+
+.global-panel-focus .current-context-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1179px) {
+  .command-layer .toolbar-command-group {
+    max-width: calc(100vw - 20px);
+  }
+
+  .command-layer > .global-panel-focus.global-panel-main-ai {
+    width: min(420px, calc(100vw - 32px));
+  }
+}
+
+@media (max-width: 760px) {
+  .command-layer .toolbar-command-group > .global-panel-popover {
+    width: min(320px, calc(100vw - 24px));
+  }
+
+  .command-layer > .global-panel-focus.global-panel-main-ai {
+    top: calc(var(--ui-shell-command-top-inset) + var(--ui-space-10));
+    right: var(--ui-shell-window-gutter);
+    bottom: var(--ui-shell-window-gutter);
+    width: calc(100vw - var(--ui-shell-window-gutter) * 2);
+  }
+}
+
+.global-panel-close {
+  min-width: var(--ui-geometry-icon-only-size);
+  min-height: var(--ui-geometry-icon-only-size);
+  border-radius: var(--ui-radius-control-sm);
+  color: var(--ui-color-text-secondary);
+}
+
+.global-panel-close:hover:not(:disabled) {
+  color: var(--ui-color-text-primary);
+  background: var(--ui-interaction-button-neutral-hover);
+}
+
+.global-panel-close:active:not(:disabled) {
+  color: var(--ui-color-text-primary);
+  background: var(--ui-interaction-button-neutral-pressed);
+}
+
+.global-panel-close:focus-visible {
+  outline: var(--ui-geometry-focus-width) solid var(--ui-color-focus);
+  outline-offset: var(--ui-geometry-focus-offset);
+}
+
+/* A command group is the interaction surface. Its buttons remain transparent
+   so open/hover/pressed/focus states cannot create a second rectangle inside
+   the capsule. Chromium in the supported Electron runtime provides :has(). */
+.command-layer .toolbar-command-group:has(> .global-entry:hover) {
+  background: color-mix(in srgb, var(--ui-color-surface-elevated) 22%, var(--ui-glass-clear-background));
+}
+
+.command-layer .toolbar-command-group:has(> .global-entry:active) {
+  background: color-mix(in srgb, var(--ui-interaction-button-neutral-pressed) 52%, var(--ui-glass-clear-background));
+}
+
+.command-layer .toolbar-command-group:has(> .global-entry.active),
+.command-layer .toolbar-command-group:has(> .global-entry[data-state='open']) {
+  background: color-mix(in srgb, var(--ui-color-selection) 72%, var(--ui-glass-clear-background));
+  box-shadow: inset 0 0 0 var(--ui-geometry-border-width) color-mix(in srgb, var(--ui-color-accent) 28%, transparent);
+}
+
+.command-layer .toolbar-command-group:has(> .global-entry:focus-visible) {
+  outline: var(--ui-geometry-focus-width) solid var(--ui-color-focus);
+  outline-offset: var(--ui-geometry-focus-offset);
+}
+
+.command-layer .toolbar-command-group > .global-entry,
+.command-layer .toolbar-command-group > .global-entry:hover:not(:disabled),
+.command-layer .toolbar-command-group > .global-entry:active:not(:disabled),
+.command-layer .toolbar-command-group > .global-entry.active,
+.command-layer .toolbar-command-group > .global-entry[data-state='open'],
+.command-layer .toolbar-command-group > .global-entry:focus-visible {
+  background: transparent;
+  background-color: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.command-layer .toolbar-command-group > .global-entry:active:not(:disabled) {
+  transform: none;
+}
+
+/* --- Step 2.4C: one command bar, five transparent command items --------
+   The bar owns the only command-layer material surface. Item slots exist
+   only to anchor their own panels; they do not introduce another surface. */
+.command-layer .global-utility-bar {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--ui-space-1);
+  width: max-content;
+  max-width: 100%;
+  min-height: calc(var(--ui-geometry-control-height) + var(--ui-space-2));
+  padding: var(--ui-space-1);
+  border-radius: var(--ui-radius-capsule);
+  overflow: visible;
+}
+
+.command-layer .command-item-slot {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-capsule);
+  background: transparent;
+  box-shadow: none;
+}
+
+.command-layer .command-item-slot > .global-entry {
+  min-height: var(--ui-geometry-control-height);
+  border-radius: var(--ui-radius-capsule);
+}
+
+.command-layer .command-item-slot > .global-panel-popover {
+  position: absolute;
+  top: calc(100% + var(--ui-space-2));
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(64vh, 520px);
+  margin: 0;
+  transform: none;
+  z-index: 40;
+}
+
+.command-layer .toolbar-search-slot > .global-panel-search {
+  right: auto;
+  left: 0;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.command-layer .toolbar-notifications-slot > .global-panel-notifications,
+.command-layer .toolbar-proposals-slot > .global-panel-proposals {
+  right: 0;
+}
+
+.command-layer .toolbar-create-slot > .global-panel-quick-create {
+  right: 0;
+}
+
+.command-layer .command-item-slot:has(> .global-entry:hover) {
+  background: color-mix(in srgb, var(--ui-color-surface-elevated) 22%, transparent);
+}
+
+.command-layer .command-item-slot:has(> .global-entry:active) {
+  background: color-mix(in srgb, var(--ui-interaction-button-neutral-pressed) 52%, transparent);
+}
+
+.command-layer .command-item-slot:has(> .global-entry.active),
+.command-layer .command-item-slot:has(> .global-entry[data-state='open']) {
+  background: color-mix(in srgb, var(--ui-color-selection) 72%, transparent);
+  box-shadow: inset 0 0 0 var(--ui-geometry-border-width) color-mix(in srgb, var(--ui-color-accent) 28%, transparent);
+}
+
+.command-layer .command-item-slot:has(> .global-entry:focus-visible) {
+  outline: var(--ui-geometry-focus-width) solid var(--ui-color-focus);
+  outline-offset: var(--ui-geometry-focus-offset);
+}
+
+.command-layer .command-item-slot > .global-entry,
+.command-layer .command-item-slot > .global-entry:hover:not(:disabled),
+.command-layer .command-item-slot > .global-entry:active:not(:disabled),
+.command-layer .command-item-slot > .global-entry.active,
+.command-layer .command-item-slot > .global-entry[data-state='open'],
+.command-layer .command-item-slot > .global-entry:focus-visible {
+  background: transparent;
+  background-color: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.command-layer .command-item-slot > .global-entry:active:not(:disabled) {
+  transform: none;
+}
+
+@media (max-width: 1179px) {
+  .command-layer .global-utility-bar {
+    max-width: calc(100vw - var(--ui-shell-window-gutter) * 2);
+    gap: 2px;
+  }
+
+  .command-layer .command-item-slot {
+    max-width: calc(100vw - 20px);
+  }
+}
+
+@media (max-width: 760px) {
+  .command-layer .global-utility-bar {
+    max-width: calc(100vw - 20px);
+    gap: 0;
+  }
+
+  .command-layer .command-item-slot > .global-entry {
+    width: 32px;
+    padding: 0;
+  }
+
+  .command-layer .command-item-slot > .global-panel-popover {
+    width: min(320px, calc(100vw - 24px));
+  }
+}
+
+/* Step 2.8 final cascade: shell geometry only. */
+.app-shell {
+  --ui-shell-window-gutter: clamp(var(--ui-space-4), 1.5vw, var(--ui-space-6));
+  --ui-shell-sidebar-width: var(--ui-layout-sidebar-width);
+  --ui-shell-sidebar-content-gap: var(--ui-space-3);
+  --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-4));
+  --ui-shell-content-right-inset: var(--ui-space-4);
+  --ui-shell-content-bottom-inset: var(--ui-space-6);
+  --ui-shell-min-content-width: 520px;
+}
+
+.app-shell .content-workspace {
+  padding: var(--ui-shell-content-top-inset)
+    calc(var(--ui-shell-content-right-inset) + var(--ui-shell-inspector-reserved))
+    var(--ui-shell-content-bottom-inset)
+    var(--ui-shell-content-right-inset);
+}
+
+.app-shell .sidebar {
+  width: auto;
+  padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-3);
+  border-radius: var(--ui-radius-floating);
+}
+
+.content-workspace .page-header {
+  margin: 0 0 var(--ui-space-6);
+}
+
+.content-workspace .page-title {
+  font-size: var(--ui-layout-page-title-size);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--ui-space-1);
+}
+
+.content-workspace .section-title {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--ui-type-section-size);
+  line-height: 1.3;
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    --ui-shell-window-gutter: clamp(var(--ui-space-5), 1.8vw, var(--ui-space-8));
+    --ui-shell-content-right-inset: var(--ui-space-6);
+  }
+}
+
+@media (max-width: 1179px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-3);
+    --ui-shell-sidebar-width: var(--ui-shell-sidebar-width-compact);
+    --ui-shell-sidebar-content-gap: var(--ui-space-3);
+    --ui-shell-content-top-inset: calc(var(--ui-space-12) + var(--ui-space-2));
+    --ui-shell-content-right-inset: var(--ui-space-3);
+    --ui-shell-content-bottom-inset: var(--ui-space-4);
+    --ui-shell-min-content-width: 420px;
+  }
+
+  .app-shell .sidebar {
+    padding: var(--ui-space-4) var(--ui-space-2) var(--ui-space-3);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    --ui-shell-window-gutter: var(--ui-space-2);
+    --ui-shell-sidebar-content-gap: var(--ui-space-2);
+    --ui-shell-content-top-inset: var(--ui-space-12);
+    --ui-shell-content-right-inset: var(--ui-space-2);
+    --ui-shell-content-bottom-inset: var(--ui-space-3);
+    --ui-shell-min-content-width: 0px;
+  }
+
+  .app-shell .content-workspace {
+    padding-inline: var(--ui-space-2);
+  }
 }

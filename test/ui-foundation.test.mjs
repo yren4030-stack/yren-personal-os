@@ -14,6 +14,8 @@ import {
   resolveButtonTokens,
   resolveFoundationTokens,
   resolveFoundationPreferences,
+  normalizeGlassStrength,
+  resolveGlassStrengthProfile,
 } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/ui-foundation.css', import.meta.url), 'utf8')
@@ -122,6 +124,96 @@ test('resolveFoundationTokens is deterministic and resolves accessibility inputs
   assert.equal(buildLegacyAliases(contrast)['--accent'], 'var(--ui-interaction-button-primary)')
 })
 
+test('Glass Strength uses one bounded deterministic optical mapping for Light and Dark', () => {
+  assert.equal(normalizeGlassStrength(-1), 0)
+  assert.equal(normalizeGlassStrength(101), 100)
+  assert.equal(normalizeGlassStrength('not-a-number'), 60)
+  assert.equal(resolveGlassStrengthProfile(60).delta, 0)
+
+  for (const theme of ['light', 'dark']) {
+    const low = resolveFoundationTokens({ appearance: theme, glassStrength: 30 }).glass.regular
+    const baseline = resolveFoundationTokens({ appearance: theme, glassStrength: 60 }).glass.regular
+    const high = resolveFoundationTokens({ appearance: theme, glassStrength: 85 }).glass.regular
+    assert.equal(low.glassStrength, 30)
+    assert.equal(baseline.glassStrength, 60)
+    assert.equal(high.glassStrength, 85)
+    assert.ok(low.fillAlpha < baseline.fillAlpha && baseline.fillAlpha < high.fillAlpha, `${theme}: fill increases with strength`)
+    assert.ok(low.blurPx < baseline.blurPx && baseline.blurPx < high.blurPx, `${theme}: blur increases with strength`)
+    assert.doesNotMatch(low.specular, /135deg|160deg/)
+    assert.doesNotMatch(high.specular, /135deg|160deg/)
+  }
+  assert.notEqual(
+    resolveFoundationTokens({ appearance: 'light', glassStrength: 30 }).contentBearing.fill,
+    resolveFoundationTokens({ appearance: 'light', glassStrength: 85 }).contentBearing.fill,
+  )
+})
+
+test('Glass Strength freezes clear, baseline, and stable optical anchors', () => {
+  assert.equal(resolveGlassStrengthProfile(0).delta, -1)
+  assert.equal(resolveGlassStrengthProfile(60).delta, 0)
+  assert.equal(resolveGlassStrengthProfile(100).delta, 1)
+  assert.notEqual(resolveGlassStrengthProfile(15).delta, -0.75)
+  assert.notEqual(resolveGlassStrengthProfile(85).delta, 0.625)
+  for (const theme of ['light', 'dark']) {
+    const clear = resolveFoundationTokens({ appearance: theme, glassStrength: 0 })
+    const baseline = resolveFoundationTokens({ appearance: theme, glassStrength: 60 })
+    const stable = resolveFoundationTokens({ appearance: theme, glassStrength: 100 })
+
+    assert.ok(clear.glass.regular.fillAlpha < baseline.glass.regular.fillAlpha)
+    assert.ok(clear.glass.regular.blurPx < baseline.glass.regular.blurPx)
+    assert.ok(stable.glass.regular.fillAlpha > baseline.glass.regular.fillAlpha)
+    assert.ok(stable.glass.regular.blurPx > baseline.glass.regular.blurPx)
+    for (const material of [clear.glass.regular, baseline.glass.regular, stable.glass.regular]) {
+      assert.match(material.edgeLensing, /^radial-gradient\(/)
+      assert.notEqual(material.edgeTop, 'none')
+      assert.notEqual(material.edgeSide, 'none')
+      assert.notEqual(material.edgeBottom, 'none')
+      assert.equal(material.reflection, 'none')
+      assert.equal(material.spill, 'none')
+      assert.doesNotMatch(material.specular, /135deg|160deg/)
+    }
+    assert.equal(baseline.glass.regular.background, theme === 'dark' ? 'rgba(38, 38, 40, 0.58)' : baseline.glass.regular.background)
+    assert.ok(clear.contentBearing.fill !== stable.contentBearing.fill)
+    assert.ok(clear.contentBearing.blur !== stable.contentBearing.blur)
+  }
+})
+
+test('content-bearing runtime profile is shared and reduced transparency remains opaque', () => {
+  const light = resolveFoundationTokens({ appearance: 'light', glassStrength: 60 })
+  const dark = resolveFoundationTokens({ appearance: 'dark', glassStrength: 60 })
+  assert.equal(light.contentBearing.fill, 'rgba(248, 247, 245, 0.880)')
+  assert.equal(light.contentBearing.blur, '44px')
+  assert.equal(dark.contentBearing.fill, 'rgba(24, 24, 28, 0.850)')
+  assert.equal(dark.contentBearing.blur, '44px')
+  assert.match(light.contentBearing.edgeLensing, /^radial-gradient\(/)
+  assert.match(dark.contentBearing.edgeLensing, /^radial-gradient\(/)
+
+  const reduced = resolveFoundationTokens({ appearance: 'light', glassStrength: 0, reducedTransparency: true })
+  assert.equal(reduced.contentBearing.blur, '0px')
+  assert.equal(reduced.contentBearing.shadow, 'none')
+  assert.equal(reduced.contentBearing.edgeLensing, 'none')
+})
+
+test('dark regular Glass uses a uniform graphite baseline without diagonal split light', () => {
+  const dark = resolveFoundationTokens({ appearance: 'dark' }).glass.regular
+  assert.equal(dark.background, 'rgba(38, 38, 40, 0.58)')
+  assert.equal(dark.border, '1px solid rgba(255, 255, 255, 0.10)')
+  assert.equal(dark.shadow, '0 10px 32px rgba(0, 0, 0, 0.30)')
+  assert.equal(dark.blur, '24px')
+  assert.equal(dark.saturation, 1.25)
+  assert.equal(dark.highlight, 'rgba(255, 255, 255, 0.09)')
+  assert.match(dark.specular, /linear-gradient\(180deg/)
+  assert.equal(dark.reflection, 'none')
+  assert.equal(dark.spill, 'none')
+  assert.doesNotMatch(dark.specular, /135deg|160deg/)
+  const root = createRoot()
+  applyFoundationTokens(root, resolveFoundationTokens({ appearance: 'dark' }))
+  assert.equal(root.values['--ui-glass-regular-background'], 'rgba(38, 38, 40, 0.58)')
+  assert.equal(root.values['--ui-glass-regular-saturation'], '125%')
+  assert.equal(root.values['--ui-glass-regular-specular'], dark.specular)
+  assert.equal(root.values['--ui-glass-regular-spill'], 'none')
+})
+
 test('applyFoundationTokens applies resolved contrast and transparency maps', () => {
   const normalRoot = createRoot()
   const contrastRoot = createRoot()
@@ -138,6 +230,17 @@ test('applyFoundationTokens applies resolved contrast and transparency maps', ()
   assert.equal(reducedRoot.values['--ui-glass-regular-blur'], '0px')
   assert.equal(reducedRoot.values['--ui-glass-regular-shadow'], 'none')
   assert.equal(reducedRoot.values['--glass-bg'], 'var(--ui-glass-regular-background)')
+})
+
+test('applyFoundationTokens publishes the single runtime Glass Strength source', () => {
+  const root = createRoot()
+  const resolved = resolveFoundationTokens({ appearance: 'light', glassStrength: 85 })
+  applyFoundationTokens(root, resolved)
+  assert.equal(root.values['--ui-glass-strength'], '85')
+  assert.equal(root.dataset.foundationGlassStrength, '85')
+  const reduced = resolveFoundationTokens({ appearance: 'light', glassStrength: 85, reducedTransparency: true })
+  assert.equal(reduced.glass.regular.blur, '0px')
+  assert.equal(reduced.glass.regular.shadow, 'none')
 })
 
 test('resolveButtonTokens keeps primary and destructive semantic identity', () => {
@@ -174,7 +277,7 @@ test('increased contrast reaches real primary, segmented and sidebar semantic to
   assert.match(main, /registerFoundationLifecycle\(/)
   assert.match(rendererCss, /\.btn-primary[\s\S]*background: var\(--ui-interaction-button-primary\)/)
   assert.match(rendererCss, /\.segmented button\.active[\s\S]*var\(--ui-interaction-selection-background\)/)
-  assert.match(rendererCss, /\.glass-l1,[\s\S]*background: var\(--glass-bg\)/)
+  assert.match(css, /\.ui-liquid-glass[\s\S]*background: var\(--ui-glass-background\)/)
 })
 
 test('initializeFoundation is idempotent and removes listeners on dispose', () => {
@@ -236,7 +339,7 @@ test('primary and destructive button states retain semantic hover and pressed to
 test('Liquid Glass has fallback and nested-material guardrails', () => {
   assert.match(css, /\.ui-liquid-glass \{[\s\S]*backdrop-filter:/)
   assert.match(css, /@supports not \(\(backdrop-filter: blur\(1px\)\)\)/)
-  assert.match(css, /\.ui-liquid-glass \.ui-liquid-glass \{[\s\S]*backdrop-filter: none;/)
+  assert.match(css, /\.ui-liquid-glass \.ui-liquid-glass:not\(\.content-bearing-glass\) \{[\s\S]*backdrop-filter: none;/)
   assert.match(css, /prefers-reduced-transparency: reduce/)
 })
 
