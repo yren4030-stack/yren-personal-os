@@ -121,8 +121,6 @@ export function normalizeAppearancePatch(patch) {
       typography: scale(profile.typography),
       width: scale(profile.width),
       height: scale(profile.height),
-      verticalSpacing: scale(profile.verticalSpacing),
-      horizontalSpacing: scale(profile.horizontalSpacing),
     }
   }
   if ('uiContainerSizes' in patch) {
@@ -172,7 +170,7 @@ export function normalizeAppearancePatch(patch) {
         name: preset.name.trim().slice(0, 48),
         glassStrength: clampInt(preset.glassStrength, 0, 100, 30),
         liquidGlassStyle: preset.liquidGlassStyle === 'tinted' ? 'tinted' : 'clear',
-        uiScaleProfile: { mode: profile.mode, unified: scale(profile.unified), typography: scale(profile.typography), width: scale(profile.width), height: scale(profile.height), verticalSpacing: scale(profile.verticalSpacing), horizontalSpacing: scale(profile.horizontalSpacing) },
+        uiScaleProfile: { mode: profile.mode, unified: scale(profile.unified), typography: scale(profile.typography), width: scale(profile.width), height: scale(profile.height) },
         uiContainerSizes: sizes,
       }]
     })

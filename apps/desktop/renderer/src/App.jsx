@@ -520,8 +520,7 @@ function uiScaleValueHint(axis, value) {
   }
   if (axis === 'width') return t('settings.uiWidthScaleValue', { n: value })
   if (axis === 'height') return t('settings.uiHeightScaleValue', { n: value })
-  if (axis === 'verticalSpacing') return t('settings.uiVerticalSpacingScaleValue', { n: value })
-  return t('settings.uiHorizontalSpacingScaleValue', { n: value })
+  return t('settings.uiScaleValue', { n: value })
 }
 
 function kindLabel(kind) {
@@ -1495,7 +1494,7 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
                 </div>
                 <div className="settings-scale-mode-control">
                   <div className="segmented" role="group" aria-label={t('settings.uiScaleMode')}>
-                    <button type="button" className={uiScaleProfile.mode === 'unified' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'unified'} onClick={() => updateUiScaleProfile({ mode: 'unified', unified: uiScaleProfile.unified, typography: uiScaleProfile.unified, width: uiScaleProfile.unified, height: uiScaleProfile.unified, verticalSpacing: uiScaleProfile.unified, horizontalSpacing: uiScaleProfile.unified })}>
+                     <button type="button" className={uiScaleProfile.mode === 'unified' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'unified'} onClick={() => updateUiScaleProfile({ mode: 'unified', unified: uiScaleProfile.unified, typography: uiScaleProfile.unified, width: uiScaleProfile.unified, height: uiScaleProfile.unified })}>
                       {t('settings.uiScaleUnified')}
                     </button>
                     <button type="button" className={uiScaleProfile.mode === 'separate' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'separate'} onClick={() => updateUiScaleProfile({ mode: 'separate' })}>
@@ -1509,21 +1508,21 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
                 <div className="settings-scale-unified-control">
                   <div className="settings-row-copy">
                     <span className="settings-row-title">{t('settings.uiScaleUnified')}</span>
-                    <span className="settings-row-description">{t('settings.uiScaleUnifiedDescription')}</span>
+                     <span className="settings-row-description">{t('settings.uiScaleUnifiedDescription')}</span>
                     <span className="settings-scale-value-detail">{uiScaleValueHint('typography', uiScaleProfile.unified)}</span>
                   </div>
                   <div className="settings-scale-control">
                     <output className="settings-scale-value" htmlFor="ui-scale-slider">{t('settings.uiScaleValue', { n: uiScaleProfile.unified })}</output>
-                    <input id="ui-scale-slider" className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile.unified} disabled={!isCustomAppearance} aria-label={t('settings.uiScaleUnified')} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile.unified} onChange={(event) => updateUiScaleProfile({ unified: Number(event.target.value), typography: Number(event.target.value), width: Number(event.target.value), height: Number(event.target.value), verticalSpacing: Number(event.target.value), horizontalSpacing: Number(event.target.value) })} />
+                   <input id="ui-scale-slider" className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile.unified} disabled={!isCustomAppearance} aria-label={t('settings.uiScaleUnified')} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile.unified} onChange={(event) => updateUiScaleProfile({ unified: Number(event.target.value), typography: Number(event.target.value), width: Number(event.target.value), height: Number(event.target.value) })} />
                   </div>
                 </div>
               ) : (
                 <div className="settings-scale-axes">
-                {[
-                  ['typography', 'settings.uiTypographyScale', 'settings.uiTypographyScaleDescription', 'settings.uiScaleTextGroup'],
-                  ['verticalSpacing', 'settings.uiVerticalSpacingScale', 'settings.uiVerticalSpacingScaleDescription', 'settings.uiScaleSpacingGroup'],
-                  ['horizontalSpacing', 'settings.uiHorizontalSpacingScale', 'settings.uiHorizontalSpacingScaleDescription'],
-                ].map(([axis, label, description, group]) => (
+                 {[
+                   ['typography', 'settings.uiTypographyScale', 'settings.uiTypographyScaleDescription', 'settings.uiScaleTextGroup'],
+                   ['width', 'settings.uiWidthScale', 'settings.uiWidthScaleDescription', 'settings.uiScaleSpaceGroup'],
+                   ['height', 'settings.uiHeightScale', 'settings.uiHeightScaleDescription'],
+                 ].map(([axis, label, description, group]) => (
                   <React.Fragment key={axis}>
                     {group ? <div className="settings-scale-group-title">{t(group)}</div> : null}
                     <div className="settings-row settings-scale-axis-row">

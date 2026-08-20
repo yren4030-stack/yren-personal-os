@@ -19,8 +19,6 @@ export const DEFAULT_UI_SCALE_PROFILE = Object.freeze({
   typography: UI_SCALE_RANGE.default,
   width: UI_SCALE_RANGE.default,
   height: UI_SCALE_RANGE.default,
-  verticalSpacing: UI_SCALE_RANGE.default,
-  horizontalSpacing: UI_SCALE_RANGE.default,
 })
 export const DEFAULT_UI_CONTAINER_SIZES = Object.freeze({})
 export const DEFAULT_UI_LAYOUT_PRESETS = Object.freeze([])
@@ -125,8 +123,6 @@ export class AppearanceService {
       typography: this._clampUiScale(source.typography ?? (mode === 'unified' ? unified : fallback.typography)),
       width: this._clampUiScale(source.width ?? (mode === 'unified' ? unified : fallback.width)),
       height: this._clampUiScale(source.height ?? (mode === 'unified' ? unified : fallback.height)),
-      verticalSpacing: this._clampUiScale(source.verticalSpacing ?? (mode === 'unified' ? unified : fallback.verticalSpacing)),
-      horizontalSpacing: this._clampUiScale(source.horizontalSpacing ?? (mode === 'unified' ? unified : fallback.horizontalSpacing)),
     }
   }
 

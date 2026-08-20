@@ -85,11 +85,11 @@ test('UI Scale resolves one bounded runtime token map for typography, geometry a
   assert.equal(wide.scaleFactor, 1.25)
   assert.ok(compact.typography.body.size < baseline.typography.body.size)
   assert.ok(wide.typography.title1.size > baseline.typography.title1.size)
-  assert.ok(compact.spacing[4] < baseline.spacing[4])
+  assert.equal(compact.spacing[4], baseline.spacing[4])
   assert.ok(wide.radius['surface-md'] > baseline.radius['surface-md'])
   assert.ok(compact.geometry['control-height'] < baseline.geometry['control-height'])
   assert.equal(compact.geometry['disabled-opacity'], baseline.geometry['disabled-opacity'])
-  assert.ok(compact.layout['sidebar-width'].includes('197.2px'))
+  assert.equal(compact.layout['sidebar-width'], '232px')
   assert.equal(compact.glass.regular.fill, baseline.glass.regular.fill)
   assert.equal(wide.glass.regular.blur, baseline.glass.regular.blur)
 
@@ -102,8 +102,8 @@ test('UI Scale resolves one bounded runtime token map for typography, geometry a
   assert.equal(root.dataset.uiScale, '85')
 })
 
-test('separate UI Scale resolves text and spacing while container size stays interaction-owned', () => {
-  const profile = { mode: 'separate', unified: 100, typography: 115, width: 90, height: 110, verticalSpacing: 85, horizontalSpacing: 125 }
+test('separate UI Scale resolves text and container geometry while Foundation spacing stays fixed', () => {
+  const profile = { mode: 'separate', unified: 100, typography: 115, width: 90, height: 110 }
   assert.deepEqual(normalizeUiScaleProfile(profile), profile)
   const resolved = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: profile })
   const baseline = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { mode: 'unified', unified: 100 } })
@@ -113,15 +113,15 @@ test('separate UI Scale resolves text and spacing while container size stays int
   assert.equal(resolved.heightScale, 100)
   assert.equal(resolved.typography.body.size, baseline.typography.body.size * 1.15)
   assert.equal(resolved.geometry['control-height'], baseline.geometry['control-height'])
-  assert.equal(resolved.spacingVertical[4], 16 * 0.85)
-  assert.equal(resolved.spacingHorizontal[4], 16 * 1.25)
+  assert.equal(resolved.spacingVertical[4], 16)
+  assert.equal(resolved.spacingHorizontal[4], 16)
   const root = createRoot()
   applyFoundationTokens(root, resolved)
   assert.equal(root.values['--ui-scale-typography'], '1.15')
   assert.equal(root.values['--ui-scale-width'], '1')
   assert.equal(root.values['--ui-scale-height'], '1')
-  assert.equal(root.values['--ui-space-v-4'], '13.6px')
-  assert.equal(root.values['--ui-space-h-4'], '20px')
+  assert.equal(root.values['--ui-space-v-4'], '16px')
+  assert.equal(root.values['--ui-space-h-4'], '16px')
   assert.equal(root.dataset.uiScaleMode, 'separate')
 })
 

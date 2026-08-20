@@ -22,8 +22,6 @@ export const UI_SCALE_PROFILE_DEFAULTS = Object.freeze({
   typography: UI_SCALE_RANGE.default,
   width: UI_SCALE_RANGE.default,
   height: UI_SCALE_RANGE.default,
-  verticalSpacing: UI_SCALE_RANGE.default,
-  horizontalSpacing: UI_SCALE_RANGE.default,
 })
 
 const CANONICAL_APPLICATION_GLASS = Object.freeze({
@@ -136,8 +134,6 @@ export function normalizeUiScaleProfile(value, fallback = UI_SCALE_PROFILE_DEFAU
     typography: clampScale(source.typography, mode === 'unified' ? unified : fallback.typography),
     width: clampScale(source.width, mode === 'unified' ? unified : fallback.width),
     height: clampScale(source.height, mode === 'unified' ? unified : fallback.height),
-    verticalSpacing: clampScale(source.verticalSpacing, mode === 'unified' ? unified : fallback.verticalSpacing),
-    horizontalSpacing: clampScale(source.horizontalSpacing, mode === 'unified' ? unified : fallback.horizontalSpacing),
   })
 }
 
@@ -152,10 +148,10 @@ function resolveScaledTokens(profile) {
   // stored profile fields remain only for backward-compatible persistence.
   const widthFactor = profile.mode === 'unified' ? profile.width / 100 : 1
   const heightFactor = profile.mode === 'unified' ? profile.height / 100 : 1
-  const verticalSpacingFactor = profile.verticalSpacing / 100
-  const horizontalSpacingFactor = profile.horizontalSpacing / 100
-  const spacingVertical = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.spacing).map(([name, value]) => [name, value * verticalSpacingFactor])))
-  const spacingHorizontal = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.spacing).map(([name, value]) => [name, value * horizontalSpacingFactor])))
+  // Foundation spacing is fixed. Container dimensions remain interaction-owned;
+  // user customization must not create arbitrary gaps between surfaces.
+  const spacingVertical = FOUNDATION_TOKENS.spacing
+  const spacingHorizontal = FOUNDATION_TOKENS.spacing
   const radiusFactor = Math.sqrt(widthFactor * heightFactor)
   const radius = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.radius).map(([name, value]) => [name, name === 'capsule' ? value : value * radiusFactor])))
   const geometry = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.geometry).map(([name, value]) => {
@@ -165,12 +161,11 @@ function resolveScaledTokens(profile) {
   })))
   const typography = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.typography).map(([name, value]) => [name, name === 'family' ? value : Object.freeze({ ...value, size: value.size * typographyFactor })])))
   const layout = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => {
-    const factor = name.includes('padding-x') || name.includes('sidebar-width') || name.includes('grid-gap') ? horizontalSpacingFactor : verticalSpacingFactor
-    return [name, scaleCssMetrics(value, factor)]
+    return [name, value]
   })))
-  const layoutHorizontal = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => [name, scaleCssMetrics(value, horizontalSpacingFactor)])))
-  const layoutVertical = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => [name, scaleCssMetrics(value, verticalSpacingFactor)])))
-  return { factor: unifiedFactor, spacing: spacingVertical, spacingVertical, spacingHorizontal, radius, geometry, typography, layout, layoutHorizontal, layoutVertical }
+  const layoutHorizontal = layout
+  const layoutVertical = layout
+  return { factor: unifiedFactor, spacing: FOUNDATION_TOKENS.spacing, spacingVertical, spacingHorizontal, radius, geometry, typography, layout, layoutHorizontal, layoutVertical }
 }
 
 export function normalizeGlassStrength(value) {
@@ -383,9 +378,7 @@ export function resolveFoundationTokens(options = {}) {
     typographyScale: uiScaleProfile.typography,
     widthScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.width : 100,
     heightScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.height : 100,
-    verticalSpacingScale: uiScaleProfile.verticalSpacing,
-    horizontalSpacingScale: uiScaleProfile.horizontalSpacing,
-    scaleFactor: scaled.factor, increasedContrast, reducedTransparency, colors, interaction, contrast,
+     scaleFactor: scaled.factor, increasedContrast, reducedTransparency, colors, interaction, contrast,
     spacing: scaled.spacing, spacingVertical: scaled.spacingVertical, spacingHorizontal: scaled.spacingHorizontal,
     radius: scaled.radius, typography: scaled.typography, motion: FOUNDATION_TOKENS.motion, geometry: scaled.geometry,
     layout: scaled.layout, layoutHorizontal: scaled.layoutHorizontal, layoutVertical: scaled.layoutVertical,
@@ -460,8 +453,6 @@ export function applyFoundationTokens(root, resolvedOrTheme = 'light', options =
   target.style.setProperty('--ui-scale-typography', String(resolved.typographyScale / 100))
   target.style.setProperty('--ui-scale-width', String(resolved.widthScale / 100))
   target.style.setProperty('--ui-scale-height', String(resolved.heightScale / 100))
-  target.style.setProperty('--ui-scale-spacing-vertical', String(resolved.verticalSpacingScale / 100))
-  target.style.setProperty('--ui-scale-spacing-horizontal', String(resolved.horizontalSpacingScale / 100))
   for (const [name, token] of Object.entries(resolved.typography)) {
     if (name === 'family') target.style.setProperty('--ui-font-family', token)
     else { target.style.setProperty(`--ui-type-${name}-size`, `${token.size}px`); target.style.setProperty(`--ui-type-${name}-weight`, String(token.weight)) }
@@ -480,8 +471,6 @@ export function applyFoundationTokens(root, resolvedOrTheme = 'light', options =
   target.dataset.uiTypographyScale = String(resolved.typographyScale)
   target.dataset.uiWidthScale = String(resolved.widthScale)
   target.dataset.uiHeightScale = String(resolved.heightScale)
-  target.dataset.uiVerticalSpacingScale = String(resolved.verticalSpacingScale)
-  target.dataset.uiHorizontalSpacingScale = String(resolved.horizontalSpacingScale)
   return resolved
 }
 
@@ -550,8 +539,6 @@ export function initializeFoundation() {
         typography: root.dataset.uiTypographyScale,
         width: root.dataset.uiWidthScale,
         height: root.dataset.uiHeightScale,
-        verticalSpacing: root.dataset.uiVerticalSpacingScale,
-        horizontalSpacing: root.dataset.uiHorizontalSpacingScale,
       },
       ...preferences,
     })
