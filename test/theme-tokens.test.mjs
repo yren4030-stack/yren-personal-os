@@ -12,14 +12,14 @@ import { FOUNDATION_TOKENS } from '../apps/desktop/renderer/src/ui-foundation.mj
 const css = readFileSync(new URL('../apps/desktop/renderer/src/glass.css', import.meta.url), 'utf8')
 const mainSrc = readFileSync(new URL('../apps/desktop/electron/main.mjs', import.meta.url), 'utf8')
 
-const LIGHT = { theme: 'light', liquidGlassStyle: 'clear' }
-const DARK = { theme: 'dark', liquidGlassStyle: 'clear' }
+const LIGHT = { theme: 'light', liquidGlassStyle: 'clear', glassStrength: 60 }
+const DARK = { theme: 'dark', liquidGlassStyle: 'clear', glassStrength: 60 }
 
 test('light theme tokens exist', () => {
-  const light = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
+  const light = computeGlassTokens(LIGHT)
   const explicit = computeGlassTokens(LIGHT)
   assert.deepEqual(explicit, light)
-  assert.match(explicit.glassBg, /^rgba\(255, 255, 255, /)
+  assert.equal(explicit.glassBg, 'rgba(248, 247, 245, 0.880)')
   assert.ok(css.includes(":root[data-theme='dark']"), 'CSS carries a dark theme block')
   assert.ok(css.includes('--text-primary'), 'semantic text tokens exist')
   assert.ok(css.includes('--bg-depth-1'), 'semantic depth tokens exist')
@@ -27,9 +27,9 @@ test('light theme tokens exist', () => {
 
 test('dark theme tokens exist and use graphite smoked glass', () => {
   const dark = computeGlassTokens(DARK)
-  assert.equal(dark.glassBg, 'rgba(38, 38, 40, 0.58)', 'dark fill is the fixed graphite baseline')
-  assert.equal(dark.glassBorder, '1px solid rgba(255, 255, 255, 0.10)', 'dark glass uses a restrained perimeter border')
-  assert.equal(dark.glassHighlight, 'rgba(255, 255, 255, 0.09)', 'dark glass keeps a restrained edge highlight')
+  assert.equal(dark.glassBg, 'rgba(24, 24, 28, 0.850)', 'dark fill is the canonical graphite baseline')
+  assert.equal(dark.glassBorder, '1px solid rgba(255, 255, 255, 0.200)', 'dark glass uses the canonical perimeter border')
+  assert.equal(dark.glassHighlight, 'linear-gradient(180deg, rgba(255, 255, 255, 0.100), transparent 22%)', 'dark glass keeps a restrained edge highlight')
   assert.ok(css.includes(':root[data-theme=\'dark\']') || css.includes(':root[data-theme="dark"]'))
   assert.equal(FOUNDATION_TOKENS.colors.dark['text-primary'], '#f2f2f6', 'dark text token is Foundation-owned')
 })
@@ -54,12 +54,12 @@ test('theme preference resolution: light/dark force, system follows abstraction'
   assert.ok(['light', 'dark'].includes(resolveTheme('system')), 'system always resolves to a concrete theme')
 })
 
-test('clear vs tinted changes light optics while dark regular stays on the fixed baseline', () => {
+test('clear vs tinted keeps one application-wide optical profile', () => {
   const lightClear = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
   const lightTinted = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'tinted' })
-  assert.notEqual(lightClear.glassBlur, lightTinted.glassBlur, 'light: blur differs between profiles')
-  assert.notEqual(lightClear.glassBg, lightTinted.glassBg, 'light: fill differs between profiles')
-  assert.ok(lightClear.alpha < lightTinted.alpha, 'light: clear transmits more than tinted')
+  assert.equal(lightClear.glassBlur, lightTinted.glassBlur, 'light: blur is canonical')
+  assert.equal(lightClear.glassBg, lightTinted.glassBg, 'light: fill is canonical')
+  assert.equal(lightClear.alpha, lightTinted.alpha, 'light: fill alpha is canonical')
 
   const darkClear = computeGlassTokens({ theme: 'dark', liquidGlassStyle: 'clear' })
   const darkTinted = computeGlassTokens({ theme: 'dark', liquidGlassStyle: 'tinted' })

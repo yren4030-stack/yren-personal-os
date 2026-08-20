@@ -37,17 +37,19 @@ const surfaceSelectors = ['.sidebar', '.stat-card', '.project-card', '.settings-
 test('formal renderer surfaces consume the single Foundation regular material', () => {
   assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*background: var\(--ui-glass-background\)/)
   assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*backdrop-filter: blur\(var\(--ui-glass-blur\)/)
+  assert.match(appSrc, /function CanonicalGlassSurface\(/)
+  assert.match(appSrc, /canonical-glass-surface ui-liquid-glass/)
   for (const marker of [
-    'sidebar ui-liquid-glass',
-    'global-utility-bar ui-liquid-glass',
-    'global-panel-${id}',
-    'stat-card" data-material="regular"',
-    'project-card ui-liquid-glass',
-    'list-card" data-material="regular"',
-    'proposal-card ui-liquid-glass',
-    'settings-appearance-module" data-material="regular"',
+    /CanonicalGlassSurface as="aside" layoutId="sidebar" className="sidebar"/,
+    /CanonicalGlassSurface layoutId="command-bar" className="global-utility-bar"/,
+    /global-panel-\$\{id\}/,
+    /CanonicalGlassSurface layoutId="home-stat-projects" className="card page-glass-surface stat-card"/,
+    /CanonicalGlassSurface as="button" type="button" key=\{item\.id\} layoutId=/,
+    /CanonicalGlassSurface layoutId="home-activity" className="card page-glass-surface list-card"/,
+    /CanonicalGlassSurface layoutId="project-pending-proposals" className="card proposal-card/,
+    /CanonicalGlassSurface layoutId="settings-appearance" className="card page-glass-surface settings-appearance-module"/,
   ]) {
-    assert.ok(appSrc.includes(marker), `renderer must mount ${marker} on the shared material`)
+    assert.match(appSrc, marker, `renderer must mount ${marker} on the shared material`)
   }
   const shared = findRule('.card, .glass')
   assert.ok(shared, 'shared card hook must exist')
@@ -58,8 +60,8 @@ test('formal renderer surfaces consume the single Foundation regular material', 
 test('Foundation materials are mounted through one regular surface and one shared content-bearing profile', () => {
   assert.match(foundationCss, /\.ui-liquid-glass\[data-material='clear'\]/)
   assert.match(foundationCss, /\.ui-liquid-glass\s*\{[\s\S]*var\(--ui-glass-regular-/)
-  assert.match(appSrc, /global-panel-\$\{id\}[\s\S]*ui-liquid-glass content-bearing-glass/)
-  assert.match(foundationCss, /\.ui-liquid-glass\.content-bearing-glass\s*\{[\s\S]*var\(--ui-glass-content-bearing-fill\)/)
+  assert.match(appSrc, /global-panel-\$\{id\}[\s\S]*content-bearing-glass/)
+  assert.match(foundationCss, /\.ui-liquid-glass\.content-bearing-glass\s*\{[\s\S]*var\(--ui-glass-canonical-background\)/)
   assert.doesNotMatch(appSrc, /data-material="clear"/)
 })
 
@@ -112,9 +114,9 @@ test('glass tokens are runtime aliases owned by FOUNDATION_TOKENS', () => {
   assert.equal(/--glass-(?:bg|blur|border|shadow)\s*:\s*(?:#|rgba|linear-gradient|[0-9])/i.test(css), false)
   assert.match(foundationCss, /background: var\(--ui-glass-background\)/)
   assert.match(foundationCss, /backdrop-filter: blur\(var\(--ui-glass-blur\)/)
-  assert.match(appSrc, /className="sidebar ui-liquid-glass" data-material="regular"/)
-  assert.match(appSrc, /className="global-utility-bar ui-liquid-glass" data-material="regular"/)
-  assert.match(appSrc, /ui-liquid-glass content-bearing-glass`\}\s*data-material="regular"/)
+  assert.match(appSrc, /CanonicalGlassSurface as="aside" layoutId="sidebar" className="sidebar"/)
+  assert.match(appSrc, /CanonicalGlassSurface layoutId="command-bar" className="global-utility-bar"/)
+  assert.match(appSrc, /content-bearing-glass/)
   assert.ok(foundationSrc.includes('--glass-highlight'))
   assert.ok(foundationSrc.includes('--glass-edge-lensing'))
 })
@@ -202,14 +204,14 @@ test('real renderer accessibility and Content First boundary are wired', () => {
   assert.match(css, /\.btn-destructive\[data-state='selected'\]/)
   assert.doesNotMatch(css, /prefers-contrast|data-increased-contrast/)
   assert.equal(appSrc.includes('card glass-l1 proposal-card'), false, 'proposal content is not a glass surface')
-  assert.match(appSrc, /className="card proposal-card[^"]*ui-liquid-glass/)
+  assert.match(appSrc, /CanonicalGlassSurface layoutId="project-pending-proposals" className="card proposal-card/)
   assert.equal(findRule('.card, .glass').body.includes('backdrop-filter'), false)
 })
 
 test('pending proposal empty state uses the shared proposal glass surface', () => {
   const pendingSection = appSrc.match(/projectDetail\.pendingProposals[\s\S]*?<\/Section>/)
   assert.ok(pendingSection, 'Project Detail must render the pending proposal section')
-  assert.match(pendingSection[0], /proposal-empty-card ui-liquid-glass page-glass-surface/)
+  assert.match(pendingSection[0], /CanonicalGlassSurface layoutId="project-pending-proposals" className="card proposal-card proposal-empty-card page-glass-surface"/)
   assert.match(pendingSection[0], /proposal-empty-state/)
   assert.doesNotMatch(pendingSection[0], /<Empty text=\{t\('projectDetail\.noPendingProposals'\)\} \/>/)
 
@@ -218,11 +220,12 @@ test('pending proposal empty state uses the shared proposal glass surface', () =
   assert.doesNotMatch(proposalRule.body, /background|border|box-shadow|backdrop-filter/)
 })
 
-test('clear vs tinted produces different computed token values (selection → token link)', () => {
+test('clear vs tinted resolve to the same canonical application material', () => {
   const clear = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'clear' })
   const tinted = computeGlassTokens({ theme: 'light', liquidGlassStyle: 'tinted' })
-  assert.notEqual(clear.glassBlur, tinted.glassBlur)
-  assert.notEqual(clear.glassBg, tinted.glassBg)
+  assert.equal(clear.glassBlur, tinted.glassBlur)
+  assert.equal(clear.glassBg, tinted.glassBg)
+  assert.equal(clear.glassBorder, tinted.glassBorder)
 
   // Legacy continuous fields remain irrelevant to the engine.
   assert.deepEqual(

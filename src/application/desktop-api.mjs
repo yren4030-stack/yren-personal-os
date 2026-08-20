@@ -55,6 +55,8 @@ export function validateProposalId(id) {
 
 const MATERIAL_MODES = new Set(['frosted', 'transparent'])
 const THEMES = new Set(['light', 'dark', 'system'])
+const UI_SCALE_MIN = 85
+const UI_SCALE_MAX = 125
 
 /** Clamp an integer to [min, max]. */
 function clampInt(value, min, max, fallback) {
@@ -71,7 +73,7 @@ export function normalizeAppearancePatch(patch) {
   if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
     return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'appearance patch must be an object' } }
   }
-  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme', 'liquidGlassStyle', 'glassStrength'])
+  const allowed = new Set(['material', 'frostIntensity', 'transparencyLevel', 'theme', 'liquidGlassStyle', 'glassStrength', 'uiScale', 'uiScaleProfile', 'uiContainerSizes', 'uiLayoutPresetId', 'uiLayoutPresets', 'appearancePreset', 'desktopBackground'])
   for (const key of Object.keys(patch)) {
     if (!allowed.has(key)) {
       return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: `unexpected appearance field: ${key}` } }
@@ -103,5 +105,90 @@ export function normalizeAppearancePatch(patch) {
     normalized.liquidGlassStyle = patch.liquidGlassStyle
   }
   if ('glassStrength' in patch) normalized.glassStrength = clampInt(patch.glassStrength, 0, 100, NaN)
+  if ('uiScale' in patch) normalized.uiScale = clampInt(patch.uiScale, UI_SCALE_MIN, UI_SCALE_MAX, NaN)
+  if ('uiScaleProfile' in patch) {
+    const profile = patch.uiScaleProfile
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiScaleProfile must be an object' } }
+    }
+    if (profile.mode !== 'unified' && profile.mode !== 'separate') {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiScaleProfile.mode must be unified or separate' } }
+    }
+    const scale = (value) => clampInt(value, UI_SCALE_MIN, UI_SCALE_MAX, NaN)
+    normalized.uiScaleProfile = {
+      mode: profile.mode,
+      unified: scale(profile.unified),
+      typography: scale(profile.typography),
+      width: scale(profile.width),
+      height: scale(profile.height),
+      verticalSpacing: scale(profile.verticalSpacing),
+      horizontalSpacing: scale(profile.horizontalSpacing),
+    }
+  }
+  if ('uiContainerSizes' in patch) {
+    const sizes = patch.uiContainerSizes
+    if (!sizes || typeof sizes !== 'object' || Array.isArray(sizes)) {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiContainerSizes must be an object' } }
+    }
+    const normalizedSizes = {}
+    for (const [id, size] of Object.entries(sizes)) {
+      if (!/^[a-z0-9][a-z0-9:_-]{0,119}$/i.test(id) || !size || typeof size !== 'object' || Array.isArray(size)) continue
+      const width = clampInt(size.width, 160, 2400, NaN)
+      const height = clampInt(size.height, 120, 2000, NaN)
+      if (Number.isFinite(width) || Number.isFinite(height)) normalizedSizes[id] = {
+        ...(Number.isFinite(width) ? { width } : {}),
+        ...(Number.isFinite(height) ? { height } : {}),
+      }
+    }
+    normalized.uiContainerSizes = normalizedSizes
+  }
+  if ('uiLayoutPresetId' in patch) {
+    if (typeof patch.uiLayoutPresetId !== 'string' || !/^[a-z0-9][a-z0-9:_-]{0,119}$/i.test(patch.uiLayoutPresetId)) {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiLayoutPresetId is invalid' } }
+    }
+    normalized.uiLayoutPresetId = patch.uiLayoutPresetId
+  }
+  if ('uiLayoutPresets' in patch) {
+    if (!Array.isArray(patch.uiLayoutPresets)) {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiLayoutPresets must be an array' } }
+    }
+    normalized.uiLayoutPresets = patch.uiLayoutPresets.slice(0, 20).flatMap((preset) => {
+      if (!preset || typeof preset !== 'object' || Array.isArray(preset) || typeof preset.id !== 'string' || typeof preset.name !== 'string') return []
+      if (!/^[a-z0-9][a-z0-9:_-]{0,119}$/i.test(preset.id) || preset.id === 'default') return []
+      const sizes = {}
+      if (preset.uiContainerSizes && typeof preset.uiContainerSizes === 'object' && !Array.isArray(preset.uiContainerSizes)) {
+        for (const [id, size] of Object.entries(preset.uiContainerSizes)) {
+          if (!/^[a-z0-9][a-z0-9:_-]{0,119}$/i.test(id) || !size || typeof size !== 'object' || Array.isArray(size)) continue
+          const width = clampInt(size.width, 160, 2400, NaN)
+          const height = clampInt(size.height, 120, 2000, NaN)
+          if (Number.isFinite(width) || Number.isFinite(height)) sizes[id] = { ...(Number.isFinite(width) ? { width } : {}), ...(Number.isFinite(height) ? { height } : {}) }
+        }
+      }
+      const profile = preset.uiScaleProfile
+      if (!profile || typeof profile !== 'object' || Array.isArray(profile) || (profile.mode !== 'unified' && profile.mode !== 'separate')) return []
+      const scale = (value) => clampInt(value, UI_SCALE_MIN, UI_SCALE_MAX, NaN)
+      return [{
+        id: preset.id,
+        name: preset.name.trim().slice(0, 48),
+        glassStrength: clampInt(preset.glassStrength, 0, 100, 30),
+        liquidGlassStyle: preset.liquidGlassStyle === 'tinted' ? 'tinted' : 'clear',
+        uiScaleProfile: { mode: profile.mode, unified: scale(profile.unified), typography: scale(profile.typography), width: scale(profile.width), height: scale(profile.height), verticalSpacing: scale(profile.verticalSpacing), horizontalSpacing: scale(profile.horizontalSpacing) },
+        uiContainerSizes: sizes,
+      }]
+    })
+  }
+  if ('appearancePreset' in patch) {
+    if (patch.appearancePreset !== 'default' && patch.appearancePreset !== 'custom') {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'appearancePreset must be default or custom' } }
+    }
+    normalized.appearancePreset = patch.appearancePreset
+  }
+  if ('desktopBackground' in patch) {
+    const background = patch.desktopBackground
+    if (!background || typeof background !== 'object' || Array.isArray(background) || background.kind !== 'default') {
+      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'desktopBackground may only be reset through the dedicated desktop background controls' } }
+    }
+    normalized.desktopBackground = { kind: 'default' }
+  }
   return { ok: true, patch: normalized }
 }

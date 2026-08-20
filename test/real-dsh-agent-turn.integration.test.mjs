@@ -34,7 +34,16 @@ async function startTurnBinding({ successText, sequence } = {}) {
     requestTimeoutMs: 60000,
     shutdownTimeoutMs: 15000,
   })
-  await binding.start()
+  try {
+    await binding.start()
+  } catch (error) {
+    // Resource safety: the mock LLM HTTP server is already listening here.
+    // If the host binding cannot start (e.g. the environment cannot spawn
+    // the DSH child process), close the mock before rethrowing so the test
+    // process does not hang on an open server handle.
+    await mock.close()
+    throw error
+  }
   return {
     mock,
     binding,

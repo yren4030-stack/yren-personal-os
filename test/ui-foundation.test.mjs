@@ -16,6 +16,8 @@ import {
   resolveFoundationPreferences,
   normalizeGlassStrength,
   resolveGlassStrengthProfile,
+  normalizeUiScale,
+  normalizeUiScaleProfile,
 } from '../apps/desktop/renderer/src/ui-foundation.mjs'
 
 const css = readFileSync(new URL('../apps/desktop/renderer/src/ui-foundation.css', import.meta.url), 'utf8')
@@ -52,7 +54,8 @@ test('runtime CSS vars are applied from FOUNDATION_TOKENS without a CSS token ta
   assert.equal(root.values['--ui-space-4'], '16px')
   assert.equal(root.values['--ui-radius-surface-md'], '12px')
   assert.equal(root.values['--ui-motion-panel'], '240ms')
-  assert.equal(root.values['--ui-glass-clear-blur'], resolveFoundationTokens({ appearance: 'dark' }).glass.clear.blur)
+  assert.equal(root.values['--ui-glass-clear-blur'], 'var(--ui-glass-canonical-blur)')
+  assert.equal(root.values['--ui-glass-canonical-blur'], resolveFoundationTokens({ appearance: 'dark' }).glass.clear.blur)
   assert.equal(root.dataset.foundationTheme, 'dark')
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}/i)
   assert.doesNotMatch(css, /--glass-(?:bg|border|blur|saturation)(?:[:;\s])/)
@@ -68,6 +71,58 @@ test('spacing, concentric radius, typography and motion tokens match the foundat
   assert.equal(FOUNDATION_TOKENS.motion.panel, 240)
   assert.equal(FOUNDATION_TOKENS.motion.reducedMotion, undefined)
   assert.match(css, /font-family: var\(--ui-font-family\)/)
+})
+
+test('UI Scale resolves one bounded runtime token map for typography, geometry and layout', () => {
+  assert.equal(normalizeUiScale(84), 85)
+  assert.equal(normalizeUiScale(126), 125)
+  const compact = resolveFoundationTokens({ appearance: 'light', uiScale: 85 })
+  const baseline = resolveFoundationTokens({ appearance: 'light', uiScale: 100 })
+  const wide = resolveFoundationTokens({ appearance: 'light', uiScale: 125 })
+
+  assert.equal(compact.uiScale, 85)
+  assert.equal(compact.scaleFactor, 0.85)
+  assert.equal(wide.scaleFactor, 1.25)
+  assert.ok(compact.typography.body.size < baseline.typography.body.size)
+  assert.ok(wide.typography.title1.size > baseline.typography.title1.size)
+  assert.ok(compact.spacing[4] < baseline.spacing[4])
+  assert.ok(wide.radius['surface-md'] > baseline.radius['surface-md'])
+  assert.ok(compact.geometry['control-height'] < baseline.geometry['control-height'])
+  assert.equal(compact.geometry['disabled-opacity'], baseline.geometry['disabled-opacity'])
+  assert.ok(compact.layout['sidebar-width'].includes('197.2px'))
+  assert.equal(compact.glass.regular.fill, baseline.glass.regular.fill)
+  assert.equal(wide.glass.regular.blur, baseline.glass.regular.blur)
+
+  const root = createRoot()
+  applyFoundationTokens(root, compact)
+  assert.equal(root.values['--ui-scale'], '0.85')
+  assert.equal(root.values['--ui-scale-percent'], '85%')
+  assert.equal(root.values['--ui-geometry-border-width'], '0.85px')
+  assert.equal(root.values['--ui-geometry-disabled-opacity'], '0.45')
+  assert.equal(root.dataset.uiScale, '85')
+})
+
+test('separate UI Scale resolves text and spacing while container size stays interaction-owned', () => {
+  const profile = { mode: 'separate', unified: 100, typography: 115, width: 90, height: 110, verticalSpacing: 85, horizontalSpacing: 125 }
+  assert.deepEqual(normalizeUiScaleProfile(profile), profile)
+  const resolved = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: profile })
+  const baseline = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { mode: 'unified', unified: 100 } })
+  assert.equal(resolved.uiScaleMode, 'separate')
+  assert.equal(resolved.typographyScale, 115)
+  assert.equal(resolved.widthScale, 100)
+  assert.equal(resolved.heightScale, 100)
+  assert.equal(resolved.typography.body.size, baseline.typography.body.size * 1.15)
+  assert.equal(resolved.geometry['control-height'], baseline.geometry['control-height'])
+  assert.equal(resolved.spacingVertical[4], 16 * 0.85)
+  assert.equal(resolved.spacingHorizontal[4], 16 * 1.25)
+  const root = createRoot()
+  applyFoundationTokens(root, resolved)
+  assert.equal(root.values['--ui-scale-typography'], '1.15')
+  assert.equal(root.values['--ui-scale-width'], '1')
+  assert.equal(root.values['--ui-scale-height'], '1')
+  assert.equal(root.values['--ui-space-v-4'], '13.6px')
+  assert.equal(root.values['--ui-space-h-4'], '20px')
+  assert.equal(root.dataset.uiScaleMode, 'separate')
 })
 
 test('foundation bootstrap initializes tokens and accessibility preferences', () => {
@@ -88,6 +143,21 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
   assert.match(main, /import \{ initializeFoundation, registerFoundationLifecycle \} from ['"]\.\/ui-foundation\.mjs['"]/)
   assert.match(main, /const disposeFoundation = initializeFoundation\(\)/)
   assert.match(main, /registerFoundationLifecycle\(/)
+})
+
+test('foundation re-application preserves the current Appearance UI Scale', () => {
+  const previousDocument = globalThis.document
+  const root = createRoot()
+  root.dataset.uiScale = '85'
+  globalThis.document = { documentElement: root }
+  try {
+    const stop = initializeFoundation()
+    assert.equal(root.values['--ui-scale'], '0.85')
+    assert.equal(root.values['--ui-scale-percent'], '85%')
+    stop()
+  } finally {
+    globalThis.document = previousDocument
+  }
 })
 
 test('foundation exposes explicit interaction states and button/search primitives', () => {
@@ -127,7 +197,8 @@ test('resolveFoundationTokens is deterministic and resolves accessibility inputs
 test('Glass Strength uses one bounded deterministic optical mapping for Light and Dark', () => {
   assert.equal(normalizeGlassStrength(-1), 0)
   assert.equal(normalizeGlassStrength(101), 100)
-  assert.equal(normalizeGlassStrength('not-a-number'), 60)
+  assert.equal(normalizeGlassStrength('not-a-number'), 30)
+  assert.equal(resolveFoundationTokens({ appearance: 'light' }).glassStrength, 30)
   assert.equal(resolveGlassStrengthProfile(60).delta, 0)
 
   for (const theme of ['light', 'dark']) {
@@ -163,6 +234,8 @@ test('Glass Strength freezes clear, baseline, and stable optical anchors', () =>
     assert.ok(clear.glass.regular.blurPx < baseline.glass.regular.blurPx)
     assert.ok(stable.glass.regular.fillAlpha > baseline.glass.regular.fillAlpha)
     assert.ok(stable.glass.regular.blurPx > baseline.glass.regular.blurPx)
+    assert.ok(clear.glass.regular.fillAlpha <= 0.24, `${theme}: 0% remains highly transmissive`)
+    assert.equal(stable.glass.regular.fillAlpha, 0.94, `${theme}: 100% keeps the established endpoint`)
     for (const material of [clear.glass.regular, baseline.glass.regular, stable.glass.regular]) {
       assert.match(material.edgeLensing, /^radial-gradient\(/)
       assert.notEqual(material.edgeTop, 'none')
@@ -172,7 +245,7 @@ test('Glass Strength freezes clear, baseline, and stable optical anchors', () =>
       assert.equal(material.spill, 'none')
       assert.doesNotMatch(material.specular, /135deg|160deg/)
     }
-    assert.equal(baseline.glass.regular.background, theme === 'dark' ? 'rgba(38, 38, 40, 0.58)' : baseline.glass.regular.background)
+    assert.equal(baseline.glass.regular.background, theme === 'dark' ? 'rgba(24, 24, 28, 0.850)' : 'rgba(248, 247, 245, 0.880)')
     assert.ok(clear.contentBearing.fill !== stable.contentBearing.fill)
     assert.ok(clear.contentBearing.blur !== stable.contentBearing.blur)
   }
@@ -195,40 +268,48 @@ test('content-bearing runtime profile is shared and reduced transparency remains
 })
 
 test('dark regular Glass uses a uniform graphite baseline without diagonal split light', () => {
-  const dark = resolveFoundationTokens({ appearance: 'dark' }).glass.regular
-  assert.equal(dark.background, 'rgba(38, 38, 40, 0.58)')
-  assert.equal(dark.border, '1px solid rgba(255, 255, 255, 0.10)')
-  assert.equal(dark.shadow, '0 10px 32px rgba(0, 0, 0, 0.30)')
-  assert.equal(dark.blur, '24px')
-  assert.equal(dark.saturation, 1.25)
-  assert.equal(dark.highlight, 'rgba(255, 255, 255, 0.09)')
+  const dark = resolveFoundationTokens({ appearance: 'dark', glassStrength: 60 }).glass.regular
+  assert.equal(dark.background, 'rgba(24, 24, 28, 0.850)')
+  assert.equal(dark.border, '1px solid rgba(255, 255, 255, 0.200)')
+  assert.equal(dark.shadow, '0 1px 2px rgba(0, 0, 0, 0.340), 0 18px 50px -20px rgba(0, 0, 0, 0.460)')
+  assert.equal(dark.blur, '44px')
+  assert.equal(dark.saturation, 1.2)
+  assert.equal(dark.highlight, 'linear-gradient(180deg, rgba(255, 255, 255, 0.100), transparent 22%)')
   assert.match(dark.specular, /linear-gradient\(180deg/)
   assert.equal(dark.reflection, 'none')
   assert.equal(dark.spill, 'none')
   assert.doesNotMatch(dark.specular, /135deg|160deg/)
   const root = createRoot()
-  applyFoundationTokens(root, resolveFoundationTokens({ appearance: 'dark' }))
-  assert.equal(root.values['--ui-glass-regular-background'], 'rgba(38, 38, 40, 0.58)')
-  assert.equal(root.values['--ui-glass-regular-saturation'], '125%')
-  assert.equal(root.values['--ui-glass-regular-specular'], dark.specular)
-  assert.equal(root.values['--ui-glass-regular-spill'], 'none')
+  applyFoundationTokens(root, resolveFoundationTokens({ appearance: 'dark', glassStrength: 60 }))
+  assert.equal(root.values['--ui-glass-regular-background'], 'var(--ui-glass-canonical-background)')
+  assert.equal(root.values['--ui-glass-canonical-background'], 'rgba(24, 24, 28, 0.850)')
+  assert.equal(root.values['--ui-glass-regular-saturation'], 'var(--ui-glass-canonical-saturation)')
+  assert.equal(root.values['--ui-glass-canonical-saturation'], '120%')
+  assert.equal(root.values['--ui-glass-regular-specular'], 'var(--ui-glass-canonical-specular)')
+  assert.equal(root.values['--ui-glass-canonical-specular'], dark.specular)
+  assert.equal(root.values['--ui-glass-regular-spill'], 'var(--ui-glass-canonical-spill)')
+  assert.equal(root.values['--ui-glass-canonical-spill'], 'none')
 })
 
 test('applyFoundationTokens applies resolved contrast and transparency maps', () => {
   const normalRoot = createRoot()
   const contrastRoot = createRoot()
   const reducedRoot = createRoot()
-  applyFoundationTokens(normalRoot, resolveFoundationTokens({ appearance: 'light' }))
-  applyFoundationTokens(contrastRoot, resolveFoundationTokens({ appearance: 'light', increasedContrast: true }))
+  applyFoundationTokens(normalRoot, resolveFoundationTokens({ appearance: 'light', glassStrength: 60 }))
+  applyFoundationTokens(contrastRoot, resolveFoundationTokens({ appearance: 'light', increasedContrast: true, glassStrength: 60 }))
   applyFoundationTokens(reducedRoot, resolveFoundationTokens({ appearance: 'light', reducedTransparency: true }))
   assert.equal(normalRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.colors.light['text-primary'])
   assert.equal(contrastRoot.values['--ui-color-text-primary'], FOUNDATION_TOKENS.contrast.light['text-primary'])
   assert.equal(contrastRoot.values['--ui-color-separator'], FOUNDATION_TOKENS.contrast.light.separator)
   assert.equal(contrastRoot.values['--ui-interaction-button-primary'], FOUNDATION_TOKENS.contrast.light['button-primary'])
   assert.equal(contrastRoot.values['--ui-interaction-selection-background'], FOUNDATION_TOKENS.contrast.light['selection-background'])
-  assert.equal(contrastRoot.values['--ui-glass-regular-background'], FOUNDATION_TOKENS.contrast.light.glass.regular.background)
-  assert.equal(reducedRoot.values['--ui-glass-regular-blur'], '0px')
-  assert.equal(reducedRoot.values['--ui-glass-regular-shadow'], 'none')
+  assert.equal(contrastRoot.values['--ui-glass-regular-background'], 'var(--ui-glass-canonical-background)')
+  assert.equal(contrastRoot.values['--ui-glass-canonical-background'], 'rgba(248, 247, 245, 0.880)')
+  assert.equal(contrastRoot.values['--ui-glass-canonical-border'], FOUNDATION_TOKENS.contrast.light.glass.regular.border)
+  assert.equal(reducedRoot.values['--ui-glass-regular-blur'], 'var(--ui-glass-canonical-blur)')
+  assert.equal(reducedRoot.values['--ui-glass-canonical-blur'], '0px')
+  assert.equal(reducedRoot.values['--ui-glass-regular-shadow'], 'var(--ui-glass-canonical-shadow)')
+  assert.equal(reducedRoot.values['--ui-glass-canonical-shadow'], 'none')
   assert.equal(reducedRoot.values['--glass-bg'], 'var(--ui-glass-regular-background)')
 })
 
@@ -271,9 +352,9 @@ test('increased contrast reaches real primary, segmented and sidebar semantic to
   assert.notEqual(normal.interaction['selection-background'], contrast.interaction['selection-background'])
   assert.notEqual(normal.interaction['selection-text'], contrast.interaction['selection-text'])
   assert.notEqual(normal.interaction['selection-boundary'], contrast.interaction['selection-boundary'])
-  assert.notEqual(normal.glass.regular.background, contrast.glass.regular.background)
+  assert.equal(normal.glass.regular.background, contrast.glass.regular.background)
   assert.notEqual(normal.glass.regular.border, contrast.glass.regular.border)
-  assert.notEqual(normal.glass.clear.background, contrast.glass.clear.background)
+  assert.equal(normal.glass.clear.background, contrast.glass.clear.background)
   assert.match(main, /registerFoundationLifecycle\(/)
   assert.match(rendererCss, /\.btn-primary[\s\S]*background: var\(--ui-interaction-button-primary\)/)
   assert.match(rendererCss, /\.segmented button\.active[\s\S]*var\(--ui-interaction-selection-background\)/)
