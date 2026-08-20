@@ -1,14 +1,161 @@
 /* macOS 26 UI Foundation: structural rules consuming runtime token vars. */
 
 :root {
+  --ui-scale: 1;
+  --ui-scale-percent: 100%;
   --ui-focus-ring: 0 0 0 var(--ui-geometry-focus-width) var(--ui-color-focus);
-  --ui-glass-background: var(--ui-glass-regular-background);
-  --ui-glass-border: var(--ui-glass-regular-border);
-  --ui-glass-shadow: var(--ui-glass-regular-shadow);
-  --ui-glass-blur: var(--ui-glass-regular-blur);
-  --ui-glass-saturation: var(--ui-glass-regular-saturation);
-  --ui-glass-specular: var(--ui-glass-regular-specular);
-  --ui-glass-spill: var(--ui-glass-regular-spill);
+  --ui-glass-background: var(--ui-glass-canonical-background);
+  --ui-glass-border: var(--ui-glass-canonical-border);
+  --ui-glass-shadow: var(--ui-glass-canonical-shadow);
+  --ui-glass-blur: var(--ui-glass-canonical-blur);
+  --ui-glass-saturation: var(--ui-glass-canonical-saturation);
+  --ui-glass-specular: var(--ui-glass-canonical-specular);
+  --ui-glass-spill: var(--ui-glass-canonical-spill);
+  --ui-glass-edge-top: var(--ui-glass-canonical-edge-top);
+  --ui-glass-edge-side: var(--ui-glass-canonical-edge-side);
+  --ui-glass-edge-bottom: var(--ui-glass-canonical-edge-bottom);
+  --ui-glass-edge-lensing: var(--ui-glass-canonical-edge-lensing);
+  --ui-glass-edge-softening: var(--ui-glass-canonical-edge-softening);
+}
+
+/* Application-wide UI Scale bridge. Typography, control metrics and spacing
+   are resolved by the Foundation runtime; these final selectors make the
+   existing shell and N-level controls consume those scaled values together. */
+body {
+  font-size: var(--ui-type-body-size, 13px);
+}
+
+.app-shell .brand-mark {
+  width: var(--ui-geometry-icon-only-size);
+  height: var(--ui-geometry-icon-only-size);
+}
+
+.app-shell .nav-item,
+.app-shell .nav-secondary-item {
+  min-height: calc(36px * var(--ui-scale));
+  height: auto;
+  padding-block: calc(6px * var(--ui-scale));
+  font-size: var(--ui-type-body-size);
+}
+
+.app-shell .nav-group-label,
+.app-shell .nav-subgroup-label,
+.app-shell .sidebar-foot {
+  font-size: var(--ui-type-caption-size);
+}
+
+.app-shell .global-utility-bar {
+  gap: var(--ui-space-2);
+}
+
+.app-shell .global-entry {
+  min-height: var(--ui-geometry-control-height);
+  padding-inline: var(--ui-space-3);
+  font-size: var(--ui-type-body-size);
+}
+
+.app-shell .toolbar-group {
+  min-height: var(--ui-geometry-control-height);
+  padding: var(--ui-space-1);
+}
+
+.app-shell .global-panel {
+  top: calc(70px * var(--ui-scale));
+  padding: var(--ui-space-3);
+}
+
+.app-shell .global-panel-title {
+  font-size: var(--ui-type-section-size);
+}
+
+.app-shell .btn,
+.app-shell .ui-button,
+.app-shell select,
+.app-shell input,
+.app-shell textarea {
+  font-size: var(--ui-type-body-size);
+}
+
+.app-shell .btn,
+.app-shell .ui-button {
+  min-height: var(--ui-geometry-control-height);
+  padding-inline: var(--ui-space-3);
+}
+
+.app-shell .settings-row {
+  gap: var(--ui-space-6);
+  padding: var(--ui-space-5);
+}
+
+.app-shell .settings-row-title {
+  font-size: var(--ui-type-section-size);
+}
+
+.app-shell .settings-row-description,
+.app-shell .settings-status,
+.app-shell .settings-strength-value,
+.app-shell .settings-scale-value {
+  font-size: var(--ui-type-body-size);
+}
+.app-shell .settings-preset-actions {
+  gap: var(--ui-space-3);
+}
+
+.app-shell .segmented {
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1);
+}
+
+.app-shell .segmented button {
+  min-height: var(--ui-geometry-control-height);
+  height: auto;
+  padding-inline: var(--ui-space-4);
+  font-size: var(--ui-type-body-size);
+}
+
+.app-shell input[type='range'] {
+  min-height: var(--ui-geometry-control-height);
+}
+
+.desktop-background-control {
+  display: grid;
+  min-width: min(100%, 280px);
+  justify-items: end;
+  gap: var(--ui-space-2);
+}
+
+.desktop-background-preview {
+  width: min(220px, 32vw);
+  aspect-ratio: 16 / 9;
+  min-height: calc(72px * var(--ui-scale));
+  border: var(--ui-geometry-border-width) solid var(--ui-color-separator);
+  border-radius: var(--ui-radius-surface-sm);
+  background-image: var(--ui-window-background-light);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+html[data-theme='dark'] .desktop-background-preview {
+  background-image: var(--ui-window-background-dark);
+}
+
+.desktop-background-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ui-space-2);
+}
+
+.desktop-background-control .settings-status,
+.desktop-background-control .settings-error {
+  max-width: 100%;
+  white-space: normal;
+  text-align: right;
+}
+
+.settings-error {
+  color: var(--ui-color-critical);
 }
 
 body {
@@ -64,32 +211,24 @@ body {
 }
 
 .ui-liquid-glass[data-material='clear'] {
-  --ui-glass-background: var(--ui-glass-clear-background);
-  --ui-glass-border: var(--ui-glass-clear-border);
-  --ui-glass-shadow: var(--ui-glass-clear-shadow);
-  --ui-glass-blur: var(--ui-glass-clear-blur);
-  --ui-glass-saturation: var(--ui-glass-clear-saturation);
-  --ui-glass-specular: var(--ui-glass-clear-specular);
-  --ui-glass-spill: var(--ui-glass-clear-spill);
   border-radius: var(--ui-radius-floating);
 }
 
 /* Content-bearing surfaces share one runtime profile across Main AI and every
    anchored panel. Geometry remains component-specific; optical values do not. */
 .ui-liquid-glass.content-bearing-glass {
-  --ui-glass-background: var(--ui-glass-content-bearing-fill);
-  --ui-glass-border: var(--ui-glass-content-bearing-border);
-  --ui-glass-shadow: var(--ui-glass-content-bearing-shadow);
-  --ui-glass-blur: var(--ui-glass-content-bearing-blur);
-  --ui-glass-saturation: var(--ui-glass-content-bearing-saturation);
-  --ui-glass-brightness: var(--ui-glass-content-bearing-brightness);
-  --ui-glass-specular: var(--ui-glass-content-bearing-specular);
-  --ui-glass-spill: var(--ui-glass-content-bearing-spill, none);
-  --ui-glass-edge-top: var(--ui-glass-content-bearing-edge-top);
-  --ui-glass-edge-side: var(--ui-glass-content-bearing-edge-side);
-  --ui-glass-edge-bottom: var(--ui-glass-content-bearing-edge-bottom);
-  --ui-glass-edge-lensing: var(--ui-glass-content-bearing-edge-lensing);
-  --ui-glass-edge-softening: var(--ui-glass-content-bearing-edge-softening);
+  --ui-glass-background: var(--ui-glass-canonical-background);
+  --ui-glass-border: var(--ui-glass-canonical-border);
+  --ui-glass-shadow: var(--ui-glass-canonical-shadow);
+  --ui-glass-blur: var(--ui-glass-canonical-blur);
+  --ui-glass-saturation: var(--ui-glass-canonical-saturation);
+  --ui-glass-specular: var(--ui-glass-canonical-specular);
+  --ui-glass-spill: var(--ui-glass-canonical-spill);
+  --ui-glass-edge-top: var(--ui-glass-canonical-edge-top);
+  --ui-glass-edge-side: var(--ui-glass-canonical-edge-side);
+  --ui-glass-edge-bottom: var(--ui-glass-canonical-edge-bottom);
+  --ui-glass-edge-lensing: var(--ui-glass-canonical-edge-lensing);
+  --ui-glass-edge-softening: var(--ui-glass-canonical-edge-softening);
 }
 
 /* Surface geometry is component-specific; material values remain shared. */

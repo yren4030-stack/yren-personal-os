@@ -9,8 +9,8 @@ import { resolveFoundationTokens } from './ui-foundation.mjs'
 export const LIQUID_GLASS_STYLES = Object.freeze({ CLEAR: 'clear', TINTED: 'tinted' })
 export const MATERIAL_VARIANTS = Object.freeze({ REGULAR: 'regular', CLEAR: 'clear', CONTENT: 'content' })
 
-export function resolveLiquidGlass({ theme = 'light', userStyle = 'clear', variant = 'regular', role, size, glassStrength } = {}) {
-  const resolved = resolveFoundationTokens({ appearance: theme, liquidGlassStyle: userStyle, glassRole: role, glassSize: size, glassStrength })
+export function resolveLiquidGlass({ theme = 'light', userStyle = 'clear', variant = 'regular', role, size, glassStrength, uiScale } = {}) {
+  const resolved = resolveFoundationTokens({ appearance: theme, liquidGlassStyle: userStyle, glassRole: role, glassSize: size, glassStrength, uiScale })
   return resolved.glass[variant === 'clear' ? 'clear' : variant === 'content' ? 'content' : 'regular']
 }
 
@@ -22,6 +22,7 @@ export function computeGlassTokens(appearance = {}) {
     increasedContrast: appearance.increasedContrast === true,
     reducedTransparency: appearance.reducedTransparency === true,
     glassStrength: appearance.glassStrength,
+    uiScale: appearance.uiScale,
   })
   const regular = resolved.glass.regular
   const clear = resolved.glass.clear
@@ -88,6 +89,7 @@ export function computeGlassTokens(appearance = {}) {
     blurPx: regular.blurPx,
     alpha: regular.fillAlpha,
     glassStrength: resolved.glassStrength,
+    uiScale: resolved.uiScale,
   }
 }
 
@@ -149,6 +151,37 @@ export function applyGlassTokens(tokens) {
     '--ui-glass-content-bearing-edge-lensing': tokens.glassContentBearingEdgeLensing,
     '--ui-glass-content-bearing-edge-softening': tokens.glassContentBearingEdgeSoftening,
   }
+  const canonical = {
+    background: tokens.glassBg,
+    blur: tokens.glassBlur,
+    border: tokens.glassBorder,
+    shadow: tokens.glassShadow,
+    saturation: tokens.glassSaturation,
+    brightness: tokens.glassBrightness,
+    contrast: tokens.glassContrast,
+    highlight: tokens.glassHighlight,
+    rimLight: tokens.glassRimLight,
+    rimShade: tokens.glassRimShade,
+    specular: tokens.glassSpecular,
+    reflection: tokens.glassReflection,
+    spill: tokens.glassSpill,
+    edgeTop: tokens.glassEdgeTop,
+    edgeSide: tokens.glassEdgeSide,
+    edgeBottom: tokens.glassEdgeBottom,
+    edgeLensing: tokens.glassEdgeLensing,
+    edgeSoftening: tokens.glassEdgeSoftening,
+  }
+  for (const [name, value] of Object.entries(canonical)) root.style.setProperty(`--ui-glass-canonical-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`, value)
+  root.style.setProperty('--ui-glass-canonical-fill-alpha', String(tokens.regularFillAlpha))
   for (const [name, value] of Object.entries(values)) root.style.setProperty(name, value)
+  for (const variant of ['regular', 'clear', 'content']) {
+    for (const name of Object.keys(canonical)) root.style.setProperty(`--ui-glass-${variant}-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`, `var(--ui-glass-canonical-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)})`)
+  }
+  for (const [name, canonicalName] of Object.entries({ fill: 'background', border: 'border', shadow: 'shadow', blur: 'blur', saturation: 'saturation', brightness: 'brightness', specular: 'specular', edgeTop: 'edge-top', edgeSide: 'edge-side', edgeBottom: 'edge-bottom', edgeLensing: 'edge-lensing', edgeSoftening: 'edge-softening' })) root.style.setProperty(`--ui-glass-content-bearing-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`, `var(--ui-glass-canonical-${canonicalName})`)
+  root.style.setProperty('--ui-glass-content-bearing-fill-alpha', 'var(--ui-glass-canonical-fill-alpha)')
   if (tokens.glassStrength !== undefined) root.style.setProperty('--ui-glass-strength', String(tokens.glassStrength))
+  if (tokens.uiScale !== undefined) {
+    root.style.setProperty('--ui-scale', String(tokens.uiScale / 100))
+    root.style.setProperty('--ui-scale-percent', `${tokens.uiScale}%`)
+  }
 }

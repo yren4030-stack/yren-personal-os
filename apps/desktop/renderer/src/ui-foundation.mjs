@@ -15,6 +15,30 @@ export const FOUNDATION_STATES = Object.freeze([
   'default', 'hover', 'pressed', 'focus-visible', 'selected', 'active', 'disabled',
 ])
 
+export const UI_SCALE_RANGE = Object.freeze({ min: 85, max: 125, default: 100 })
+export const UI_SCALE_PROFILE_DEFAULTS = Object.freeze({
+  mode: 'unified',
+  unified: UI_SCALE_RANGE.default,
+  typography: UI_SCALE_RANGE.default,
+  width: UI_SCALE_RANGE.default,
+  height: UI_SCALE_RANGE.default,
+  verticalSpacing: UI_SCALE_RANGE.default,
+  horizontalSpacing: UI_SCALE_RANGE.default,
+})
+
+const CANONICAL_APPLICATION_GLASS = Object.freeze({
+  light: Object.freeze({
+    fill: 'rgba(248, 247, 245, 0.88)', blur: '44px', saturation: '120%', brightness: '1.02',
+    border: '1px solid rgba(0, 0, 0, 0.16)', shadow: '0 1px 2px rgba(0, 0, 0, 0.14), 0 18px 50px -20px rgba(0, 0, 0, 0.22)',
+    specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 22%)', spill: 'none',
+  }),
+  dark: Object.freeze({
+    fill: 'rgba(24, 24, 28, 0.85)', blur: '44px', saturation: '120%', brightness: '1.02',
+    border: '1px solid rgba(255, 255, 255, 0.20)', shadow: '0 1px 2px rgba(0, 0, 0, 0.34), 0 18px 50px -20px rgba(0, 0, 0, 0.46)',
+    specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 22%)', spill: 'none',
+  }),
+})
+
 export const FOUNDATION_TOKENS = Object.freeze({
   colors: Object.freeze({
     light: Object.freeze({
@@ -71,59 +95,13 @@ export const FOUNDATION_TOKENS = Object.freeze({
     }),
   }),
   glass: Object.freeze({
-    strength: Object.freeze({ min: 0, max: 100, default: 60 }),
-    profiles: Object.freeze({
-      regular: Object.freeze({
-        clear: Object.freeze({ fill: 0.14, blur: 12, brightness: 1.05, contrast: 1.03, saturation: 1.25, border: 0.16, rimLight: 0.55, rimShade: 0.07, specular: 0.5, contact: 0.04, ambient: 0.1, spill: 0.12 }),
-        tinted: Object.freeze({ fill: 0.32, blur: 18, brightness: 1.02, contrast: 1.05, saturation: 1.4, border: 0.18, rimLight: 0.4, rimShade: 0.09, specular: 0.35, contact: 0.05, ambient: 0.14, spill: 0.16 }),
-      }),
-      clear: Object.freeze({
-        clear: Object.freeze({ fill: 0.08, blur: 7, brightness: 1.06, contrast: 1.04, saturation: 1.3, border: 0.18, rimLight: 0.6, rimShade: 0.08, specular: 0.55, contact: 0.03, ambient: 0.06, spill: 0.14 }),
-        tinted: Object.freeze({ fill: 0.2, blur: 12, brightness: 1.03, contrast: 1.05, saturation: 1.45, border: 0.2, rimLight: 0.45, rimShade: 0.1, specular: 0.4, contact: 0.04, ambient: 0.09, spill: 0.18 }),
-      }),
-    }),
-    darkRegular: Object.freeze({
-      fill: 0.58,
-      blur: 24,
-      brightness: 1,
-      contrast: 1,
-      saturation: 1.25,
-      border: 0.10,
-      rimLight: 0.09,
-      rimShade: 0.08,
-      specular: 0.09,
-      contact: 0.30,
-      ambient: 0.30,
-      spill: 0,
-      fillRgb: '38, 38, 40',
-      background: 'rgba(38, 38, 40, 0.58)',
-      borderValue: '1px solid rgba(255, 255, 255, 0.10)',
-      shadow: '0 10px 32px rgba(0, 0, 0, 0.30)',
-      specularValue: 'linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 22%)',
-      spillValue: 'none',
-    }),
+  strength: Object.freeze({ min: 0, max: 100, default: 30 }),
+    canonical: CANONICAL_APPLICATION_GLASS,
+    contentBearing: CANONICAL_APPLICATION_GLASS,
     edge: Object.freeze({
       light: Object.freeze({ top: 0.10, side: 0.048, bottom: 0.036, lensing: 0.06, softening: 0.035 }),
       dark: Object.freeze({ top: 0.09, side: 0.045, bottom: 0.032, lensing: 0.05, softening: 0.03 }),
     }),
-    contentBearing: Object.freeze({
-      light: Object.freeze({
-        fill: 'rgba(248, 247, 245, 0.88)', blur: '44px', saturation: '120%', brightness: '1.02',
-        border: '1px solid rgba(0, 0, 0, 0.16)', shadow: '0 1px 2px rgba(0, 0, 0, 0.14), 0 18px 50px -20px rgba(0, 0, 0, 0.22)',
-        specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 22%)', spill: 'none',
-      }),
-      dark: Object.freeze({
-        fill: 'rgba(24, 24, 28, 0.85)', blur: '44px', saturation: '120%', brightness: '1.02',
-        border: '1px solid rgba(255, 255, 255, 0.20)', shadow: '0 1px 2px rgba(0, 0, 0, 0.34), 0 18px 50px -20px rgba(0, 0, 0, 0.46)',
-        specular: 'linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 22%)', spill: 'none',
-      }),
-    }),
-    sizes: Object.freeze({
-      small: Object.freeze({ fill: 0.85, blur: 0.75, border: 1.1, contact: 0.8, ambient: 0.7, specular: 1.1 }),
-      medium: Object.freeze({ fill: 1, blur: 1, border: 1, contact: 1, ambient: 1, specular: 1 }),
-      large: Object.freeze({ fill: 1.05, blur: 1.1, border: 1.1, contact: 1.1, ambient: 1.15, specular: 1 }),
-    }),
-    roles: Object.freeze({ navigation: Object.freeze({ size: 'large', spill: 1.2 }), panel: Object.freeze({ size: 'medium', spill: 1 }), control: Object.freeze({ size: 'small', spill: 1 }), floating: Object.freeze({ size: 'small', spill: 1.1, specular: 1.15 }) }),
     palette: Object.freeze({ light: Object.freeze({ fillRgb: '255, 255, 255', borderRgb: '0, 0, 0', highlightRgb: '255, 255, 255', shadeRgb: '0, 0, 0', spillRgb: '150, 158, 186' }), dark: Object.freeze({ fillRgb: '34, 36, 42', borderRgb: '255, 255, 255', highlightRgb: '255, 255, 255', shadeRgb: '0, 0, 0', spillRgb: '110, 122, 160' }) }),
   }),
   spacing: Object.freeze({ 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48 }),
@@ -141,6 +119,60 @@ function resolveTheme(theme) { return theme === 'dark' ? 'dark' : 'light' }
 function resolveRoot(root) { if (root && root.style && root.dataset) return root; if (typeof document !== 'undefined') return document.documentElement; return null }
 function rgba(rgb, alpha) { return `rgba(${rgb}, ${alpha.toFixed(3)})` }
 
+export function normalizeUiScale(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return UI_SCALE_RANGE.default
+  return Math.min(UI_SCALE_RANGE.max, Math.max(UI_SCALE_RANGE.min, Math.round(n)))
+}
+
+export function normalizeUiScaleProfile(value, fallback = UI_SCALE_PROFILE_DEFAULTS) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  const clampScale = (candidate, defaultValue) => normalizeUiScale(candidate ?? defaultValue)
+  const unified = clampScale(source.unified, fallback.unified)
+  const mode = source.mode === 'separate' ? 'separate' : 'unified'
+  return Object.freeze({
+    mode,
+    unified,
+    typography: clampScale(source.typography, mode === 'unified' ? unified : fallback.typography),
+    width: clampScale(source.width, mode === 'unified' ? unified : fallback.width),
+    height: clampScale(source.height, mode === 'unified' ? unified : fallback.height),
+    verticalSpacing: clampScale(source.verticalSpacing, mode === 'unified' ? unified : fallback.verticalSpacing),
+    horizontalSpacing: clampScale(source.horizontalSpacing, mode === 'unified' ? unified : fallback.horizontalSpacing),
+  })
+}
+
+function scaleCssMetrics(value, factor) {
+  return String(value).replace(/(-?\d+(?:\.\d+)?)px/g, (_match, number) => `${(Number(number) * factor).toFixed(3).replace(/\.?(0+)$/, '')}px`)
+}
+
+function resolveScaledTokens(profile) {
+  const unifiedFactor = profile.unified / 100
+  const typographyFactor = profile.typography / 100
+  // Separate mode delegates width/height to selected-container resizing; the
+  // stored profile fields remain only for backward-compatible persistence.
+  const widthFactor = profile.mode === 'unified' ? profile.width / 100 : 1
+  const heightFactor = profile.mode === 'unified' ? profile.height / 100 : 1
+  const verticalSpacingFactor = profile.verticalSpacing / 100
+  const horizontalSpacingFactor = profile.horizontalSpacing / 100
+  const spacingVertical = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.spacing).map(([name, value]) => [name, value * verticalSpacingFactor])))
+  const spacingHorizontal = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.spacing).map(([name, value]) => [name, value * horizontalSpacingFactor])))
+  const radiusFactor = Math.sqrt(widthFactor * heightFactor)
+  const radius = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.radius).map(([name, value]) => [name, name === 'capsule' ? value : value * radiusFactor])))
+  const geometry = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.geometry).map(([name, value]) => {
+    if (typeof value !== 'number' || name === 'disabled-opacity') return [name, value]
+    const factor = name.includes('height') || name.includes('offset') ? heightFactor : widthFactor
+    return [name, value * factor]
+  })))
+  const typography = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.typography).map(([name, value]) => [name, name === 'family' ? value : Object.freeze({ ...value, size: value.size * typographyFactor })])))
+  const layout = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => {
+    const factor = name.includes('padding-x') || name.includes('sidebar-width') || name.includes('grid-gap') ? horizontalSpacingFactor : verticalSpacingFactor
+    return [name, scaleCssMetrics(value, factor)]
+  })))
+  const layoutHorizontal = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => [name, scaleCssMetrics(value, horizontalSpacingFactor)])))
+  const layoutVertical = Object.freeze(Object.fromEntries(Object.entries(FOUNDATION_TOKENS.layout).map(([name, value]) => [name, scaleCssMetrics(value, verticalSpacingFactor)])))
+  return { factor: unifiedFactor, spacing: spacingVertical, spacingVertical, spacingHorizontal, radius, geometry, typography, layout, layoutHorizontal, layoutVertical }
+}
+
 export function normalizeGlassStrength(value) {
   const { min, max, default: fallback } = FOUNDATION_TOKENS.glass.strength
   const n = Number(value)
@@ -148,21 +180,24 @@ export function normalizeGlassStrength(value) {
   return Math.min(max, Math.max(min, Math.round(n)))
 }
 
+const GLASS_STRENGTH_NEUTRAL = 60
+
 function easedStrengthProgress(strength) {
-  const progress = strength <= 60 ? strength / 60 : (strength - 60) / 40
+  const progress = strength <= GLASS_STRENGTH_NEUTRAL ? strength / GLASS_STRENGTH_NEUTRAL : (strength - GLASS_STRENGTH_NEUTRAL) / 40
   return progress * progress * (3 - 2 * progress)
 }
 
 /**
  * One bounded optical mapping shared by every Foundation material. The
- * neutral point is 60, preserving the established baseline while keeping the
+ * neutral point is 60, preserving the established optical baseline while the
+ * user-facing default is 30 and keeping the
  * ends useful: lower values reveal more environment; higher values stabilize
  * the frosted body. Reduced Transparency bypasses this mapping entirely.
  */
 export function resolveGlassStrengthProfile(value = FOUNDATION_TOKENS.glass.strength.default) {
   const strength = normalizeGlassStrength(value)
   const progress = easedStrengthProgress(strength)
-  const delta = strength <= FOUNDATION_TOKENS.glass.strength.default ? progress - 1 : progress
+  const delta = strength <= GLASS_STRENGTH_NEUTRAL ? progress - 1 : progress
   return Object.freeze({
     value: strength,
     delta,
@@ -230,108 +265,43 @@ function resolveEdgeOptics(theme, palette, sizeSpec, profile) {
 
 const NO_EDGE_OPTICS = Object.freeze({ edgeTop: 'none', edgeSide: 'none', edgeBottom: 'none', edgeLensing: 'none', edgeSoftening: 'transparent' })
 
-function resolveMaterial(model, palette, colors, theme, styleName, variant, role, size, reducedTransparency, contrastGlass, glassStrength) {
-  if (variant === 'content') return Object.freeze({ variant, fillAlpha: 1, blurPx: 0, brightness: 1, contrast: 1, saturation: 1, borderAlpha: 0, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: colors.surface, border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
-  const darkRegular = theme === 'dark' && variant === 'regular'
-  const style = darkRegular ? model.darkRegular : model.profiles[variant][styleName]
-  const roleSpec = model.roles[role] || model.roles.panel
-  const sizeSpec = model.sizes[size || roleSpec.size] || model.sizes.medium
-  const profile = resolveGlassStrengthProfile(glassStrength)
-  const edge = resolveEdgeOptics(theme, palette, sizeSpec, profile)
-  const material = {
-    variant,
-    fillAlpha: style.fill * sizeSpec.fill,
-    blurPx: style.blur * sizeSpec.blur,
-    brightness: style.brightness * (theme === 'dark' ? 0.99 : 1),
-    contrast: style.contrast,
-    saturation: style.saturation * (theme === 'dark' ? 0.92 : 1),
-    borderAlpha: style.border * sizeSpec.border,
-    rimLightAlpha: Math.min(0.7, style.rimLight * (theme === 'dark' ? 1.15 : 1)),
-    rimShadeAlpha: style.rimShade * (theme === 'dark' ? 1.3 : 1),
-    specularAlpha: Math.min(0.65, style.specular * sizeSpec.specular * (roleSpec.specular || 1) * (theme === 'dark' ? 0.85 : 1)),
-    contactAlpha: style.contact * sizeSpec.contact,
-    ambientAlpha: style.ambient * sizeSpec.ambient,
-    shadowAlpha: style.ambient * sizeSpec.ambient,
-    spillAlpha: style.spill * (roleSpec.spill || 1),
-  }
-  if (reducedTransparency) return Object.freeze({ ...material, ...NO_EDGE_OPTICS, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, fillAlpha: 1, blurPx: 0, background: colors['surface-elevated'], border: `1px solid ${colors.separator}`, shadow: 'none', blur: '0px', highlight: 'none', rimLight: 'none', rimShade: 'none', specular: 'none', reflection: 'none', spill: 'none' })
-  if (darkRegular) {
-    const optical = applyGlassStrength({
-      ...material,
-      fillAlpha: style.fill,
-      blurPx: style.blur,
-      brightness: style.brightness,
-      contrast: style.contrast,
-      saturation: style.saturation,
-      borderAlpha: style.border,
-      rimLightAlpha: style.rimLight,
-      rimShadeAlpha: style.rimShade,
-      specularAlpha: style.specular,
-      contactAlpha: style.contact,
-      ambientAlpha: style.ambient,
-      shadowAlpha: style.ambient,
-      spillAlpha: style.spill,
-    }, glassStrength)
-    const baseline = optical.glassStrength === FOUNDATION_TOKENS.glass.strength.default
-    const highlight = baseline ? 'rgba(255, 255, 255, 0.09)' : rgba('255, 255, 255', optical.specularAlpha)
-    const rimLight = baseline ? 'rgba(255, 255, 255, 0.09)' : rgba('255, 255, 255', optical.rimLightAlpha)
-    const rimShade = baseline ? 'rgba(0, 0, 0, 0.08)' : rgba('0, 0, 0', optical.rimShadeAlpha)
-    return Object.freeze({
-      ...optical,
-      ...edge,
-      fillRgb: style.fillRgb,
-      background: contrastGlass?.background || (baseline ? style.background : rgba(style.fillRgb, optical.fillAlpha)),
-      border: contrastGlass?.border || (baseline ? style.borderValue : `1px solid ${rgba('255, 255, 255', optical.borderAlpha)}`),
-      shadow: contrastGlass?.shadow || (baseline ? style.shadow : `0 10px 32px ${rgba('0, 0, 0', optical.shadowAlpha)}`),
-      blur: `${optical.blurPx}px`,
-      highlight,
-      rimLight,
-      rimShade,
-      specular: baseline ? style.specularValue : `linear-gradient(180deg, ${highlight}, transparent 22%)`,
-      reflection: 'none',
-      spill: 'none',
-    })
-  }
-  const optical = applyGlassStrength(material, glassStrength)
-  const highlight = rgba(palette.highlightRgb, clamp(optical.specularAlpha * 0.22 + 0.015, 0.015, 0.14))
-  const rimLight = rgba(palette.highlightRgb, clamp(optical.rimLightAlpha * 0.25, 0.015, 0.16))
-  const rimShade = rgba(palette.shadeRgb, optical.rimShadeAlpha)
-  const shadow = `${highlight} inset 0 1px 0, ${rimLight} inset 0 0 0 1px, ${rimShade} inset 0 -1px 0, 0 1px 2px ${rgba(palette.shadeRgb, optical.contactAlpha)}, 0 18px 50px -20px ${rgba(palette.shadeRgb, optical.shadowAlpha)}`
-  return Object.freeze({ ...optical, ...edge, fillRgb: palette.fillRgb, borderRgb: palette.borderRgb, background: contrastGlass?.background || rgba(palette.fillRgb, optical.fillAlpha), border: contrastGlass?.border || `1px solid ${rgba(palette.borderRgb, optical.borderAlpha)}`, shadow: contrastGlass?.shadow || shadow, blur: `${optical.blurPx.toFixed(1)}px`, highlight, rimLight, rimShade, specular: `linear-gradient(180deg, ${highlight}, transparent 22%)`, reflection: 'none', spill: 'none' })
+function cssAlpha(value, fallback = 0) {
+  const match = String(value).match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)\s*\)/)
+  return match ? Number(match[1]) : fallback
 }
 
-function resolveContentBearingMaterial(theme, colors, reducedTransparency, glassStrength) {
-  const material = FOUNDATION_TOKENS.glass.contentBearing[theme]
+function resolveCanonicalGlassMaterial(theme, colors, reducedTransparency, glassStrength, contrastGlass) {
+  const material = FOUNDATION_TOKENS.glass.canonical[theme]
   if (!reducedTransparency) {
     const profile = resolveGlassStrengthProfile(glassStrength)
     const palette = FOUNDATION_TOKENS.glass.palette[theme]
-    const edge = resolveEdgeOptics(theme, palette, FOUNDATION_TOKENS.glass.sizes.medium, profile)
-    const fillAtZero = theme === 'dark' ? 0.56 : 0.52
+    const edge = resolveEdgeOptics(theme, palette, { edge: 1 }, profile)
+    const fillAtZero = theme === 'dark' ? 0.24 : 0.20
     const fillAtBaseline = theme === 'dark' ? 0.85 : 0.88
     const fillProgress = profile.progress
-    const fillAlpha = profile.value <= 60
+    const fillAlpha = Number((profile.value <= GLASS_STRENGTH_NEUTRAL
       ? fillAtZero + (fillAtBaseline - fillAtZero) * fillProgress
-      : fillAtBaseline + (0.94 - fillAtBaseline) * fillProgress
+      : fillAtBaseline + (0.94 - fillAtBaseline) * fillProgress).toFixed(3))
     const bodyRgb = theme === 'dark' ? '24, 24, 28' : '248, 247, 245'
-    const mappedFill = rgba(bodyRgb, clamp(fillAlpha, 0.50, 0.94))
-    const mappedBlur = `${profile.value <= 60 ? 16 + (44 - 16) * fillProgress : 44 + (48 - 44) * fillProgress}px`
-    const mappedSaturation = `${Math.round(profile.value <= 60 ? 108 + (120 - 108) * fillProgress : 120 + (128 - 120) * fillProgress)}%`
-    return Object.freeze({
+    const resolved = {
       ...material,
       ...edge,
-      fill: mappedFill,
+      glassStrength: profile.value,
+      fill: rgba(bodyRgb, clamp(fillAlpha, 0.18, 0.94)),
       fillAlpha,
-      blur: mappedBlur,
-      saturation: mappedSaturation,
-      brightness: String(clamp(profile.value <= 60 ? 1.005 + (1.02 - 1.005) * fillProgress : 1.02 + (1.032 - 1.02) * fillProgress, 1, 1.05)),
+      blur: `${profile.value <= GLASS_STRENGTH_NEUTRAL ? 16 + (44 - 16) * fillProgress : 44 + (48 - 44) * fillProgress}px`,
+      saturation: `${Math.round(profile.value <= GLASS_STRENGTH_NEUTRAL ? 108 + (120 - 108) * fillProgress : 120 + (128 - 120) * fillProgress)}%`,
+      brightness: String(clamp(profile.value <= GLASS_STRENGTH_NEUTRAL ? 1.005 + (1.02 - 1.005) * fillProgress : 1.02 + (1.032 - 1.02) * fillProgress, 1, 1.05)),
       border: adjustRgbaAlphas(material.border, profile.border, 0.08, 0.28),
       shadow: adjustRgbaAlphas(material.shadow, profile.shadow, 0.10, 0.52),
       specular: adjustRgbaAlphas(material.specular, profile.specular * 0.35, 0.04, 0.16),
-    })
+    }
+    return Object.freeze(contrastGlass ? { ...resolved, border: contrastGlass.border || resolved.border, shadow: contrastGlass.shadow || resolved.shadow } : resolved)
   }
   return Object.freeze({
     ...material,
     ...NO_EDGE_OPTICS,
+    glassStrength: normalizeGlassStrength(glassStrength),
     fillAlpha: 1,
     fill: colors['surface-elevated'],
     blur: '0px',
@@ -344,6 +314,44 @@ function resolveContentBearingMaterial(theme, colors, reducedTransparency, glass
   })
 }
 
+function canonicalToGlassMaterial(canonical, theme, variant) {
+  const palette = FOUNDATION_TOKENS.glass.palette[theme]
+  return Object.freeze({
+    variant,
+    glassStrength: canonical.glassStrength,
+    fillAlpha: canonical.fillAlpha,
+    blurPx: Number.parseFloat(canonical.blur) || 0,
+    brightness: Number(canonical.brightness),
+    contrast: 1,
+    saturation: Number.parseFloat(canonical.saturation) / 100,
+    borderAlpha: cssAlpha(canonical.border),
+    rimLightAlpha: cssAlpha(canonical.edgeTop),
+    rimShadeAlpha: cssAlpha(canonical.edgeBottom),
+    specularAlpha: cssAlpha(canonical.specular),
+    contactAlpha: cssAlpha(canonical.shadow, 0.04),
+    ambientAlpha: cssAlpha(canonical.shadow, 0.12),
+    shadowAlpha: cssAlpha(canonical.shadow, 0.12),
+    spillAlpha: 0,
+    fillRgb: palette.fillRgb,
+    borderRgb: palette.borderRgb,
+    background: canonical.fill,
+    border: canonical.border,
+    shadow: canonical.shadow,
+    blur: canonical.blur,
+    highlight: canonical.specular,
+    rimLight: canonical.edgeTop,
+    rimShade: canonical.edgeBottom,
+    specular: canonical.specular,
+    reflection: 'none',
+    spill: 'none',
+    edgeTop: canonical.edgeTop,
+    edgeSide: canonical.edgeSide,
+    edgeBottom: canonical.edgeBottom,
+    edgeLensing: canonical.edgeLensing,
+    edgeSoftening: canonical.edgeSoftening,
+  })
+}
+
 /** Pure, deterministic resolver for the complete renderer foundation. */
 export function resolveFoundationTokens(options = {}) {
   const appearance = typeof options.appearance === 'object' && options.appearance !== null ? options.appearance : {}
@@ -352,20 +360,37 @@ export function resolveFoundationTokens(options = {}) {
   const increasedContrast = options.increasedContrast === true
   const reducedTransparency = options.reducedTransparency === true
   const glassStrength = normalizeGlassStrength(options.glassStrength ?? appearance.glassStrength)
+  const uiScaleProfile = normalizeUiScaleProfile(options.uiScaleProfile ?? appearance.uiScaleProfile ?? {
+    unified: options.uiScale ?? appearance.uiScale,
+  })
+  const uiScale = uiScaleProfile.unified
+  const scaled = resolveScaledTokens(uiScaleProfile)
   const base = FOUNDATION_TOKENS.colors[theme]
   const contrast = FOUNDATION_TOKENS.contrast[theme]
   const colors = Object.freeze(increasedContrast ? { ...base, separator: contrast.separator, focus: contrast.focus, selection: contrast.selection, 'text-primary': contrast['text-primary'], 'text-secondary': contrast['text-secondary'] } : { ...base })
-  const model = FOUNDATION_TOKENS.glass
-  const palette = model.palette[theme]
   const contrastGlass = increasedContrast ? contrast.glass : null
+  const canonical = resolveCanonicalGlassMaterial(theme, colors, reducedTransparency, glassStrength, contrastGlass?.regular)
   const glass = Object.freeze({
-    regular: resolveMaterial(model, palette, colors, theme, userStyle, 'regular', options.glassRole || 'navigation', options.glassSize, reducedTransparency, contrastGlass?.regular, glassStrength),
-    clear: resolveMaterial(model, palette, colors, theme, userStyle, 'clear', options.glassRole || 'control', options.glassSize, reducedTransparency, contrastGlass?.clear, glassStrength),
-    content: resolveMaterial(model, palette, colors, theme, userStyle, 'content', 'panel', options.glassSize, reducedTransparency, null, glassStrength),
+    regular: canonicalToGlassMaterial(canonical, theme, 'regular'),
+    clear: canonicalToGlassMaterial(canonical, theme, 'clear'),
+    content: canonicalToGlassMaterial(canonical, theme, 'content'),
   })
-  const contentBearing = resolveContentBearingMaterial(theme, colors, reducedTransparency, glassStrength)
+  const contentBearing = canonical
   const interaction = Object.freeze(increasedContrast ? { ...FOUNDATION_TOKENS.interaction[theme], ...Object.fromEntries(Object.entries(contrast).filter(([name]) => name.startsWith('button-') || name.startsWith('selection-'))) } : FOUNDATION_TOKENS.interaction[theme])
-  return Object.freeze({ theme, userStyle, glassStrength, increasedContrast, reducedTransparency, colors, interaction, contrast, spacing: FOUNDATION_TOKENS.spacing, radius: FOUNDATION_TOKENS.radius, typography: FOUNDATION_TOKENS.typography, motion: FOUNDATION_TOKENS.motion, geometry: FOUNDATION_TOKENS.geometry, layout: FOUNDATION_TOKENS.layout, glass, contentBearing })
+  return Object.freeze({
+    theme, userStyle, glassStrength, uiScale, uiScaleProfile,
+    uiScaleMode: uiScaleProfile.mode,
+    typographyScale: uiScaleProfile.typography,
+    widthScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.width : 100,
+    heightScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.height : 100,
+    verticalSpacingScale: uiScaleProfile.verticalSpacing,
+    horizontalSpacingScale: uiScaleProfile.horizontalSpacing,
+    scaleFactor: scaled.factor, increasedContrast, reducedTransparency, colors, interaction, contrast,
+    spacing: scaled.spacing, spacingVertical: scaled.spacingVertical, spacingHorizontal: scaled.spacingHorizontal,
+    radius: scaled.radius, typography: scaled.typography, motion: FOUNDATION_TOKENS.motion, geometry: scaled.geometry,
+    layout: scaled.layout, layoutHorizontal: scaled.layoutHorizontal, layoutVertical: scaled.layoutVertical,
+    glass, contentBearing,
+  })
 }
 
 /** Legacy names remain aliases only; no legacy value table is maintained. */
@@ -387,24 +412,28 @@ export function buildLegacyAliases(resolved) {
   }
 }
 
-function writeGroup(root, prefix, values, transform = (value) => value) { for (const [name, value] of Object.entries(values)) root.style.setProperty(`${prefix}${name}`, transform(value)) }
+function writeGroup(root, prefix, values, transform = (value) => value) { for (const [name, value] of Object.entries(values)) root.style.setProperty(`${prefix}${name}`, transform(value, name)) }
 
 function writeGlass(root, resolved) {
-  for (const [variant, material] of Object.entries(resolved.glass)) {
-    for (const key of ['background', 'border', 'shadow', 'blur', 'saturation', 'brightness', 'contrast', 'highlight', 'rimLight', 'rimShade', 'specular', 'reflection', 'spill', 'edgeTop', 'edgeSide', 'edgeBottom', 'edgeLensing', 'edgeSoftening']) {
-      const cssName = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
-      const value = key === 'saturation' && typeof material[key] === 'number' ? `${Math.round(material[key] * 100)}%` : material[key]
-      root.style.setProperty(`--ui-glass-${variant}-${cssName}`, value)
-    }
-    root.style.setProperty(`--ui-glass-${variant}-fill-alpha`, String(material.fillAlpha))
+  const material = resolved.glass.regular
+  for (const key of ['background', 'border', 'shadow', 'blur', 'saturation', 'brightness', 'contrast', 'highlight', 'rimLight', 'rimShade', 'specular', 'reflection', 'spill', 'edgeTop', 'edgeSide', 'edgeBottom', 'edgeLensing', 'edgeSoftening']) {
+    const cssName = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+    const value = key === 'saturation' && typeof material[key] === 'number' ? `${Math.round(material[key] * 100)}%` : material[key]
+    root.style.setProperty(`--ui-glass-canonical-${cssName}`, value)
+    for (const variant of Object.keys(resolved.glass)) root.style.setProperty(`--ui-glass-${variant}-${cssName}`, `var(--ui-glass-canonical-${cssName})`)
   }
+  for (const variant of Object.keys(resolved.glass)) root.style.setProperty(`--ui-glass-${variant}-fill-alpha`, `var(--ui-glass-canonical-fill-alpha)`)
+  root.style.setProperty('--ui-glass-canonical-fill-alpha', String(material.fillAlpha))
 }
 
-function writeContentBearing(root, resolved) {
-  for (const [key, value] of Object.entries(resolved.contentBearing)) {
-    const cssName = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
-    root.style.setProperty(`--ui-glass-content-bearing-${cssName}`, value)
+function writeContentBearing(root) {
+  const aliases = {
+    fill: 'background', border: 'border', shadow: 'shadow', blur: 'blur', saturation: 'saturation',
+    brightness: 'brightness', specular: 'specular', spill: 'spill', edgeTop: 'edge-top', edgeSide: 'edge-side',
+    edgeBottom: 'edge-bottom', edgeLensing: 'edge-lensing', edgeSoftening: 'edge-softening',
   }
+  for (const [name, canonicalName] of Object.entries(aliases)) root.style.setProperty(`--ui-glass-content-bearing-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`, `var(--ui-glass-canonical-${canonicalName})`)
+  root.style.setProperty('--ui-glass-content-bearing-fill-alpha', 'var(--ui-glass-canonical-fill-alpha)')
 }
 
 export function applyFoundationTokens(root, resolvedOrTheme = 'light', options = {}) {
@@ -415,18 +444,30 @@ export function applyFoundationTokens(root, resolvedOrTheme = 'light', options =
   writeGroup(target, '--ui-interaction-', resolved.interaction)
   writeGroup(target, '--ui-contrast-', resolved.contrast)
   writeGroup(target, '--ui-space-', resolved.spacing, (value) => `${value}px`)
+  writeGroup(target, '--ui-space-v-', resolved.spacingVertical, (value) => `${value}px`)
+  writeGroup(target, '--ui-space-h-', resolved.spacingHorizontal, (value) => `${value}px`)
   writeGroup(target, '--ui-radius-', resolved.radius, (value) => `${value}px`)
   writeGroup(target, '--ui-motion-', resolved.motion, (value) => `${value}ms`)
-  writeGroup(target, '--ui-geometry-', resolved.geometry, (value) => typeof value === 'number' && value < 1 ? String(value) : `${value}px`)
+  writeGroup(target, '--ui-geometry-', resolved.geometry, (value, name) => name === 'disabled-opacity' ? String(value) : `${value}px`)
   writeGroup(target, '--ui-layout-', resolved.layout)
+  writeGroup(target, '--ui-layout-horizontal-', resolved.layoutHorizontal)
+  writeGroup(target, '--ui-layout-vertical-', resolved.layoutVertical)
   target.style.setProperty('--ui-content-border', 'var(--ui-geometry-border-width) solid var(--ui-color-separator)')
   target.style.setProperty('--ui-content-shadow', 'none')
+  target.style.setProperty('--ui-scale', String(resolved.scaleFactor))
+  target.style.setProperty('--ui-scale-percent', `${resolved.uiScale}%`)
+  target.style.setProperty('--ui-scale-mode', resolved.uiScaleMode)
+  target.style.setProperty('--ui-scale-typography', String(resolved.typographyScale / 100))
+  target.style.setProperty('--ui-scale-width', String(resolved.widthScale / 100))
+  target.style.setProperty('--ui-scale-height', String(resolved.heightScale / 100))
+  target.style.setProperty('--ui-scale-spacing-vertical', String(resolved.verticalSpacingScale / 100))
+  target.style.setProperty('--ui-scale-spacing-horizontal', String(resolved.horizontalSpacingScale / 100))
   for (const [name, token] of Object.entries(resolved.typography)) {
     if (name === 'family') target.style.setProperty('--ui-font-family', token)
     else { target.style.setProperty(`--ui-type-${name}-size`, `${token.size}px`); target.style.setProperty(`--ui-type-${name}-weight`, String(token.weight)) }
   }
   writeGlass(target, resolved)
-  writeContentBearing(target, resolved)
+  writeContentBearing(target)
   target.style.setProperty('--ui-glass-strength', String(resolved.glassStrength))
   for (const [name, value] of Object.entries(buildLegacyAliases(resolved))) target.style.setProperty(name, value)
   target.dataset.foundationTheme = resolved.theme
@@ -434,6 +475,13 @@ export function applyFoundationTokens(root, resolvedOrTheme = 'light', options =
   target.dataset.foundationIncreasedContrast = String(resolved.increasedContrast)
   target.dataset.foundationReducedTransparency = String(resolved.reducedTransparency)
   target.dataset.foundationGlassStrength = String(resolved.glassStrength)
+  target.dataset.uiScale = String(resolved.uiScale)
+  target.dataset.uiScaleMode = resolved.uiScaleMode
+  target.dataset.uiTypographyScale = String(resolved.typographyScale)
+  target.dataset.uiWidthScale = String(resolved.widthScale)
+  target.dataset.uiHeightScale = String(resolved.heightScale)
+  target.dataset.uiVerticalSpacingScale = String(resolved.verticalSpacingScale)
+  target.dataset.uiHorizontalSpacingScale = String(resolved.horizontalSpacingScale)
   return resolved
 }
 
@@ -492,7 +540,24 @@ export function initializeFoundation() {
   if (typeof document === 'undefined') return () => {}
   const root = document.documentElement
   let preferences = readFoundationPreferences()
-  const applyResolved = () => { const resolved = resolveFoundationTokens({ appearance: root.dataset.theme, glassStrength: root.dataset.foundationGlassStrength, ...preferences }); applyFoundationTokens(root, resolved); applyFoundationPreferences(root, preferences) }
+  const applyResolved = () => {
+    const resolved = resolveFoundationTokens({
+      appearance: root.dataset.theme,
+      glassStrength: root.dataset.foundationGlassStrength,
+      uiScaleProfile: {
+        mode: root.dataset.uiScaleMode,
+        unified: root.dataset.uiScale,
+        typography: root.dataset.uiTypographyScale,
+        width: root.dataset.uiWidthScale,
+        height: root.dataset.uiHeightScale,
+        verticalSpacing: root.dataset.uiVerticalSpacingScale,
+        horizontalSpacing: root.dataset.uiHorizontalSpacingScale,
+      },
+      ...preferences,
+    })
+    applyFoundationTokens(root, resolved)
+    applyFoundationPreferences(root, preferences)
+  }
   applyResolved()
   const stopPreferences = watchFoundationPreferences((next) => { preferences = next; applyResolved() })
   const observer = typeof MutationObserver === 'function' ? new MutationObserver(applyResolved) : null

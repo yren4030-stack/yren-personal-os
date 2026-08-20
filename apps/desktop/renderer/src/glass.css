@@ -863,6 +863,21 @@ select:focus-visible {
   .settings-strength-control {
     width: min(100%, 360px);
   }
+  .settings-scale-control {
+    width: min(100%, 360px);
+  }
+  .settings-scale-mode-control {
+    justify-content: flex-start;
+  }
+  .settings-scale-header,
+  .settings-scale-unified-control {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .settings-container-resize-actions,
+  .settings-layout-preset-actions {
+    justify-content: flex-start;
+  }
   .settings-status {
     text-align: left;
     white-space: normal;
@@ -890,6 +905,13 @@ select:focus-visible {
   gap: 5px;
   min-width: 0;
 }
+.settings-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
 .settings-row-title {
   font-size: 14px;
   font-weight: 600;
@@ -912,6 +934,105 @@ select:focus-visible {
   align-items: center;
   gap: 12px;
   width: min(32vw, 280px);
+  min-width: 0;
+}
+.settings-scale-mode-control {
+  display: flex;
+  justify-content: flex-end;
+}
+.settings-scale-section {
+  padding: 18px 20px;
+}
+.settings-scale-header,
+.settings-scale-unified-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+.settings-scale-unified-control {
+  padding-top: 16px;
+}
+.settings-scale-axes {
+  display: grid;
+  gap: 0;
+  padding-top: 16px;
+}
+.settings-scale-group-title {
+  padding: 12px 0 4px;
+  color: var(--ui-color-text-tertiary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.settings-scale-axis-row {
+  padding: 12px 0;
+  border-top: 0;
+}
+.settings-scale-value-detail {
+  color: var(--ui-color-text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.settings-container-resize-actions,
+.settings-layout-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+.settings-layout-preset-actions select,
+.settings-layout-preset-name {
+  min-width: 180px;
+  max-width: 100%;
+}
+.settings-layout-preset-name {
+  height: var(--control-height);
+  padding-inline: 12px;
+  border: var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-solid);
+  color: var(--text-primary);
+  font: inherit;
+}
+.resize-surface[data-resize-enabled='true'] {
+  position: relative;
+  touch-action: none;
+}
+.resize-surface[data-resize-enabled='true'][data-resize-edge='left'],
+.resize-surface[data-resize-enabled='true'][data-resize-edge='right'] {
+  cursor: ew-resize;
+}
+.resize-surface[data-resize-enabled='true'][data-resize-edge='top'],
+.resize-surface[data-resize-enabled='true'][data-resize-edge='bottom'] {
+  cursor: ns-resize;
+}
+.resize-surface[data-resize-enabled='true'][data-resize-edge='left-bottom'],
+.resize-surface[data-resize-enabled='true'][data-resize-edge='right-bottom'],
+.resize-surface[data-resize-enabled='true'][data-resize-edge='left-top'],
+.resize-surface[data-resize-enabled='true'][data-resize-edge='right-top'] {
+  cursor: nwse-resize;
+}
+.settings-scale-control {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 240px);
+  align-items: center;
+  gap: 12px;
+  width: min(32vw, 280px);
+  min-width: 0;
+}
+.settings-scale-value {
+  min-width: 42px;
+  color: var(--accent);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.settings-scale-slider {
   min-width: 0;
 }
 .settings-strength-value {
@@ -1253,7 +1374,6 @@ html[data-reduced-transparency='true'] .glass {
   height: 100%;
   padding: 16px 12px 12px;
   border-radius: var(--ui-radius-floating);
-  box-shadow: var(--ui-glass-regular-shadow), 0 16px 34px color-mix(in srgb, var(--ui-color-text-primary) 9%, transparent);
 }
 
 .sidebar .brand {
@@ -1527,6 +1647,28 @@ html[data-reduced-transparency='true'] .glass {
   .content-workspace {
     padding: 14px 4px 22px;
   }
+}
+
+/* Workspace scrolling remains available, but the visible browser rail is not
+   part of the desktop surface. This keeps the right edge visually clean while
+   wheel, trackpad and keyboard scrolling continue to work. */
+html,
+body,
+#root,
+.main,
+.sidebar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+.main::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Final cascade for Step 2.8: these shell relationships intentionally come
@@ -1851,6 +1993,21 @@ html[data-reduced-transparency='true'] .global-panel {
   background-image: var(--ui-window-background-dark);
 }
 
+:root[data-desktop-background='custom'] .app-window-background {
+  background-image: var(--ui-window-background-custom);
+}
+
+/* Establish one transparent Chromium backdrop root for the whole shell.
+   Popovers already inherit one from the Glass command bar; shell-level
+   surfaces (sidebar, pages, settings and focus panels) otherwise resolve
+   their backdrop against the body fallback instead of the window layer.
+   blur(0px) is intentional: it creates the sampling boundary without adding
+   optical blur or changing any Foundation Glass token. */
+.app-shell {
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+
 /* --- Step 2.2: Shared window geometry ----------------------------------
    Geometry variables consume Step 1 layout/radius tokens. They describe the
    shell relationship only; page content and material values remain owned by
@@ -1992,10 +2149,6 @@ html[data-reduced-transparency='true'] .global-panel {
    The sidebar is the single navigation material surface. Its children stay
    transparent and express hierarchy through semantic state, typography, and
    alignment rather than nested glass. */
-.app-shell .sidebar {
-  box-shadow: var(--ui-glass-regular-shadow), 0 16px 34px color-mix(in srgb, var(--ui-color-text-primary) 8%, transparent);
-}
-
 /* Let the woven window environment remain perceptible through the pane. */
 
 .app-shell .sidebar .brand {

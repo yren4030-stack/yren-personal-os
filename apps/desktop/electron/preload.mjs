@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('personalOS', {
     appearance: {
       get: () => ipcRenderer.invoke('personalOS:appearance:get'),
       update: (patch) => ipcRenderer.invoke('personalOS:appearance:update', patch),
+      chooseDesktopBackground: () => ipcRenderer.invoke('personalOS:appearance:chooseDesktopBackground'),
+      resetDesktopBackground: () => ipcRenderer.invoke('personalOS:appearance:resetDesktopBackground'),
     },
     runtime: {
       status: () => ipcRenderer.invoke('personalOS:runtime:status'),

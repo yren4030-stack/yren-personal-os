@@ -1,12 +1,245 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { t } from './i18n/index.mjs'
-import { applyFoundationTokens, resolveFoundationTokens } from './ui-foundation.mjs'
+import { applyFoundationTokens, FOUNDATION_TOKENS, resolveFoundationTokens, UI_SCALE_PROFILE_DEFAULTS } from './ui-foundation.mjs'
 import { resolveTheme, prefersDark, applyTheme, watchSystemTheme } from './theme.mjs'
 import { APP_SPACES, findNavigationRoute, getSpace, isSpaceActive } from './navigation.mjs'
 import { GLOBAL_ENTRIES, getGlobalEntry, deriveCurrentContext } from './global-shell.mjs'
 import { isFeatureSkeletonRoute } from './feature-skeleton.mjs'
 
 const api = () => window.personalOS?.v1
+const LayoutResizeContext = createContext(null)
+
+function resizeEdge(rect, event, allowedEdges = 'right-bottom') {
+  const allowLeft = allowedEdges.includes('left')
+  const allowRight = allowedEdges.includes('right')
+  const allowTop = allowedEdges.includes('top')
+  const allowBottom = allowedEdges.includes('bottom')
+  const horizontal = allowLeft && event.clientX - rect.left <= 14
+    ? 'left'
+    : allowRight && rect.right - event.clientX <= 14
+      ? 'right'
+      : null
+  const vertical = allowTop && event.clientY - rect.top <= 14
+    ? 'top'
+    : allowBottom && rect.bottom - event.clientY <= 14
+      ? 'bottom'
+      : null
+  return horizontal && vertical ? `${horizontal}-${vertical}` : horizontal || vertical || null
+}
+
+const RESIZE_LIMITS = Object.freeze({ minWidth: 160, maxWidth: 2400, minHeight: 120, maxHeight: 2000 })
+
+function cssPixels(value, fallback = 0) {
+  const parsed = Number.parseFloat(String(value || '').trim())
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function findResizeElement(id) {
+  if (typeof document === 'undefined') return null
+  return Array.from(document.querySelectorAll('[data-resize-id]')).find((element) => element.dataset.resizeId === id) || null
+}
+
+function computedGap(style, axis) {
+  const value = axis === 'width' ? style.columnGap || style.gap : style.rowGap || style.gap
+  return cssPixels(value, 0)
+}
+
+function contentBoxSize(rect, style) {
+  return {
+    width: Math.max(0, rect.width - cssPixels(style.paddingLeft) - cssPixels(style.paddingRight)),
+    height: Math.max(0, rect.height - cssPixels(style.paddingTop) - cssPixels(style.paddingBottom)),
+  }
+}
+
+function defaultSidebarWidth(shell, shellStyle) {
+  const compact = cssPixels(shellStyle.getPropertyValue('--ui-shell-sidebar-width-compact'), 76)
+  const rootStyle = typeof document === 'undefined' ? null : getComputedStyle(document.documentElement)
+  const normal = cssPixels(rootStyle?.getPropertyValue('--ui-layout-sidebar-width'), 232)
+  return typeof window !== 'undefined' && window.innerWidth <= 1179 ? compact : normal
+}
+
+function measureDefaultSize(id) {
+  const element = findResizeElement(id)
+  if (!element) return null
+  const shell = element.closest('.app-shell')
+  const previousWidth = element.style.width
+  const previousHeight = element.style.height
+  const previousSidebarTrack = shell?.style.getPropertyValue('--ui-shell-sidebar-width') || ''
+  element.style.removeProperty('width')
+  element.style.removeProperty('height')
+  if (id === 'sidebar' && shell) shell.style.removeProperty('--ui-shell-sidebar-width')
+  void element.offsetWidth
+  const rect = element.getBoundingClientRect()
+  element.style.width = previousWidth
+  element.style.height = previousHeight
+  if (id === 'sidebar' && shell) {
+    if (previousSidebarTrack) shell.style.setProperty('--ui-shell-sidebar-width', previousSidebarTrack)
+    else shell.style.removeProperty('--ui-shell-sidebar-width')
+  }
+  return { width: rect.width, height: rect.height }
+}
+
+function resizeBounds(id, sizes, defaultSize) {
+  const element = findResizeElement(id)
+  if (!element) return { ...RESIZE_LIMITS }
+
+  const rect = element.getBoundingClientRect()
+  const bounds = { ...RESIZE_LIMITS }
+  const hasSavedSize = Boolean(sizes?.[id])
+  const parent = id === 'sidebar' ? element.closest('.app-shell') : element.parentElement
+  const parentStyle = parent ? getComputedStyle(parent) : null
+
+  /* The default geometry is the minimum floor. This prevents a saved custom
+     layout from making a formal surface smaller than its Foundation baseline. */
+  bounds.minWidth = id === 'sidebar'
+    ? Math.max(RESIZE_LIMITS.minWidth, defaultSidebarWidth(parent, parentStyle || getComputedStyle(element)), cssPixels(defaultSize?.width))
+    : Math.max(RESIZE_LIMITS.minWidth, cssPixels(defaultSize?.width, hasSavedSize ? RESIZE_LIMITS.minWidth : rect.width))
+  bounds.minHeight = Math.max(RESIZE_LIMITS.minHeight, cssPixels(defaultSize?.height, hasSavedSize ? RESIZE_LIMITS.minHeight : rect.height))
+
+  if (id === 'global-panel-main-ai') {
+    const shell = document.querySelector('.app-shell')
+    const workspace = shell?.querySelector('.app-main')
+    const shellStyle = shell ? getComputedStyle(shell) : null
+    const workspaceRect = workspace?.getBoundingClientRect()
+    const panelRight = rect.right
+    const contentMin = cssPixels(shellStyle?.getPropertyValue('--ui-shell-min-content-width'), 520)
+    if (workspaceRect) {
+      bounds.maxWidth = Math.min(RESIZE_LIMITS.maxWidth, panelRight - workspaceRect.left - contentMin)
+      bounds.maxHeight = Math.min(RESIZE_LIMITS.maxHeight, Math.max(bounds.minHeight, rect.bottom - rect.top))
+      bounds.maxWidth = Math.max(bounds.minWidth, bounds.maxWidth)
+      return bounds
+    }
+  }
+
+  if (!parent || !parentStyle) return bounds
+
+  const parentRect = parent.getBoundingClientRect()
+  const parentContent = contentBoxSize(parentRect, parentStyle)
+  const gapX = computedGap(parentStyle, 'width')
+  const gapY = computedGap(parentStyle, 'height')
+
+  if (id === 'sidebar') {
+    /* The app shell is a two-column grid. Changing the sidebar track, rather
+       than overlaying the sidebar, keeps the Foundation gap and pushes the
+       workspace to the right. The workspace keeps its own minimum width. */
+    const contentMin = cssPixels(parentStyle.getPropertyValue('--ui-shell-min-content-width'), 0)
+    bounds.maxWidth = Math.min(RESIZE_LIMITS.maxWidth, parentContent.width - gapX - contentMin)
+  } else {
+    const siblings = Array.from(parent.children).filter((candidate) => candidate !== element)
+    const siblingMinWidth = siblings.reduce((total, sibling) => {
+      const siblingRect = sibling.getBoundingClientRect()
+      const siblingSize = sibling.dataset.resizeId ? (sizes?.[sibling.dataset.resizeId] || {}) : {}
+      return total + Math.max(RESIZE_LIMITS.minWidth, cssPixels(siblingSize.width, siblingRect.width))
+    }, 0)
+    const siblingMinHeight = siblings.reduce((total, sibling) => {
+      const siblingRect = sibling.getBoundingClientRect()
+      const siblingSize = sibling.dataset.resizeId ? (sizes?.[sibling.dataset.resizeId] || {}) : {}
+      return total + Math.max(RESIZE_LIMITS.minHeight, cssPixels(siblingSize.height, siblingRect.height))
+    }, 0)
+    const gapCount = Math.max(0, siblings.length)
+    bounds.maxWidth = Math.min(RESIZE_LIMITS.maxWidth, parentContent.width - (gapX * gapCount) - siblingMinWidth)
+    const parentHeightIsContentDriven = parentStyle.height === 'auto'
+    bounds.maxHeight = parentHeightIsContentDriven
+      ? RESIZE_LIMITS.maxHeight
+      : Math.min(RESIZE_LIMITS.maxHeight, parentContent.height - (gapY * gapCount) - siblingMinHeight)
+  }
+
+  if (id === 'settings-appearance') {
+    const main = element.closest('.main')
+    const mainRect = main?.getBoundingClientRect()
+    if (mainRect) bounds.maxWidth = Math.min(RESIZE_LIMITS.maxWidth, mainRect.right - rect.left)
+  }
+
+  /* A narrow viewport must not make the minimum exceed the computed maximum;
+     the parent remains the authority and overflow is preferable to collapsing
+     a default container below its documented minimum. */
+  bounds.maxWidth = Math.max(bounds.minWidth, bounds.maxWidth)
+  bounds.maxHeight = Math.max(bounds.minHeight, bounds.maxHeight)
+  return bounds
+}
+
+function LayoutResizeProvider({ enabled, sizes, onCommit, children }) {
+  const [liveSizes, setLiveSizes] = useState(sizes || {})
+  const defaultSizes = useRef({})
+  const gridTrackParents = useRef(new Map())
+  useEffect(() => setLiveSizes(sizes || {}), [sizes])
+
+  useLayoutEffect(() => {
+    const shell = document.querySelector('.app-shell')
+    if (!shell) return undefined
+    const sidebarWidth = liveSizes?.sidebar?.width
+    if (sidebarWidth) shell.style.setProperty('--ui-shell-sidebar-width', `${sidebarWidth}px`)
+    else shell.style.removeProperty('--ui-shell-sidebar-width')
+    return undefined
+  }, [liveSizes])
+
+  useLayoutEffect(() => {
+    const groupedParents = new Map()
+    for (const element of document.querySelectorAll('[data-resize-id]')) {
+      const parent = element.parentElement
+      if (!parent || getComputedStyle(parent).display !== 'grid') continue
+      const parentChildren = Array.from(parent.children)
+      if (!parentChildren.length || parentChildren.some((child) => !child.dataset.resizeId)) continue
+      if (!groupedParents.has(parent)) groupedParents.set(parent, parentChildren)
+    }
+
+    for (const [parent, children] of groupedParents) {
+      const customWidths = children.map((child) => liveSizes?.[child.dataset.resizeId]?.width || null)
+      if (!customWidths.some(Boolean)) continue
+      if (!gridTrackParents.current.has(parent)) gridTrackParents.current.set(parent, { columns: parent.style.gridTemplateColumns, width: parent.style.width })
+      parent.style.gridTemplateColumns = customWidths.map((width) => width ? `${width}px` : 'minmax(0, 1fr)').join(' ')
+      if (parent.classList.contains('settings-groups')) {
+        parent.style.width = `${Math.max(...customWidths.filter(Boolean))}px`
+      }
+    }
+
+    for (const [parent, original] of gridTrackParents.current) {
+      if (groupedParents.has(parent) && groupedParents.get(parent).some((child) => liveSizes?.[child.dataset.resizeId]?.width)) continue
+      parent.style.gridTemplateColumns = original.columns
+      parent.style.width = original.width
+      gridTrackParents.current.delete(parent)
+    }
+  }, [liveSizes])
+
+  const getBounds = useCallback((id) => {
+    if (!defaultSizes.current[id]) defaultSizes.current[id] = measureDefaultSize(id)
+    return resizeBounds(id, liveSizes, defaultSizes.current[id])
+  }, [liveSizes])
+
+  const startResize = useCallback(({ id, edge, startX, startY, startWidth, startHeight }) => {
+    let latest = { ...liveSizes }
+    const start = liveSizes[id] || {}
+    const bounds = getBounds(id)
+    const move = (event) => {
+      const current = { ...(latest[id] || start) }
+      const adjustsWidth = edge.includes('left') || edge.includes('right')
+      const adjustsHeight = edge.includes('top') || edge.includes('bottom')
+      if (adjustsWidth) {
+        const deltaX = event.clientX - startX
+        current.width = Math.min(bounds.maxWidth, Math.max(bounds.minWidth, Math.round((start.width ?? startWidth) + (edge.includes('left') ? -deltaX : deltaX))))
+      }
+      if (adjustsHeight) {
+        const deltaY = event.clientY - startY
+        current.height = Math.min(bounds.maxHeight, Math.max(bounds.minHeight, Math.round((start.height ?? startHeight) + (edge.includes('top') ? -deltaY : deltaY))))
+      }
+      latest = { ...latest, [id]: current }
+      setLiveSizes(latest)
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      onCommit(latest)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop, { once: true })
+  }, [getBounds, liveSizes, onCommit])
+
+  return (
+    <LayoutResizeContext.Provider value={{ enabled, sizes: liveSizes, startResize, getBounds }}>
+      {children}
+    </LayoutResizeContext.Provider>
+  )
+}
 
 /* ------------------------------------------------------------------ */
 /* Inline icon set (stroke, currentColor) — no icon package needed    */
@@ -132,6 +365,52 @@ function Icon({ name, size = 18 }) {
   )
 }
 
+/* One renderer entry point for every formal Glass surface. Geometry remains
+   owned by the caller; material, pseudo-elements and runtime strength stay in
+   the canonical Foundation stack. */
+function CanonicalGlassSurface({ as: Surface = 'div', className = '', children, layoutId, resizable = Boolean(layoutId), resizeEdges = 'right-bottom', ['data-material']: material = 'regular', style, ...props }) {
+  const layout = useContext(LayoutResizeContext)
+  const canResize = Boolean(layoutId && resizable)
+  const size = canResize ? layout?.sizes?.[layoutId] : null
+  const [edge, setEdge] = useState(null)
+  const onPointerMove = (event) => {
+    if (!canResize || !layout?.enabled) return
+    setEdge(resizeEdge(event.currentTarget.getBoundingClientRect(), event, resizeEdges))
+  }
+  const onPointerLeave = () => setEdge(null)
+  const onPointerDown = (event) => {
+    if (!canResize || !layout?.enabled) return
+    const currentEdge = resizeEdge(event.currentTarget.getBoundingClientRect(), event, resizeEdges)
+    if (!currentEdge) return
+    event.preventDefault()
+    event.stopPropagation()
+    const rect = event.currentTarget.getBoundingClientRect()
+    layout.startResize({ id: layoutId, edge: currentEdge, startX: event.clientX, startY: event.clientY, startWidth: rect.width, startHeight: rect.height })
+  }
+  const resizeStyle = size ? {
+    ...style,
+    ...(size.width ? { width: `${size.width}px`, maxWidth: 'none', minWidth: 0 } : {}),
+    ...(size.height ? { height: `${size.height}px`, maxHeight: 'none', minHeight: 0 } : {}),
+  } : style
+  return (
+    <Surface
+      {...props}
+      className={`canonical-glass-surface ui-liquid-glass ${layoutId ? 'resize-surface' : ''} ${className}`.trim()}
+      data-material={material}
+      data-glass-render-stack="canonical"
+      data-resize-id={canResize ? layoutId : undefined}
+      data-resize-enabled={canResize && layout?.enabled ? 'true' : undefined}
+      data-resize-edge={edge || undefined}
+      style={resizeStyle}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      onPointerDown={onPointerDown}
+    >
+      {children}
+    </Surface>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /* Appearance -> glass tokens                                          */
 /* ------------------------------------------------------------------ */
@@ -143,10 +422,37 @@ function applyAppearance(appearance, theme) {
     appearance: theme,
     liquidGlassStyle: appearance.liquidGlassStyle,
     glassStrength: appearance.glassStrength,
+    uiScaleProfile: appearance.uiScaleProfile,
     increasedContrast: root.dataset.increasedContrast === 'true',
     reducedTransparency: root.dataset.reducedTransparency === 'true',
   }))
+  applyDesktopBackground(appearance)
   glassDebugLog(appearance, theme)
+}
+
+let desktopBackgroundProbe = 0
+
+function applyDesktopBackground(appearance) {
+  const root = document.documentElement
+  const background = appearance?.desktopBackground
+  const isCustom = background?.kind === 'custom' && typeof background.url === 'string' && (background.url.startsWith('file:///') || background.url.startsWith('yren-appearance://appearance/'))
+  const probeId = ++desktopBackgroundProbe
+  root.dataset.desktopBackground = 'default'
+  root.style.removeProperty('--ui-window-background-custom')
+  if (!isCustom) return
+  const image = new Image()
+  image.onload = () => {
+    if (probeId !== desktopBackgroundProbe) return
+    root.style.setProperty('--ui-window-background-custom', `url("${background.url.replaceAll('"', '%22')}")`)
+    root.dataset.desktopBackground = 'custom'
+  }
+  image.onerror = () => {
+    if (probeId === desktopBackgroundProbe) {
+      root.style.removeProperty('--ui-window-background-custom')
+      root.dataset.desktopBackground = 'default'
+    }
+  }
+  image.src = background.url
 }
 
 /**
@@ -201,6 +507,21 @@ function proposalStatusLabel(status) {
   if (status === 'approved') return t('projectDetail.statusApproved')
   if (status === 'rejected') return t('projectDetail.statusRejected')
   return status
+}
+
+function uiScaleValueHint(axis, value) {
+  const factor = Number(value) / 100
+  if (axis === 'typography') {
+    return t('settings.uiTypographyScaleValue', {
+      n: value,
+      body: Math.round(FOUNDATION_TOKENS.typography.body.size * factor),
+      title: Math.round(FOUNDATION_TOKENS.typography.title1.size * factor),
+    })
+  }
+  if (axis === 'width') return t('settings.uiWidthScaleValue', { n: value })
+  if (axis === 'height') return t('settings.uiHeightScaleValue', { n: value })
+  if (axis === 'verticalSpacing') return t('settings.uiVerticalSpacingScaleValue', { n: value })
+  return t('settings.uiHorizontalSpacingScaleValue', { n: value })
 }
 
 function kindLabel(kind) {
@@ -270,10 +591,10 @@ function Empty({ text }) {
 function PageLoading() {
   return (
     <div className="page">
-      <div className="card ui-liquid-glass page-glass-surface boot" data-material="regular" style={{ minHeight: 240 }}>
+      <CanonicalGlassSurface className="card page-glass-surface boot" style={{ minHeight: 240 }}>
         <div className="spinner" />
         {t('common.loading')}
-      </div>
+      </CanonicalGlassSurface>
     </div>
   )
 }
@@ -291,11 +612,11 @@ function PageError({ error }) {
 
 function ProjectCard({ project, onOpen }) {
   return (
-    <button type="button" className="card card-hover project-card ui-liquid-glass page-glass-surface" data-material="regular" onClick={onOpen}>
+    <CanonicalGlassSurface as="button" type="button" layoutId={`project-card-${project.id}`} className="card card-hover project-card page-glass-surface" onClick={onOpen}>
       <span className="project-title">{displayTitle(project)}</span>
       <span className="project-meta">{t('common.tasksCount', { n: project.taskCount })}</span>
       <span className="open-affordance">{t('projects.openProject')} →</span>
-    </button>
+    </CanonicalGlassSurface>
   )
 }
 
@@ -364,7 +685,7 @@ function SpaceLandingPage({ space, onNavigate }) {
       <Section title={t('nav.secondary')}>
         <div className="space-link-grid">
           {space.children.map((item) => (
-            <button type="button" key={item.id} className="card card-hover space-link-card ui-liquid-glass page-glass-surface" data-material="regular" onClick={() => onNavigate(item.id)}>
+            <CanonicalGlassSurface as="button" type="button" key={item.id} layoutId={`space-link-${item.id}`} className="card card-hover space-link-card page-glass-surface" onClick={() => onNavigate(item.id)}>
               <span className="space-link-icon"><Icon name={item.icon} size={20} /></span>
               <span className="space-link-heading">
                 <span className="space-link-title">{item.label}</span>
@@ -373,7 +694,7 @@ function SpaceLandingPage({ space, onNavigate }) {
                 </span>
               </span>
               <span className="space-link-description">{item.description}</span>
-            </button>
+            </CanonicalGlassSurface>
           ))}
         </div>
       </Section>
@@ -422,7 +743,7 @@ function GlobalUtilityBar({ activePanel, onToggle, onNavigate }) {
   ) : null
 
   return (
-    <div className="global-utility-bar ui-liquid-glass" data-material="regular" role="toolbar" aria-label={t('global.label')}>
+    <CanonicalGlassSurface layoutId="command-bar" className="global-utility-bar" role="toolbar" aria-label={t('global.label')}>
       <div className="command-item-slot toolbar-search-slot" aria-label={entries.search.label}>
         {renderEntry('search')}
         {renderPanel('search')}
@@ -446,7 +767,7 @@ function GlobalUtilityBar({ activePanel, onToggle, onNavigate }) {
       <div className="command-item-slot toolbar-ai-slot" aria-label={entries['main-ai'].label}>
         {renderEntry('main-ai')}
       </div>
-    </div>
+    </CanonicalGlassSurface>
   )
 }
 
@@ -466,7 +787,7 @@ function GlobalPanel({ id, presentation = 'popover', context, onClose, onNavigat
   const entry = getGlobalEntry(id)
   if (!entry) return null
   return (
-    <div className={`global-panel global-panel-${id} global-panel-${presentation} ui-liquid-glass content-bearing-glass`} data-material="regular" id="global-panel" role="dialog" aria-label={entry.label}>
+    <CanonicalGlassSurface layoutId={`global-panel-${id}`} resizable={id === 'main-ai'} resizeEdges="left-bottom" className={`global-panel global-panel-${id} global-panel-${presentation} content-bearing-glass`} id="global-panel" role="dialog" aria-label={entry.label}>
       <div className="global-panel-header">
         <span className="global-panel-title">{entry.label}</span>
         <button type="button" className="btn btn-ghost global-panel-close" onClick={onClose} aria-label={t('global.close')}>
@@ -476,7 +797,7 @@ function GlobalPanel({ id, presentation = 'popover', context, onClose, onNavigat
       <div className="global-panel-body">
         <GlobalPanelBody id={id} context={context} onNavigate={onNavigate} />
       </div>
-    </div>
+    </CanonicalGlassSurface>
   )
 }
 
@@ -548,7 +869,7 @@ function FeatureSkeleton({ item, space, onNavigate }) {
   return (
     <div className="page">
       <PageHeader title={item.label} subtitle={t('featureSkeleton.status')} />
-      <div className="card ui-liquid-glass page-glass-surface feature-skeleton" data-material="regular">
+      <CanonicalGlassSurface layoutId={`feature-${item.id}`} className="card page-glass-surface feature-skeleton">
         <div className="feature-skeleton-icon">
           <Icon name="sparkles" size={22} />
         </div>
@@ -574,7 +895,7 @@ function FeatureSkeleton({ item, space, onNavigate }) {
             {t('featureSkeleton.backToSpace', { space: space.label })}
           </button>
         )}
-      </div>
+      </CanonicalGlassSurface>
     </div>
   )
 }
@@ -587,6 +908,7 @@ export default function App() {
   const [appearance, setAppearance] = useState(null)
   const [systemDark, setSystemDark] = useState(() => prefersDark())
   const [activeGlobalPanel, setActiveGlobalPanel] = useState(null)
+  const [layoutEditMode, setLayoutEditMode] = useState(false)
 
   const effectiveTheme = appearance ? resolveTheme(appearance.theme, systemDark) : 'light'
 
@@ -651,6 +973,10 @@ export default function App() {
     setActiveGlobalPanel((current) => (current === id ? null : id))
   }
   const closeGlobalPanel = () => setActiveGlobalPanel(null)
+  const commitContainerSizes = useCallback(async (uiContainerSizes) => {
+    const result = await api().appearance.update({ appearancePreset: 'custom', uiContainerSizes })
+    if (result?.ok) setAppearance(result.data)
+  }, [])
 
   if (!appearance) {
     return (
@@ -671,10 +997,11 @@ export default function App() {
     projectTitle: null, // derived from existing renderer state only; Step 2 does not read/store titles
   })
   return (
+    <LayoutResizeProvider enabled={layoutEditMode} sizes={appearance.uiContainerSizes} onCommit={commitContainerSizes}>
     <>
       <div className="app-window-background" data-layer="window-environment" aria-hidden="true" />
       <div className="app-shell" data-layer="window">
-        <aside className="sidebar ui-liquid-glass" data-material="regular" data-layer="navigation">
+        <CanonicalGlassSurface as="aside" layoutId="sidebar" className="sidebar" data-layer="navigation">
         <div className="brand">
           <div className="brand-mark">
             <Icon name="sparkles" size={16} />
@@ -690,7 +1017,7 @@ export default function App() {
         <div className="sidebar-foot">
           {t('app.name')} · {t('app.version')}
         </div>
-        </aside>
+        </CanonicalGlassSurface>
 
         <div className="app-main" data-layer="workspace">
         <main className="main content-workspace" data-layer="content">
@@ -698,11 +1025,11 @@ export default function App() {
           {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
           {route === 'projects' && <ProjectsPage openProject={openProject} />}
           {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
-          {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} />}
+          {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} layoutEditMode={layoutEditMode} setLayoutEditMode={setLayoutEditMode} />}
           {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && (isFeatureSkeletonRoute(route) && routeNav ? (
             <FeatureSkeleton item={routeNav} space={currentSpace} onNavigate={navigate} />
           ) : (
-            <ComingSoon label={routeNav ? routeNav.label : route} />
+            <ComingSoon label={routeNav ? routeNav.label : route} layoutId={`coming-soon-${route}`} />
           ))}
         </main>
         </div>
@@ -721,6 +1048,7 @@ export default function App() {
         </div>
       </div>
     </>
+    </LayoutResizeProvider>
   )
 }
 
@@ -753,19 +1081,19 @@ function HomePage({ navigate }) {
       <PageHeader title={t('home.title')} subtitle={t('home.subtitle')} />
 
       <div className="stat-grid">
-          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
+          <CanonicalGlassSurface layoutId="home-stat-projects" className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.projects')}</span>
           <span className="stat-value">{projects.length}</span>
-        </div>
-          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
+        </CanonicalGlassSurface>
+          <CanonicalGlassSurface layoutId="home-stat-tasks" className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.tasks')}</span>
           <span className="stat-value">{totalTasks}</span>
-        </div>
-          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
+        </CanonicalGlassSurface>
+          <CanonicalGlassSurface layoutId="home-stat-proposals" className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.pendingProposals')}</span>
           <span className="stat-value">{pending}</span>
-        </div>
-          <div className="card ui-liquid-glass page-glass-surface stat-card" data-material="regular">
+        </CanonicalGlassSurface>
+          <CanonicalGlassSurface layoutId="home-stat-ai" className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.localAI')}</span>
           <span className="stat-value small ai-stat">
             <span className={`status-dot ${rt.stateKey}`} />
@@ -774,7 +1102,7 @@ function HomePage({ navigate }) {
           <span className="stat-sub">
             {rt.mode} · {rt.external}
           </span>
-        </div>
+        </CanonicalGlassSurface>
       </div>
 
       <Section title={t('home.recentProjects')}>
@@ -793,11 +1121,11 @@ function HomePage({ navigate }) {
         {activity.length === 0 ? (
           <Empty text={t('home.noActivity')} />
         ) : (
-          <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
+          <CanonicalGlassSurface layoutId="home-activity" className="card page-glass-surface list-card">
             {activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
-          </div>
+          </CanonicalGlassSurface>
         )}
       </Section>
     </div>
@@ -901,14 +1229,14 @@ function ProjectDetailPage({ projectId, onBack }) {
             {data.tasks.length === 0 ? (
               <Empty text={t('projectDetail.noTasks')} />
             ) : (
-                <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
+                <CanonicalGlassSurface layoutId="project-tasks" className="card page-glass-surface list-card">
                 {data.tasks.map((task) => (
                   <div key={task.id} className="list-row">
                     <span className="grow">{task.title}</span>
                     <span className="chip chip-neutral">{taskStatusLabel(task.status)}</span>
                   </div>
                 ))}
-              </div>
+              </CanonicalGlassSurface>
             )}
           </Section>
         </div>
@@ -916,9 +1244,9 @@ function ProjectDetailPage({ projectId, onBack }) {
         <div>
           <Section title={t('projectDetail.pendingProposals')}>
             {pending.length === 0 ? (
-              <div className="card proposal-card proposal-empty-card ui-liquid-glass page-glass-surface" data-material="regular">
+              <CanonicalGlassSurface layoutId="project-pending-proposals" className="card proposal-card proposal-empty-card page-glass-surface">
                 <div className="proposal-empty-state">{t('projectDetail.noPendingProposals')}</div>
-              </div>
+              </CanonicalGlassSurface>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {pending.map((p) => (
@@ -934,11 +1262,11 @@ function ProjectDetailPage({ projectId, onBack }) {
         {data.activity.length === 0 ? (
           <Empty text={t('projectDetail.noActivity')} />
         ) : (
-          <div className="card ui-liquid-glass page-glass-surface list-card" data-material="regular">
+          <CanonicalGlassSurface layoutId="project-activity" className="card page-glass-surface list-card">
             {data.activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
-          </div>
+          </CanonicalGlassSurface>
         )}
       </Section>
     </div>
@@ -947,7 +1275,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <div className="card proposal-card ui-liquid-glass page-glass-surface" data-material="regular">
+    <CanonicalGlassSurface layoutId={`proposal-${proposal.id}`} className="card proposal-card page-glass-surface">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -962,7 +1290,7 @@ function ProposalCard({ proposal, busy, onApprove, onReject }) {
           {t('projectDetail.approveAndCreateTask')}
         </button>
       </div>
-    </div>
+    </CanonicalGlassSurface>
   )
 }
 
@@ -970,8 +1298,11 @@ function ProposalCard({ proposal, busy, onApprove, onReject }) {
 /* Settings — Appearance panel                                         */
 /* ------------------------------------------------------------------ */
 
-function SettingsPage({ appearance, setAppearance }) {
+function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEditMode }) {
   const persistTimer = useRef(null)
+  const [backgroundBusy, setBackgroundBusy] = useState(false)
+  const [backgroundError, setBackgroundError] = useState('')
+  const [layoutPresetName, setLayoutPresetName] = useState('')
 
   const update = (patch) => {
     // 1) Live: apply the material to the workspace immediately (while dragging).
@@ -981,6 +1312,7 @@ function SettingsPage({ appearance, setAppearance }) {
       appearance: root.dataset.foundationTheme || 'light',
       liquidGlassStyle: next.liquidGlassStyle,
       glassStrength: next.glassStrength,
+      uiScaleProfile: next.uiScaleProfile,
       increasedContrast: root.dataset.increasedContrast === 'true',
       reducedTransparency: root.dataset.reducedTransparency === 'true',
     }))
@@ -994,7 +1326,93 @@ function SettingsPage({ appearance, setAppearance }) {
     }, 120)
   }
 
+  const glassStrengthDefault = FOUNDATION_TOKENS.glass.strength.default
+  const uiScaleProfile = appearance.uiScaleProfile || UI_SCALE_PROFILE_DEFAULTS
+  const uiContainerSizes = appearance.uiContainerSizes || {}
+  const uiLayoutPresets = appearance.uiLayoutPresets || []
+  const customUiScaleProfile = appearance.customAppearance?.uiScaleProfile || uiScaleProfile
+  const customUiContainerSizes = appearance.customAppearance?.uiContainerSizes || uiContainerSizes
+  const isCustomAppearance = appearance.appearancePreset === 'custom'
+
+  const restoreAppearanceDefaults = () => update({
+    appearancePreset: 'default',
+    glassStrength: glassStrengthDefault,
+    uiScaleProfile: UI_SCALE_PROFILE_DEFAULTS,
+    uiContainerSizes: {},
+    uiLayoutPresetId: 'default',
+  })
+
+  const enableCustomAppearance = () => update({
+    appearancePreset: 'custom',
+    glassStrength: Number(appearance.customAppearance?.glassStrength ?? glassStrengthDefault),
+    uiScaleProfile: customUiScaleProfile,
+    uiContainerSizes: customUiContainerSizes,
+  })
+  const saveCustomAppearance = () => update({
+    appearancePreset: 'custom',
+    glassStrength: Number(appearance.glassStrength ?? glassStrengthDefault),
+    uiScaleProfile,
+    uiContainerSizes,
+  })
+
+  const updateUiScaleProfile = (patch) => update({
+    appearancePreset: 'custom',
+    uiScaleProfile: { ...uiScaleProfile, ...patch },
+  })
+
+  const applyLayoutPreset = (preset) => {
+    if (!preset || preset.id === 'default') return restoreAppearanceDefaults()
+    update({
+      appearancePreset: 'custom',
+      glassStrength: preset.glassStrength,
+      liquidGlassStyle: preset.liquidGlassStyle,
+      uiScaleProfile: preset.uiScaleProfile,
+      uiContainerSizes: preset.uiContainerSizes,
+      uiLayoutPresetId: preset.id,
+    })
+  }
+
+  const saveLayoutPreset = () => {
+    const name = layoutPresetName.trim()
+    if (!name) return
+    const id = `layout-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || Date.now().toString(36)}`
+    const preset = {
+      id,
+      name,
+      glassStrength: Number(appearance.glassStrength ?? glassStrengthDefault),
+      liquidGlassStyle: appearance.liquidGlassStyle === 'tinted' ? 'tinted' : 'clear',
+      uiScaleProfile,
+      uiContainerSizes,
+    }
+    const nextPresets = [...uiLayoutPresets.filter((item) => item.id !== id), preset]
+    update({ appearancePreset: 'custom', uiLayoutPresets: nextPresets, uiLayoutPresetId: id })
+    setLayoutPresetName('')
+  }
+
   useEffect(() => () => clearTimeout(persistTimer.current), [])
+
+  const chooseBackground = async () => {
+    setBackgroundBusy(true)
+    setBackgroundError('')
+    const result = await api().appearance.chooseDesktopBackground()
+    setBackgroundBusy(false)
+    if (result?.ok) {
+      if (!result.cancelled) setAppearance(result.data)
+    } else {
+      setBackgroundError(result?.error?.message || t('settings.desktopBackgroundSelectError'))
+    }
+  }
+
+  const resetBackground = async () => {
+    setBackgroundBusy(true)
+    setBackgroundError('')
+    const result = await api().appearance.resetDesktopBackground()
+    setBackgroundBusy(false)
+    if (result?.ok) setAppearance(result.data)
+    else setBackgroundError(result?.error?.message || t('settings.desktopBackgroundSelectError'))
+  }
+
+  const customBackground = appearance.desktopBackground?.kind === 'custom' && appearance.desktopBackground.url
 
   return (
     <div className="page">
@@ -1002,7 +1420,7 @@ function SettingsPage({ appearance, setAppearance }) {
 
       <Section title={t('settings.appearance')}>
         <div className="settings-groups">
-          <div className="card ui-liquid-glass page-glass-surface settings-appearance-module" data-material="regular">
+          <CanonicalGlassSurface layoutId="settings-appearance" className="card page-glass-surface settings-appearance-module">
             <div className="settings-row settings-mode-row">
               <div className="settings-row-copy">
                 <span className="settings-row-title">{t('settings.appearanceMode')}</span>
@@ -1021,13 +1439,36 @@ function SettingsPage({ appearance, setAppearance }) {
               </div>
             </div>
 
+            <div className="settings-row settings-preset-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.appearancePreset')}</span>
+                <span className="settings-row-description">{t('settings.appearancePresetDescription')}</span>
+              </div>
+              <div className="settings-preset-actions">
+                <div className="segmented" role="group" aria-label={t('settings.appearancePreset')}>
+                  <button type="button" className={!isCustomAppearance ? 'active' : ''} aria-pressed={!isCustomAppearance} onClick={restoreAppearanceDefaults}>
+                    {t('settings.appearancePresetDefault')}
+                  </button>
+                  <button type="button" className={isCustomAppearance ? 'active' : ''} aria-pressed={isCustomAppearance} onClick={enableCustomAppearance}>
+                    {t('settings.appearancePresetCustom')}
+                  </button>
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={restoreAppearanceDefaults}>
+                  {t('settings.restoreAppearanceDefaults')}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={saveCustomAppearance} disabled={!isCustomAppearance}>
+                  {t('settings.saveCustomAppearance')}
+                </button>
+              </div>
+            </div>
+
             <div className="settings-row">
               <div className="settings-row-copy">
                 <span className="settings-row-title">{t('settings.liquidGlass')}</span>
                 <span className="settings-row-description">{t('settings.liquidGlassDescription')}</span>
               </div>
               <div className="settings-strength-control">
-                <output className="settings-strength-value" htmlFor="glass-strength-slider">{t('settings.glassStrengthValue', { n: appearance.glassStrength ?? 60 })}</output>
+                <output className="settings-strength-value" htmlFor="glass-strength-slider">{t('settings.glassStrengthValue', { n: appearance.glassStrength ?? glassStrengthDefault })}</output>
                 <input
                   id="glass-strength-slider"
                   className="settings-strength-slider"
@@ -1035,13 +1476,101 @@ function SettingsPage({ appearance, setAppearance }) {
                   min="0"
                   max="100"
                   step="1"
-                  value={appearance.glassStrength ?? 60}
+                  value={appearance.glassStrength ?? glassStrengthDefault}
+                  disabled={!isCustomAppearance}
                   aria-label={t('settings.glassStrength')}
                   aria-valuemin="0"
                   aria-valuemax="100"
-                  aria-valuenow={appearance.glassStrength ?? 60}
-                  onChange={(event) => update({ glassStrength: Number(event.target.value) })}
+                  aria-valuenow={appearance.glassStrength ?? glassStrengthDefault}
+                  onChange={(event) => update({ appearancePreset: 'custom', glassStrength: Number(event.target.value) })}
                 />
+              </div>
+            </div>
+
+            <div className="settings-scale-section">
+              <div className="settings-scale-header">
+                <div className="settings-row-copy">
+                  <span className="settings-row-title">{t('settings.uiScale')}</span>
+                  <span className="settings-row-description">{t('settings.uiScaleDescription')}</span>
+                </div>
+                <div className="settings-scale-mode-control">
+                  <div className="segmented" role="group" aria-label={t('settings.uiScaleMode')}>
+                    <button type="button" className={uiScaleProfile.mode === 'unified' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'unified'} onClick={() => updateUiScaleProfile({ mode: 'unified', unified: uiScaleProfile.unified, typography: uiScaleProfile.unified, width: uiScaleProfile.unified, height: uiScaleProfile.unified, verticalSpacing: uiScaleProfile.unified, horizontalSpacing: uiScaleProfile.unified })}>
+                      {t('settings.uiScaleUnified')}
+                    </button>
+                    <button type="button" className={uiScaleProfile.mode === 'separate' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'separate'} onClick={() => updateUiScaleProfile({ mode: 'separate' })}>
+                      {t('settings.uiScaleSeparate')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {uiScaleProfile.mode === 'unified' ? (
+                <div className="settings-scale-unified-control">
+                  <div className="settings-row-copy">
+                    <span className="settings-row-title">{t('settings.uiScaleUnified')}</span>
+                    <span className="settings-row-description">{t('settings.uiScaleUnifiedDescription')}</span>
+                    <span className="settings-scale-value-detail">{uiScaleValueHint('typography', uiScaleProfile.unified)}</span>
+                  </div>
+                  <div className="settings-scale-control">
+                    <output className="settings-scale-value" htmlFor="ui-scale-slider">{t('settings.uiScaleValue', { n: uiScaleProfile.unified })}</output>
+                    <input id="ui-scale-slider" className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile.unified} disabled={!isCustomAppearance} aria-label={t('settings.uiScaleUnified')} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile.unified} onChange={(event) => updateUiScaleProfile({ unified: Number(event.target.value), typography: Number(event.target.value), width: Number(event.target.value), height: Number(event.target.value), verticalSpacing: Number(event.target.value), horizontalSpacing: Number(event.target.value) })} />
+                  </div>
+                </div>
+              ) : (
+                <div className="settings-scale-axes">
+                {[
+                  ['typography', 'settings.uiTypographyScale', 'settings.uiTypographyScaleDescription', 'settings.uiScaleTextGroup'],
+                  ['verticalSpacing', 'settings.uiVerticalSpacingScale', 'settings.uiVerticalSpacingScaleDescription', 'settings.uiScaleSpacingGroup'],
+                  ['horizontalSpacing', 'settings.uiHorizontalSpacingScale', 'settings.uiHorizontalSpacingScaleDescription'],
+                ].map(([axis, label, description, group]) => (
+                  <React.Fragment key={axis}>
+                    {group ? <div className="settings-scale-group-title">{t(group)}</div> : null}
+                    <div className="settings-row settings-scale-axis-row">
+                      <div className="settings-row-copy">
+                        <span className="settings-row-title">{t(label)}</span>
+                        <span className="settings-row-description">{t(description)}</span>
+                        <span className="settings-scale-value-detail">{uiScaleValueHint(axis, uiScaleProfile[axis])}</span>
+                      </div>
+                      <div className="settings-scale-control">
+                        <output className="settings-scale-value" htmlFor={`ui-scale-${axis}-slider`}>{t('settings.uiScaleValue', { n: uiScaleProfile[axis] })}</output>
+                        <input id={`ui-scale-${axis}-slider`} className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile[axis]} disabled={!isCustomAppearance} aria-label={t(label)} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile[axis]} onChange={(event) => updateUiScaleProfile({ [axis]: Number(event.target.value) })} />
+                      </div>
+                    </div>
+                  </React.Fragment>
+                ))}
+                </div>
+              )}
+            </div>
+
+            <div className="settings-row settings-container-resize-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.uiContainerSize')}</span>
+                <span className="settings-row-description">{t('settings.uiContainerSizeDescription')}</span>
+              </div>
+              <div className="settings-container-resize-actions">
+                <span className="settings-scale-value-detail">{t(layoutEditMode ? 'settings.uiContainerResizeActive' : 'settings.uiContainerResizeInactive')}</span>
+                <button type="button" className="btn btn-secondary" onClick={() => setLayoutEditMode((active) => !active)}>
+                  {t(layoutEditMode ? 'settings.uiContainerResizeStop' : 'settings.uiContainerResizeStart')}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => update({ appearancePreset: 'custom', uiContainerSizes: {}, uiLayoutPresetId: 'default' })} disabled={!Object.keys(uiContainerSizes).length}>
+                  {t('settings.uiContainerResizeReset')}
+                </button>
+              </div>
+            </div>
+
+            <div className="settings-row settings-layout-preset-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.uiLayoutPreset')}</span>
+                <span className="settings-row-description">{t('settings.uiLayoutPresetDescription')}</span>
+              </div>
+              <div className="settings-layout-preset-actions">
+                <select value={appearance.uiLayoutPresetId || 'default'} onChange={(event) => applyLayoutPreset(uiLayoutPresets.find((preset) => preset.id === event.target.value) || { id: 'default' })} aria-label={t('settings.uiLayoutPreset')}>
+                  <option value="default">{t('settings.uiLayoutPresetDefault')}</option>
+                  {uiLayoutPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+                </select>
+                <input className="settings-layout-preset-name" value={layoutPresetName} onChange={(event) => setLayoutPresetName(event.target.value)} placeholder={t('settings.uiLayoutPresetNamePlaceholder')} aria-label={t('settings.uiLayoutPresetName')} maxLength={48} />
+                <button type="button" className="btn btn-secondary" onClick={saveLayoutPreset} disabled={!layoutPresetName.trim()}>{t('settings.uiLayoutPresetSave')}</button>
               </div>
             </div>
 
@@ -1050,9 +1579,17 @@ function SettingsPage({ appearance, setAppearance }) {
                 <span className="settings-row-title">{t('settings.desktopBackground')}</span>
                 <span className="settings-row-description">{t('settings.desktopBackgroundDescription')}</span>
               </div>
-              <span className="settings-status">{t('settings.desktopBackgroundCurrent')}</span>
+              <div className="desktop-background-control">
+                <div className={`desktop-background-preview${customBackground ? ' is-custom' : ''}`} style={customBackground ? { backgroundImage: `url("${customBackground.replaceAll('"', '%22')}")` } : undefined} aria-label={t('settings.desktopBackground')} />
+                <div className="desktop-background-actions">
+                  <button type="button" className="btn btn-secondary" onClick={chooseBackground} disabled={backgroundBusy}>{t('settings.desktopBackgroundChoose')}</button>
+                  <button type="button" className="btn btn-secondary" onClick={resetBackground} disabled={backgroundBusy || !customBackground}>{t('settings.desktopBackgroundReset')}</button>
+                </div>
+                <span className="settings-status">{customBackground ? t('settings.desktopBackgroundCustomCurrent') : t('settings.desktopBackgroundCurrent')}</span>
+                {backgroundError && <span className="settings-error" role="alert">{backgroundError}</span>}
+              </div>
             </div>
-          </div>
+          </CanonicalGlassSurface>
         </div>
       </Section>
     </div>
@@ -1063,16 +1600,16 @@ function SettingsPage({ appearance, setAppearance }) {
 /* Coming soon                                                         */
 /* ------------------------------------------------------------------ */
 
-function ComingSoon({ label }) {
+function ComingSoon({ label, layoutId }) {
   return (
     <div className="page">
       <PageHeader title={label} subtitle={t('nav.comingSoon')} />
-        <div className="card ui-liquid-glass page-glass-surface coming-soon" data-material="regular">
+        <CanonicalGlassSurface layoutId={layoutId} className="card page-glass-surface coming-soon">
         <div className="coming-soon-icon">
           <Icon name="sparkles" size={22} />
         </div>
         <p>{t('comingSoon.description')}</p>
-      </div>
+      </CanonicalGlassSurface>
     </div>
   )
 }

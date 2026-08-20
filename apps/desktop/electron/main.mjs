@@ -4,20 +4,34 @@
  * the desktop composition root; it never defaults to a fake runtime and never
  * silently falls back to one.
  */
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, protocol, screen } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 
 import { createDesktopProductRuntime, DESKTOP_RUNTIME_MODES } from '../../../src/composition/desktop-product-runtime.mjs'
 import { resolveDesktopHostChildEntry } from '../../../src/infrastructure/runtime/desktop-child-entry.mjs'
 import { classifyDisplay, computeInitialBounds, clampBoundsToWorkArea, findDisplayForBounds } from '../../../src/infrastructure/desktop/display-environment.mjs'
 import { seedValidationProjectIfEmpty } from '../../../src/application/desktop-validation-seed.mjs'
 import { startDshMockServer } from '../../../test/support/dsh-mock-server.mjs'
+import { ERROR_CODES } from '../../../src/application/desktop-api.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const MOCK_SUCCESS_JSON = '{"title":"Review project priorities","rationale":"The current project context indicates this is the next useful step."}'
+const DESKTOP_BACKGROUND_MAX_BYTES = 25 * 1024 * 1024
+const DESKTOP_BACKGROUND_RULES = Object.freeze({
+  '.png': { label: 'PNG', magic: (header) => header.subarray(0, 8).toString('hex') === '89504e470d0a1a0a' },
+  '.jpg': { label: 'JPEG', magic: (header) => header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff },
+  '.jpeg': { label: 'JPEG', magic: (header) => header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff },
+  '.webp': { label: 'WEBP', magic: (header) => header.subarray(0, 4).toString('ascii') === 'RIFF' && header.subarray(8, 12).toString('ascii') === 'WEBP' },
+})
+
+protocol.registerSchemesAsPrivileged([{
+  scheme: 'yren-appearance',
+  privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true },
+}])
 
 function jsonFileStorage(path) {
   return {
@@ -33,6 +47,74 @@ function jsonFileStorage(path) {
       writeFileSync(path, JSON.stringify(state))
     },
   }
+}
+
+function managedAppearanceAssetDirectory() {
+  return join(app.getPath('userData'), 'appearance-assets')
+}
+
+function validateDesktopBackgroundFile(sourcePath) {
+  try {
+    const extension = sourcePath.slice(sourcePath.lastIndexOf('.')).toLowerCase()
+    const rule = DESKTOP_BACKGROUND_RULES[extension]
+    const stat = statSync(sourcePath)
+    if (!stat.isFile() || stat.size <= 0 || stat.size > DESKTOP_BACKGROUND_MAX_BYTES || !rule) return false
+    const header = readFileSync(sourcePath).subarray(0, 16)
+    return rule.magic(header)
+  } catch {
+    return false
+  }
+}
+
+function registerAppearanceAssetProtocol() {
+  protocol.handle('yren-appearance', (request) => {
+    try {
+      const url = new URL(request.url)
+      const fileName = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
+      const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
+      const rule = DESKTOP_BACKGROUND_RULES[extension]
+      if (url.hostname !== 'appearance' || !/^desktop-background-[a-z0-9-]+\.(png|jpg|jpeg|webp)$/i.test(fileName) || !rule) {
+        return new Response('Not Found', { status: 404 })
+      }
+      const sourcePath = join(managedAppearanceAssetDirectory(), fileName)
+      if (!validateDesktopBackgroundFile(sourcePath)) return new Response('Not Found', { status: 404 })
+      const mime = rule.label === 'PNG' ? 'image/png' : rule.label === 'WEBP' ? 'image/webp' : 'image/jpeg'
+      return new Response(readFileSync(sourcePath), {
+        status: 200,
+        headers: { 'content-type': mime, 'cache-control': 'no-store' },
+      })
+    } catch {
+      return new Response('Not Found', { status: 404 })
+    }
+  })
+}
+
+async function chooseDesktopBackground() {
+  const selection = await dialog.showOpenDialog({
+    title: 'Choose Desktop Background',
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+  })
+  if (selection.canceled || selection.filePaths.length === 0) return { ok: true, data: runtime.appearance.get(), cancelled: true }
+  const sourcePath = selection.filePaths[0]
+  if (!validateDesktopBackgroundFile(sourcePath)) {
+    return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'unsupported or invalid desktop background image' } }
+  }
+  try {
+    const extension = sourcePath.slice(sourcePath.lastIndexOf('.')).toLowerCase()
+    const assetId = `desktop-background-${randomUUID()}`
+    const targetPath = join(managedAppearanceAssetDirectory(), `${assetId}${extension}`)
+    mkdirSync(managedAppearanceAssetDirectory(), { recursive: true })
+    copyFileSync(sourcePath, targetPath)
+    const desktopBackground = { kind: 'custom', assetId, url: `yren-appearance://appearance/${assetId}${extension}` }
+    return { ok: true, data: runtime.appearance.update({ desktopBackground }) }
+  } catch {
+    return { ok: false, error: { code: ERROR_CODES.INTERNAL_ERROR, message: 'failed to store desktop background' } }
+  }
+}
+
+function resetDesktopBackground() {
+  return { ok: true, data: runtime.appearance.update({ desktopBackground: { kind: 'default' } }) }
 }
 
 function resolveMode() {
@@ -87,6 +169,8 @@ function registerIpc() {
   ipcMain.handle('personalOS:proposals:reject', (_event, proposalId) => runtime.facade.rejectProposal(proposalId))
   ipcMain.handle('personalOS:appearance:get', () => runtime.facade.getAppearance())
   ipcMain.handle('personalOS:appearance:update', (_event, patch) => runtime.facade.updateAppearance(patch))
+  ipcMain.handle('personalOS:appearance:chooseDesktopBackground', () => chooseDesktopBackground())
+  ipcMain.handle('personalOS:appearance:resetDesktopBackground', () => resetDesktopBackground())
   ipcMain.handle('personalOS:runtime:status', () => runtime.facade.getRuntimeStatus())
 }
 
@@ -149,6 +233,7 @@ function ensureWindowVisible(win) {
 
 app.whenReady().then(async () => {
   console.log('[desktop-runtime] validation bootstrap: start')
+  registerAppearanceAssetProtocol()
   await createRuntime()
   try {
     await runtime.start()
