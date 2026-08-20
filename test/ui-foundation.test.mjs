@@ -73,21 +73,21 @@ test('spacing, concentric radius, typography and motion tokens match the foundat
   assert.match(css, /font-family: var\(--ui-font-family\)/)
 })
 
-test('UI Scale resolves one bounded runtime token map for typography, geometry and layout', () => {
+test('Typography scale resolves through Foundation while geometry and spacing stay fixed', () => {
   assert.equal(normalizeUiScale(84), 85)
   assert.equal(normalizeUiScale(126), 125)
-  const compact = resolveFoundationTokens({ appearance: 'light', uiScale: 85 })
-  const baseline = resolveFoundationTokens({ appearance: 'light', uiScale: 100 })
-  const wide = resolveFoundationTokens({ appearance: 'light', uiScale: 125 })
+  const compact = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { typography: 85 } })
+  const baseline = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { typography: 100 } })
+  const wide = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { typography: 125 } })
 
-  assert.equal(compact.uiScale, 85)
-  assert.equal(compact.scaleFactor, 0.85)
-  assert.equal(wide.scaleFactor, 1.25)
+  assert.equal(compact.uiScale, 100)
+  assert.equal(compact.scaleFactor, 1)
+  assert.equal(wide.scaleFactor, 1)
   assert.ok(compact.typography.body.size < baseline.typography.body.size)
   assert.ok(wide.typography.title1.size > baseline.typography.title1.size)
   assert.equal(compact.spacing[4], baseline.spacing[4])
-  assert.ok(wide.radius['surface-md'] > baseline.radius['surface-md'])
-  assert.ok(compact.geometry['control-height'] < baseline.geometry['control-height'])
+  assert.equal(wide.radius['surface-md'], baseline.radius['surface-md'])
+  assert.equal(compact.geometry['control-height'], baseline.geometry['control-height'])
   assert.equal(compact.geometry['disabled-opacity'], baseline.geometry['disabled-opacity'])
   assert.equal(compact.layout['sidebar-width'], '232px')
   assert.equal(compact.glass.regular.fill, baseline.glass.regular.fill)
@@ -95,19 +95,19 @@ test('UI Scale resolves one bounded runtime token map for typography, geometry a
 
   const root = createRoot()
   applyFoundationTokens(root, compact)
-  assert.equal(root.values['--ui-scale'], '0.85')
-  assert.equal(root.values['--ui-scale-percent'], '85%')
-  assert.equal(root.values['--ui-geometry-border-width'], '0.85px')
+  assert.equal(root.values['--ui-scale'], '1')
+  assert.equal(root.values['--ui-scale-percent'], '100%')
+  assert.equal(root.values['--ui-geometry-border-width'], '1px')
   assert.equal(root.values['--ui-geometry-disabled-opacity'], '0.45')
-  assert.equal(root.dataset.uiScale, '85')
+  assert.equal(root.dataset.uiScale, '100')
 })
 
-test('separate UI Scale resolves text and container geometry while Foundation spacing stays fixed', () => {
-  const profile = { mode: 'separate', unified: 100, typography: 115, width: 90, height: 110 }
-  assert.deepEqual(normalizeUiScaleProfile(profile), profile)
+test('typography-only appearance scale leaves container geometry interaction-owned', () => {
+  const profile = { typography: 115 }
+  assert.deepEqual(normalizeUiScaleProfile({ ...profile, mode: 'separate', width: 90, height: 110 }), profile)
   const resolved = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: profile })
-  const baseline = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { mode: 'unified', unified: 100 } })
-  assert.equal(resolved.uiScaleMode, 'separate')
+  const baseline = resolveFoundationTokens({ appearance: 'light', uiScaleProfile: { typography: 100 } })
+  assert.equal(resolved.uiScaleMode, 'typography-only')
   assert.equal(resolved.typographyScale, 115)
   assert.equal(resolved.widthScale, 100)
   assert.equal(resolved.heightScale, 100)
@@ -122,7 +122,7 @@ test('separate UI Scale resolves text and container geometry while Foundation sp
   assert.equal(root.values['--ui-scale-height'], '1')
   assert.equal(root.values['--ui-space-v-4'], '16px')
   assert.equal(root.values['--ui-space-h-4'], '16px')
-  assert.equal(root.dataset.uiScaleMode, 'separate')
+  assert.equal(root.dataset.uiScaleMode, 'typography-only')
 })
 
 test('foundation bootstrap initializes tokens and accessibility preferences', () => {
@@ -148,12 +148,14 @@ test('foundation bootstrap initializes tokens and accessibility preferences', ()
 test('foundation re-application preserves the current Appearance UI Scale', () => {
   const previousDocument = globalThis.document
   const root = createRoot()
-  root.dataset.uiScale = '85'
+  root.dataset.uiTypographyScale = '85'
   globalThis.document = { documentElement: root }
   try {
     const stop = initializeFoundation()
-    assert.equal(root.values['--ui-scale'], '0.85')
-    assert.equal(root.values['--ui-scale-percent'], '85%')
+    assert.equal(root.values['--ui-scale'], '1')
+    assert.equal(root.values['--ui-scale-percent'], '100%')
+    assert.equal(root.values['--ui-scale-typography'], '0.85')
+    assert.equal(root.dataset.uiTypographyScale, '85')
     stop()
   } finally {
     globalThis.document = previousDocument

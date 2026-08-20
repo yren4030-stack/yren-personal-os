@@ -2063,6 +2063,12 @@ html[data-reduced-transparency='true'] .global-panel {
   padding: 0;
 }
 
+/* Only the central workspace participates in the container resize contract;
+   formal cards and transient surfaces remain fixed to the shell layout. */
+.app-shell .main.resize-surface[data-resize-id='main-workspace'] {
+  flex: 0 0 auto;
+}
+
 /* The page title now starts inside the continuous content flow. */
 .content-workspace {
   min-height: 100%;

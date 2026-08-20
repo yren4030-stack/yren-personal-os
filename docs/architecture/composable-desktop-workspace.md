@@ -62,6 +62,11 @@ second feature state machine.
 
 Only formal outer Workspace Panels are resizable. Internal rows, buttons,
 inputs, chips, list items, and decorative wrappers are not resize targets.
+In the current shell, the resize contract is intentionally limited to the
+Navigation Rail (`sidebar`), the central Content Workspace (`main-workspace`),
+and the right-side Main AI Contextual Focus Panel (`global-panel-main-ai`).
+Cards, settings surfaces, command controls, popovers, and page modules remain
+fixed to the Foundation layout.
 
 The current contract is:
 

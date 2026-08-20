@@ -17,11 +17,7 @@ export const FOUNDATION_STATES = Object.freeze([
 
 export const UI_SCALE_RANGE = Object.freeze({ min: 85, max: 125, default: 100 })
 export const UI_SCALE_PROFILE_DEFAULTS = Object.freeze({
-  mode: 'unified',
-  unified: UI_SCALE_RANGE.default,
   typography: UI_SCALE_RANGE.default,
-  width: UI_SCALE_RANGE.default,
-  height: UI_SCALE_RANGE.default,
 })
 
 const CANONICAL_APPLICATION_GLASS = Object.freeze({
@@ -126,14 +122,8 @@ export function normalizeUiScale(value) {
 export function normalizeUiScaleProfile(value, fallback = UI_SCALE_PROFILE_DEFAULTS) {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
   const clampScale = (candidate, defaultValue) => normalizeUiScale(candidate ?? defaultValue)
-  const unified = clampScale(source.unified, fallback.unified)
-  const mode = source.mode === 'separate' ? 'separate' : 'unified'
   return Object.freeze({
-    mode,
-    unified,
-    typography: clampScale(source.typography, mode === 'unified' ? unified : fallback.typography),
-    width: clampScale(source.width, mode === 'unified' ? unified : fallback.width),
-    height: clampScale(source.height, mode === 'unified' ? unified : fallback.height),
+    typography: clampScale(source.typography, fallback.typography),
   })
 }
 
@@ -142,12 +132,11 @@ function scaleCssMetrics(value, factor) {
 }
 
 function resolveScaledTokens(profile) {
-  const unifiedFactor = profile.unified / 100
   const typographyFactor = profile.typography / 100
-  // Separate mode delegates width/height to selected-container resizing; the
-  // stored profile fields remain only for backward-compatible persistence.
-  const widthFactor = profile.mode === 'unified' ? profile.width / 100 : 1
-  const heightFactor = profile.mode === 'unified' ? profile.height / 100 : 1
+  // Container geometry is owned by the explicit resize contract. There is no
+  // second width/height scale axis in Appearance.
+  const widthFactor = 1
+  const heightFactor = 1
   // Foundation spacing is fixed. Container dimensions remain interaction-owned;
   // user customization must not create arbitrary gaps between surfaces.
   const spacingVertical = FOUNDATION_TOKENS.spacing
@@ -165,7 +154,7 @@ function resolveScaledTokens(profile) {
   })))
   const layoutHorizontal = layout
   const layoutVertical = layout
-  return { factor: unifiedFactor, spacing: FOUNDATION_TOKENS.spacing, spacingVertical, spacingHorizontal, radius, geometry, typography, layout, layoutHorizontal, layoutVertical }
+  return { factor: 1, spacing: FOUNDATION_TOKENS.spacing, spacingVertical, spacingHorizontal, radius, geometry, typography, layout, layoutHorizontal, layoutVertical }
 }
 
 export function normalizeGlassStrength(value) {
@@ -358,7 +347,7 @@ export function resolveFoundationTokens(options = {}) {
   const uiScaleProfile = normalizeUiScaleProfile(options.uiScaleProfile ?? appearance.uiScaleProfile ?? {
     unified: options.uiScale ?? appearance.uiScale,
   })
-  const uiScale = uiScaleProfile.unified
+  const uiScale = UI_SCALE_RANGE.default
   const scaled = resolveScaledTokens(uiScaleProfile)
   const base = FOUNDATION_TOKENS.colors[theme]
   const contrast = FOUNDATION_TOKENS.contrast[theme]
@@ -374,10 +363,10 @@ export function resolveFoundationTokens(options = {}) {
   const interaction = Object.freeze(increasedContrast ? { ...FOUNDATION_TOKENS.interaction[theme], ...Object.fromEntries(Object.entries(contrast).filter(([name]) => name.startsWith('button-') || name.startsWith('selection-'))) } : FOUNDATION_TOKENS.interaction[theme])
   return Object.freeze({
     theme, userStyle, glassStrength, uiScale, uiScaleProfile,
-    uiScaleMode: uiScaleProfile.mode,
-    typographyScale: uiScaleProfile.typography,
-    widthScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.width : 100,
-    heightScale: uiScaleProfile.mode === 'unified' ? uiScaleProfile.height : 100,
+     uiScaleMode: 'typography-only',
+     typographyScale: uiScaleProfile.typography,
+     widthScale: 100,
+     heightScale: 100,
      scaleFactor: scaled.factor, increasedContrast, reducedTransparency, colors, interaction, contrast,
     spacing: scaled.spacing, spacingVertical: scaled.spacingVertical, spacingHorizontal: scaled.spacingHorizontal,
     radius: scaled.radius, typography: scaled.typography, motion: FOUNDATION_TOKENS.motion, geometry: scaled.geometry,
@@ -534,11 +523,7 @@ export function initializeFoundation() {
       appearance: root.dataset.theme,
       glassStrength: root.dataset.foundationGlassStrength,
       uiScaleProfile: {
-        mode: root.dataset.uiScaleMode,
-        unified: root.dataset.uiScale,
         typography: root.dataset.uiTypographyScale,
-        width: root.dataset.uiWidthScale,
-        height: root.dataset.uiHeightScale,
       },
       ...preferences,
     })

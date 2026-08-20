@@ -78,9 +78,9 @@ test('glassStrength is clamped, defaults to 30, and persists through Appearance'
 test('appearance presets persist default and custom values as one user choice', () => {
   const storage = memoryStorage()
   const service = new AppearanceService(storage)
-  const profile = { mode: 'separate', unified: 100, typography: 115, width: 95, height: 105 }
+  const profile = { typography: 115 }
   service.update({ appearancePreset: 'custom', glassStrength: 72, uiScaleProfile: profile })
-  assert.deepEqual(service.get(), { ...DEFAULT_APPEARANCE, appearancePreset: 'custom', glassStrength: 72, uiScale: 100, uiScaleProfile: profile, customAppearance: { glassStrength: 72, uiScaleProfile: profile, uiContainerSizes: {} } })
+  assert.deepEqual(service.get(), { ...DEFAULT_APPEARANCE, appearancePreset: 'custom', glassStrength: 72, uiScale: 115, uiScaleProfile: profile, customAppearance: { glassStrength: 72, uiScaleProfile: profile, uiContainerSizes: {} } })
   service.update({ appearancePreset: 'default', glassStrength: 30, uiScaleProfile: DEFAULT_UI_SCALE_PROFILE })
   assert.equal(service.get().appearancePreset, 'default')
   assert.equal(service.get().glassStrength, 30)
@@ -89,11 +89,11 @@ test('appearance presets persist default and custom values as one user choice', 
   service.update({ appearancePreset: 'custom', glassStrength: 72, uiScaleProfile: service.get().customAppearance.uiScaleProfile })
   assert.equal(service.get().glassStrength, 72)
   assert.equal(service.get().uiScaleProfile.typography, 115)
-  assert.equal('horizontalSpacing' in service.get().uiScaleProfile, false)
+  assert.equal('width' in service.get().uiScaleProfile, false)
 })
 
-test('separate UI Scale axes stay within the 85-125 Foundation range', () => {
-  const profile = { mode: 'separate', unified: 100, typography: 115, width: 95, height: 105 }
+test('typography scale stays within the 85-125 Foundation range', () => {
+  const profile = { typography: 115 }
   const service = new AppearanceService(memoryStorage())
   assert.deepEqual(service.update({ uiScaleProfile: profile }).uiScaleProfile, profile)
   assert.equal(service.update({ uiScaleProfile: { ...profile, typography: 140 } }).uiScaleProfile.typography, 125)
@@ -102,7 +102,7 @@ test('separate UI Scale axes stay within the 85-125 Foundation range', () => {
 test('named layout presets persist complete UI customization without changing business data', () => {
   const storage = memoryStorage()
   const service = new AppearanceService(storage)
-  const profile = { mode: 'separate', unified: 100, typography: 110, width: 100, height: 100 }
+  const profile = { typography: 110 }
   const sizes = { sidebar: { width: 280, height: 900 }, 'home-stat-projects': { width: 320 } }
   const preset = { id: 'layout-reading', name: '阅读布局', glassStrength: 42, liquidGlassStyle: 'clear', uiScaleProfile: profile, uiContainerSizes: sizes }
   const saved = service.update({ uiLayoutPresets: [preset], uiLayoutPresetId: preset.id, glassStrength: 42, uiScaleProfile: profile, uiContainerSizes: sizes })
@@ -155,7 +155,7 @@ test('normalizeAppearancePatch accepts the new field and keeps legacy fields wor
   assert.deepEqual(normalizeAppearancePatch({ theme: 'dark', frostIntensity: 42 }), { ok: true, patch: { theme: 'dark', frostIntensity: 42 } })
   assert.deepEqual(normalizeAppearancePatch({ glassStrength: 85 }), { ok: true, patch: { glassStrength: 85 } })
   assert.deepEqual(normalizeAppearancePatch({ uiScale: 85 }), { ok: true, patch: { uiScale: 85 } })
-  assert.deepEqual(normalizeAppearancePatch({ uiScaleProfile: { mode: 'separate', unified: 100, typography: 115, width: 95, height: 105, verticalSpacing: 90, horizontalSpacing: 120 } }), { ok: true, patch: { uiScaleProfile: { mode: 'separate', unified: 100, typography: 115, width: 95, height: 105 } } })
+  assert.deepEqual(normalizeAppearancePatch({ uiScaleProfile: { mode: 'separate', unified: 100, typography: 115, width: 95, height: 105, verticalSpacing: 90, horizontalSpacing: 120 } }), { ok: true, patch: { uiScaleProfile: { typography: 115 } } })
   assert.deepEqual(normalizeAppearancePatch({ uiContainerSizes: { sidebar: { width: 280, height: 900 } } }), { ok: true, patch: { uiContainerSizes: { sidebar: { width: 280, height: 900 } } } })
   assert.equal(normalizeAppearancePatch({ uiLayoutPresetId: 'layout-reading' }).ok, true)
   assert.deepEqual(normalizeAppearancePatch({ appearancePreset: 'custom' }), { ok: true, patch: { appearancePreset: 'custom' } })

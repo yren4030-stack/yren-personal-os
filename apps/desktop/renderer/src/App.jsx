@@ -118,6 +118,16 @@ function resizeBounds(id, sizes, defaultSize) {
   const gapX = computedGap(parentStyle, 'width')
   const gapY = computedGap(parentStyle, 'height')
 
+  if (id === 'main-workspace') {
+    bounds.minWidth = Math.max(RESIZE_LIMITS.minWidth, cssPixels(parentStyle.getPropertyValue('--ui-shell-min-content-width'), 520))
+    bounds.maxWidth = Math.min(RESIZE_LIMITS.maxWidth, parentContent.width)
+    bounds.minHeight = Math.max(RESIZE_LIMITS.minHeight, 320)
+    bounds.maxHeight = Math.min(RESIZE_LIMITS.maxHeight, parentContent.height)
+    bounds.maxWidth = Math.max(bounds.minWidth, bounds.maxWidth)
+    bounds.maxHeight = Math.max(bounds.minHeight, bounds.maxHeight)
+    return bounds
+  }
+
   if (id === 'sidebar') {
     /* The app shell is a two-column grid. Changing the sidebar track, rather
        than overlaying the sidebar, keeps the Foundation gap and pushes the
@@ -368,7 +378,7 @@ function Icon({ name, size = 18 }) {
 /* One renderer entry point for every formal Glass surface. Geometry remains
    owned by the caller; material, pseudo-elements and runtime strength stay in
    the canonical Foundation stack. */
-function CanonicalGlassSurface({ as: Surface = 'div', className = '', children, layoutId, resizable = Boolean(layoutId), resizeEdges = 'right-bottom', ['data-material']: material = 'regular', style, ...props }) {
+function CanonicalGlassSurface({ as: Surface = 'div', className = '', children, layoutId, resizable = Boolean(layoutId), resizeEdges = 'right-bottom', ['data-material']: material = 'regular', glass = true, style, ...props }) {
   const layout = useContext(LayoutResizeContext)
   const canResize = Boolean(layoutId && resizable)
   const size = canResize ? layout?.sizes?.[layoutId] : null
@@ -395,9 +405,9 @@ function CanonicalGlassSurface({ as: Surface = 'div', className = '', children, 
   return (
     <Surface
       {...props}
-      className={`canonical-glass-surface ui-liquid-glass ${layoutId ? 'resize-surface' : ''} ${className}`.trim()}
-      data-material={material}
-      data-glass-render-stack="canonical"
+      className={`${glass ? 'canonical-glass-surface ui-liquid-glass' : ''} ${layoutId ? 'resize-surface' : ''} ${className}`.trim()}
+      data-material={glass ? material : undefined}
+      data-glass-render-stack={glass ? 'canonical' : undefined}
       data-resize-id={canResize ? layoutId : undefined}
       data-resize-enabled={canResize && layout?.enabled ? 'true' : undefined}
       data-resize-edge={edge || undefined}
@@ -518,8 +528,6 @@ function uiScaleValueHint(axis, value) {
       title: Math.round(FOUNDATION_TOKENS.typography.title1.size * factor),
     })
   }
-  if (axis === 'width') return t('settings.uiWidthScaleValue', { n: value })
-  if (axis === 'height') return t('settings.uiHeightScaleValue', { n: value })
   return t('settings.uiScaleValue', { n: value })
 }
 
@@ -611,7 +619,7 @@ function PageError({ error }) {
 
 function ProjectCard({ project, onOpen }) {
   return (
-    <CanonicalGlassSurface as="button" type="button" layoutId={`project-card-${project.id}`} className="card card-hover project-card page-glass-surface" onClick={onOpen}>
+    <CanonicalGlassSurface as="button" type="button" className="card card-hover project-card page-glass-surface" onClick={onOpen}>
       <span className="project-title">{displayTitle(project)}</span>
       <span className="project-meta">{t('common.tasksCount', { n: project.taskCount })}</span>
       <span className="open-affordance">{t('projects.openProject')} →</span>
@@ -684,7 +692,7 @@ function SpaceLandingPage({ space, onNavigate }) {
       <Section title={t('nav.secondary')}>
         <div className="space-link-grid">
           {space.children.map((item) => (
-            <CanonicalGlassSurface as="button" type="button" key={item.id} layoutId={`space-link-${item.id}`} className="card card-hover space-link-card page-glass-surface" onClick={() => onNavigate(item.id)}>
+      <CanonicalGlassSurface as="button" type="button" key={item.id} className="card card-hover space-link-card page-glass-surface" onClick={() => onNavigate(item.id)}>
               <span className="space-link-icon"><Icon name={item.icon} size={20} /></span>
               <span className="space-link-heading">
                 <span className="space-link-title">{item.label}</span>
@@ -742,7 +750,7 @@ function GlobalUtilityBar({ activePanel, onToggle, onNavigate }) {
   ) : null
 
   return (
-    <CanonicalGlassSurface layoutId="command-bar" className="global-utility-bar" role="toolbar" aria-label={t('global.label')}>
+    <CanonicalGlassSurface className="global-utility-bar" role="toolbar" aria-label={t('global.label')}>
       <div className="command-item-slot toolbar-search-slot" aria-label={entries.search.label}>
         {renderEntry('search')}
         {renderPanel('search')}
@@ -786,7 +794,7 @@ function GlobalPanel({ id, presentation = 'popover', context, onClose, onNavigat
   const entry = getGlobalEntry(id)
   if (!entry) return null
   return (
-    <CanonicalGlassSurface layoutId={`global-panel-${id}`} resizable={id === 'main-ai'} resizeEdges="left-bottom" className={`global-panel global-panel-${id} global-panel-${presentation} content-bearing-glass`} id="global-panel" role="dialog" aria-label={entry.label}>
+    <CanonicalGlassSurface layoutId={id === 'main-ai' ? 'global-panel-main-ai' : undefined} resizable={id === 'main-ai'} resizeEdges="left-bottom" className={`global-panel global-panel-${id} global-panel-${presentation} content-bearing-glass`} id="global-panel" role="dialog" aria-label={entry.label}>
       <div className="global-panel-header">
         <span className="global-panel-title">{entry.label}</span>
         <button type="button" className="btn btn-ghost global-panel-close" onClick={onClose} aria-label={t('global.close')}>
@@ -868,7 +876,7 @@ function FeatureSkeleton({ item, space, onNavigate }) {
   return (
     <div className="page">
       <PageHeader title={item.label} subtitle={t('featureSkeleton.status')} />
-      <CanonicalGlassSurface layoutId={`feature-${item.id}`} className="card page-glass-surface feature-skeleton">
+    <CanonicalGlassSurface className="card page-glass-surface feature-skeleton">
         <div className="feature-skeleton-icon">
           <Icon name="sparkles" size={22} />
         </div>
@@ -1019,18 +1027,18 @@ export default function App() {
         </CanonicalGlassSurface>
 
         <div className="app-main" data-layer="workspace">
-        <main className="main content-workspace" data-layer="content">
+        <CanonicalGlassSurface as="main" glass={false} layoutId="main-workspace" className="main content-workspace" resizeEdges="right-bottom" data-layer="content">
           {route === 'home' && <HomePage navigate={openProject} />}
           {spaceLandingRoutes.includes(route) && currentSpace && <SpaceLandingPage space={currentSpace} onNavigate={navigate} />}
           {route === 'projects' && <ProjectsPage openProject={openProject} />}
           {route === 'project' && <ProjectDetailPage projectId={selectedProject} onBack={() => navigate('projects')} />}
           {route === 'settings' && <SettingsPage appearance={appearance} setAppearance={setAppearance} layoutEditMode={layoutEditMode} setLayoutEditMode={setLayoutEditMode} />}
-          {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && (isFeatureSkeletonRoute(route) && routeNav ? (
+            {!realRoutes.includes(route) && !spaceLandingRoutes.includes(route) && (isFeatureSkeletonRoute(route) && routeNav ? (
             <FeatureSkeleton item={routeNav} space={currentSpace} onNavigate={navigate} />
-          ) : (
-            <ComingSoon label={routeNav ? routeNav.label : route} layoutId={`coming-soon-${route}`} />
+            ) : (
+             <ComingSoon label={routeNav ? routeNav.label : route} />
           ))}
-        </main>
+        </CanonicalGlassSurface>
         </div>
 
         <div className="command-layer" data-layer="controls">
@@ -1080,19 +1088,19 @@ function HomePage({ navigate }) {
       <PageHeader title={t('home.title')} subtitle={t('home.subtitle')} />
 
       <div className="stat-grid">
-          <CanonicalGlassSurface layoutId="home-stat-projects" className="card page-glass-surface stat-card">
+          <CanonicalGlassSurface className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.projects')}</span>
           <span className="stat-value">{projects.length}</span>
         </CanonicalGlassSurface>
-          <CanonicalGlassSurface layoutId="home-stat-tasks" className="card page-glass-surface stat-card">
+          <CanonicalGlassSurface className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.tasks')}</span>
           <span className="stat-value">{totalTasks}</span>
         </CanonicalGlassSurface>
-          <CanonicalGlassSurface layoutId="home-stat-proposals" className="card page-glass-surface stat-card">
+          <CanonicalGlassSurface className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.pendingProposals')}</span>
           <span className="stat-value">{pending}</span>
         </CanonicalGlassSurface>
-          <CanonicalGlassSurface layoutId="home-stat-ai" className="card page-glass-surface stat-card">
+          <CanonicalGlassSurface className="card page-glass-surface stat-card">
           <span className="stat-label">{t('home.localAI')}</span>
           <span className="stat-value small ai-stat">
             <span className={`status-dot ${rt.stateKey}`} />
@@ -1120,7 +1128,7 @@ function HomePage({ navigate }) {
         {activity.length === 0 ? (
           <Empty text={t('home.noActivity')} />
         ) : (
-          <CanonicalGlassSurface layoutId="home-activity" className="card page-glass-surface list-card">
+        <CanonicalGlassSurface className="card page-glass-surface list-card">
             {activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
@@ -1228,7 +1236,7 @@ function ProjectDetailPage({ projectId, onBack }) {
             {data.tasks.length === 0 ? (
               <Empty text={t('projectDetail.noTasks')} />
             ) : (
-                <CanonicalGlassSurface layoutId="project-tasks" className="card page-glass-surface list-card">
+                <CanonicalGlassSurface className="card page-glass-surface list-card">
                 {data.tasks.map((task) => (
                   <div key={task.id} className="list-row">
                     <span className="grow">{task.title}</span>
@@ -1243,7 +1251,7 @@ function ProjectDetailPage({ projectId, onBack }) {
         <div>
           <Section title={t('projectDetail.pendingProposals')}>
             {pending.length === 0 ? (
-              <CanonicalGlassSurface layoutId="project-pending-proposals" className="card proposal-card proposal-empty-card page-glass-surface">
+              <CanonicalGlassSurface className="card proposal-card proposal-empty-card page-glass-surface">
                 <div className="proposal-empty-state">{t('projectDetail.noPendingProposals')}</div>
               </CanonicalGlassSurface>
             ) : (
@@ -1261,7 +1269,7 @@ function ProjectDetailPage({ projectId, onBack }) {
         {data.activity.length === 0 ? (
           <Empty text={t('projectDetail.noActivity')} />
         ) : (
-          <CanonicalGlassSurface layoutId="project-activity" className="card page-glass-surface list-card">
+          <CanonicalGlassSurface className="card page-glass-surface list-card">
             {data.activity.map((item, i) => (
               <ActivityRow key={`${item.kind}-${item.id}-${i}`} item={item} />
             ))}
@@ -1274,7 +1282,7 @@ function ProjectDetailPage({ projectId, onBack }) {
 
 function ProposalCard({ proposal, busy, onApprove, onReject }) {
   return (
-    <CanonicalGlassSurface layoutId={`proposal-${proposal.id}`} className="card proposal-card page-glass-surface">
+    <CanonicalGlassSurface className="card proposal-card page-glass-surface">
       <span className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
         {proposalStatusLabel(proposal.status)}
       </span>
@@ -1419,7 +1427,7 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
 
       <Section title={t('settings.appearance')}>
         <div className="settings-groups">
-          <CanonicalGlassSurface layoutId="settings-appearance" className="card page-glass-surface settings-appearance-module">
+          <CanonicalGlassSurface className="card page-glass-surface settings-appearance-module">
             <div className="settings-row settings-mode-row">
               <div className="settings-row-copy">
                 <span className="settings-row-title">{t('settings.appearanceMode')}</span>
@@ -1461,6 +1469,21 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
               </div>
             </div>
 
+            <div className="settings-row settings-layout-preset-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.uiLayoutPreset')}</span>
+                <span className="settings-row-description">{t('settings.uiLayoutPresetDescription')}</span>
+              </div>
+              <div className="settings-layout-preset-actions">
+                <select value={appearance.uiLayoutPresetId || 'default'} onChange={(event) => applyLayoutPreset(uiLayoutPresets.find((preset) => preset.id === event.target.value) || { id: 'default' })} aria-label={t('settings.uiLayoutPreset')}>
+                  <option value="default">{t('settings.uiLayoutPresetDefault')}</option>
+                  {uiLayoutPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+                </select>
+                <input className="settings-layout-preset-name" value={layoutPresetName} onChange={(event) => setLayoutPresetName(event.target.value)} placeholder={t('settings.uiLayoutPresetNamePlaceholder')} aria-label={t('settings.uiLayoutPresetName')} maxLength={48} />
+                <button type="button" className="btn btn-secondary" onClick={saveLayoutPreset} disabled={!layoutPresetName.trim()}>{t('settings.uiLayoutPresetSave')}</button>
+              </div>
+            </div>
+
             <div className="settings-row">
               <div className="settings-row-copy">
                 <span className="settings-row-title">{t('settings.liquidGlass')}</span>
@@ -1486,60 +1509,16 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
               </div>
             </div>
 
-            <div className="settings-scale-section">
-              <div className="settings-scale-header">
-                <div className="settings-row-copy">
-                  <span className="settings-row-title">{t('settings.uiScale')}</span>
-                  <span className="settings-row-description">{t('settings.uiScaleDescription')}</span>
-                </div>
-                <div className="settings-scale-mode-control">
-                  <div className="segmented" role="group" aria-label={t('settings.uiScaleMode')}>
-                     <button type="button" className={uiScaleProfile.mode === 'unified' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'unified'} onClick={() => updateUiScaleProfile({ mode: 'unified', unified: uiScaleProfile.unified, typography: uiScaleProfile.unified, width: uiScaleProfile.unified, height: uiScaleProfile.unified })}>
-                      {t('settings.uiScaleUnified')}
-                    </button>
-                    <button type="button" className={uiScaleProfile.mode === 'separate' ? 'active' : ''} aria-pressed={uiScaleProfile.mode === 'separate'} onClick={() => updateUiScaleProfile({ mode: 'separate' })}>
-                      {t('settings.uiScaleSeparate')}
-                    </button>
-                  </div>
-                </div>
+            <div className="settings-row settings-typography-row">
+              <div className="settings-row-copy">
+                <span className="settings-row-title">{t('settings.uiTypographyScale')}</span>
+                <span className="settings-row-description">{t('settings.uiTypographyScaleDescription')}</span>
+                <span className="settings-scale-value-detail">{uiScaleValueHint('typography', uiScaleProfile.typography)}</span>
               </div>
-
-              {uiScaleProfile.mode === 'unified' ? (
-                <div className="settings-scale-unified-control">
-                  <div className="settings-row-copy">
-                    <span className="settings-row-title">{t('settings.uiScaleUnified')}</span>
-                     <span className="settings-row-description">{t('settings.uiScaleUnifiedDescription')}</span>
-                    <span className="settings-scale-value-detail">{uiScaleValueHint('typography', uiScaleProfile.unified)}</span>
-                  </div>
-                  <div className="settings-scale-control">
-                    <output className="settings-scale-value" htmlFor="ui-scale-slider">{t('settings.uiScaleValue', { n: uiScaleProfile.unified })}</output>
-                   <input id="ui-scale-slider" className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile.unified} disabled={!isCustomAppearance} aria-label={t('settings.uiScaleUnified')} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile.unified} onChange={(event) => updateUiScaleProfile({ unified: Number(event.target.value), typography: Number(event.target.value), width: Number(event.target.value), height: Number(event.target.value) })} />
-                  </div>
-                </div>
-              ) : (
-                <div className="settings-scale-axes">
-                 {[
-                   ['typography', 'settings.uiTypographyScale', 'settings.uiTypographyScaleDescription', 'settings.uiScaleTextGroup'],
-                   ['width', 'settings.uiWidthScale', 'settings.uiWidthScaleDescription', 'settings.uiScaleSpaceGroup'],
-                   ['height', 'settings.uiHeightScale', 'settings.uiHeightScaleDescription'],
-                 ].map(([axis, label, description, group]) => (
-                  <React.Fragment key={axis}>
-                    {group ? <div className="settings-scale-group-title">{t(group)}</div> : null}
-                    <div className="settings-row settings-scale-axis-row">
-                      <div className="settings-row-copy">
-                        <span className="settings-row-title">{t(label)}</span>
-                        <span className="settings-row-description">{t(description)}</span>
-                        <span className="settings-scale-value-detail">{uiScaleValueHint(axis, uiScaleProfile[axis])}</span>
-                      </div>
-                      <div className="settings-scale-control">
-                        <output className="settings-scale-value" htmlFor={`ui-scale-${axis}-slider`}>{t('settings.uiScaleValue', { n: uiScaleProfile[axis] })}</output>
-                        <input id={`ui-scale-${axis}-slider`} className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile[axis]} disabled={!isCustomAppearance} aria-label={t(label)} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile[axis]} onChange={(event) => updateUiScaleProfile({ [axis]: Number(event.target.value) })} />
-                      </div>
-                    </div>
-                  </React.Fragment>
-                ))}
-                </div>
-              )}
+              <div className="settings-scale-control">
+                <output className="settings-scale-value" htmlFor="ui-typography-slider">{t('settings.uiScaleValue', { n: uiScaleProfile.typography })}</output>
+                <input id="ui-typography-slider" className="settings-scale-slider" type="range" min="85" max="125" step="1" value={uiScaleProfile.typography} disabled={!isCustomAppearance} aria-label={t('settings.uiTypographyScale')} aria-valuemin="85" aria-valuemax="125" aria-valuenow={uiScaleProfile.typography} onChange={(event) => updateUiScaleProfile({ typography: Number(event.target.value) })} />
+              </div>
             </div>
 
             <div className="settings-row settings-container-resize-row">
@@ -1558,21 +1537,6 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
               </div>
             </div>
 
-            <div className="settings-row settings-layout-preset-row">
-              <div className="settings-row-copy">
-                <span className="settings-row-title">{t('settings.uiLayoutPreset')}</span>
-                <span className="settings-row-description">{t('settings.uiLayoutPresetDescription')}</span>
-              </div>
-              <div className="settings-layout-preset-actions">
-                <select value={appearance.uiLayoutPresetId || 'default'} onChange={(event) => applyLayoutPreset(uiLayoutPresets.find((preset) => preset.id === event.target.value) || { id: 'default' })} aria-label={t('settings.uiLayoutPreset')}>
-                  <option value="default">{t('settings.uiLayoutPresetDefault')}</option>
-                  {uiLayoutPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
-                </select>
-                <input className="settings-layout-preset-name" value={layoutPresetName} onChange={(event) => setLayoutPresetName(event.target.value)} placeholder={t('settings.uiLayoutPresetNamePlaceholder')} aria-label={t('settings.uiLayoutPresetName')} maxLength={48} />
-                <button type="button" className="btn btn-secondary" onClick={saveLayoutPreset} disabled={!layoutPresetName.trim()}>{t('settings.uiLayoutPresetSave')}</button>
-              </div>
-            </div>
-
             <div className="settings-row">
               <div className="settings-row-copy">
                 <span className="settings-row-title">{t('settings.desktopBackground')}</span>
@@ -1588,6 +1552,7 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
                 {backgroundError && <span className="settings-error" role="alert">{backgroundError}</span>}
               </div>
             </div>
+
           </CanonicalGlassSurface>
         </div>
       </Section>
@@ -1599,11 +1564,11 @@ function SettingsPage({ appearance, setAppearance, layoutEditMode, setLayoutEdit
 /* Coming soon                                                         */
 /* ------------------------------------------------------------------ */
 
-function ComingSoon({ label, layoutId }) {
+function ComingSoon({ label }) {
   return (
     <div className="page">
       <PageHeader title={label} subtitle={t('nav.comingSoon')} />
-        <CanonicalGlassSurface layoutId={layoutId} className="card page-glass-surface coming-soon">
+        <CanonicalGlassSurface className="card page-glass-surface coming-soon">
         <div className="coming-soon-icon">
           <Icon name="sparkles" size={22} />
         </div>

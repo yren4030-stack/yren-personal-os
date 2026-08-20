@@ -14,11 +14,7 @@
 export const UI_SCALE_RANGE = Object.freeze({ min: 85, max: 125, default: 100 })
 export const APPEARANCE_PRESETS = Object.freeze({ default: 'default', custom: 'custom' })
 export const DEFAULT_UI_SCALE_PROFILE = Object.freeze({
-  mode: 'unified',
-  unified: UI_SCALE_RANGE.default,
   typography: UI_SCALE_RANGE.default,
-  width: UI_SCALE_RANGE.default,
-  height: UI_SCALE_RANGE.default,
 })
 export const DEFAULT_UI_CONTAINER_SIZES = Object.freeze({})
 export const DEFAULT_UI_LAYOUT_PRESETS = Object.freeze([])
@@ -56,21 +52,21 @@ export class AppearanceService {
       if (stored && typeof stored === 'object') {
         const glassStrength = this._clamp(stored.glassStrength, DEFAULT_APPEARANCE.glassStrength)
         const uiScale = this._clampUiScale(stored.uiScale)
-        const uiScaleProfile = this._normalizeUiScaleProfile(stored.uiScaleProfile, { ...DEFAULT_UI_SCALE_PROFILE, unified: uiScale })
+        const uiScaleProfile = this._normalizeUiScaleProfile(stored.uiScaleProfile, { typography: uiScale })
         const uiContainerSizes = this._normalizeUiContainerSizes(stored.uiContainerSizes)
         const customAppearance = this._normalizeCustomAppearance(stored.customAppearance, { glassStrength, uiScaleProfile, uiContainerSizes })
         const uiLayoutPresets = this._normalizeUiLayoutPresets(stored.uiLayoutPresets)
         const uiLayoutPresetId = stored.uiLayoutPresetId === 'default' || uiLayoutPresets.some((preset) => preset.id === stored.uiLayoutPresetId)
           ? stored.uiLayoutPresetId || 'default'
           : 'default'
-        const hasCustomUiLayout = uiScaleProfile.mode === 'separate' || Object.values(uiScaleProfile).some((value) => typeof value === 'number' && value !== UI_SCALE_RANGE.default) || Object.keys(uiContainerSizes).length > 0
+        const hasCustomUiLayout = uiScaleProfile.typography !== UI_SCALE_RANGE.default || Object.keys(uiContainerSizes).length > 0
         this.state = {
           material: stored.material === 'transparent' ? 'transparent' : 'frosted',
           frostIntensity: this._clamp(stored.frostIntensity, 60),
           transparencyLevel: this._clamp(stored.transparencyLevel, 40),
           theme: stored.theme === 'dark' || stored.theme === 'system' ? stored.theme : 'light',
           glassStrength,
-          uiScale: uiScaleProfile.unified,
+          uiScale: uiScaleProfile.typography,
           uiScaleProfile,
           uiContainerSizes,
           uiLayoutPresetId,
@@ -115,20 +111,14 @@ export class AppearanceService {
 
   _normalizeUiScaleProfile(value, fallback = DEFAULT_UI_SCALE_PROFILE) {
     const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
-    const unified = this._clampUiScale(source.unified ?? fallback.unified)
-    const mode = source.mode === 'separate' ? 'separate' : 'unified'
     return {
-      mode,
-      unified,
-      typography: this._clampUiScale(source.typography ?? (mode === 'unified' ? unified : fallback.typography)),
-      width: this._clampUiScale(source.width ?? (mode === 'unified' ? unified : fallback.width)),
-      height: this._clampUiScale(source.height ?? (mode === 'unified' ? unified : fallback.height)),
+      typography: this._clampUiScale(source.typography ?? fallback.typography),
     }
   }
 
   _normalizeCustomAppearance(value, fallback = DEFAULT_APPEARANCE.customAppearance) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return { ...fallback }
-    const legacyProfile = value.uiScaleProfile || (value.uiScale !== undefined ? { ...fallback.uiScaleProfile, unified: value.uiScale } : fallback.uiScaleProfile)
+    const legacyProfile = value.uiScaleProfile || (value.uiScale !== undefined ? { ...fallback.uiScaleProfile, typography: value.uiScale } : fallback.uiScaleProfile)
     return {
       glassStrength: this._clamp(value.glassStrength, fallback.glassStrength),
       uiScaleProfile: this._normalizeUiScaleProfile(legacyProfile, fallback.uiScaleProfile),
@@ -191,9 +181,9 @@ export class AppearanceService {
     const uiScaleProfile = Object.prototype.hasOwnProperty.call(patch, 'uiScaleProfile')
       ? this._normalizeUiScaleProfile(patch.uiScaleProfile, this.state.uiScaleProfile)
       : Object.prototype.hasOwnProperty.call(patch, 'uiScale')
-        ? this._normalizeUiScaleProfile({ ...this.state.uiScaleProfile, mode: 'unified', unified: this._clampUiScale(patch.uiScale) })
+        ? this._normalizeUiScaleProfile({ ...this.state.uiScaleProfile, typography: this._clampUiScale(patch.uiScale) })
         : this.state.uiScaleProfile
-    const uiScale = uiScaleProfile.unified
+    const uiScale = uiScaleProfile.typography
     const uiContainerSizes = hasUiContainerSizes ? this._normalizeUiContainerSizes(patch.uiContainerSizes) : this.state.uiContainerSizes
     const uiLayoutPresets = hasUiLayoutPresets ? this._normalizeUiLayoutPresets(patch.uiLayoutPresets) : this.state.uiLayoutPresets
     const requestedLayoutPresetId = hasUiLayoutPresetId ? patch.uiLayoutPresetId : this.state.uiLayoutPresetId

@@ -111,16 +111,9 @@ export function normalizeAppearancePatch(patch) {
     if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
       return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiScaleProfile must be an object' } }
     }
-    if (profile.mode !== 'unified' && profile.mode !== 'separate') {
-      return { ok: false, error: { code: ERROR_CODES.INVALID_REQUEST, message: 'uiScaleProfile.mode must be unified or separate' } }
-    }
     const scale = (value) => clampInt(value, UI_SCALE_MIN, UI_SCALE_MAX, NaN)
     normalized.uiScaleProfile = {
-      mode: profile.mode,
-      unified: scale(profile.unified),
       typography: scale(profile.typography),
-      width: scale(profile.width),
-      height: scale(profile.height),
     }
   }
   if ('uiContainerSizes' in patch) {
@@ -163,14 +156,14 @@ export function normalizeAppearancePatch(patch) {
         }
       }
       const profile = preset.uiScaleProfile
-      if (!profile || typeof profile !== 'object' || Array.isArray(profile) || (profile.mode !== 'unified' && profile.mode !== 'separate')) return []
+      if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return []
       const scale = (value) => clampInt(value, UI_SCALE_MIN, UI_SCALE_MAX, NaN)
       return [{
         id: preset.id,
         name: preset.name.trim().slice(0, 48),
         glassStrength: clampInt(preset.glassStrength, 0, 100, 30),
         liquidGlassStyle: preset.liquidGlassStyle === 'tinted' ? 'tinted' : 'clear',
-        uiScaleProfile: { mode: profile.mode, unified: scale(profile.unified), typography: scale(profile.typography), width: scale(profile.width), height: scale(profile.height) },
+        uiScaleProfile: { typography: scale(profile.typography) },
         uiContainerSizes: sizes,
       }]
     })
